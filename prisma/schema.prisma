@@ -1,0 +1,472 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Switch to "postgresql" and set DATABASE_URL to your Postgres connection string for production.
+  // Local dev: DATABASE_URL="file:./prisma/dev.db"  (SQLite, default)
+  // Production: DATABASE_URL="postgresql://user:pass@host:5432/hfp?sslmode=require"
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Identity ─────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified DateTime?
+  passwordHash  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  didIdentifier String?  @unique
+  merkleRoot    String?
+  publicKeyHint String?
+
+  profile        UserProfile?
+  claims         IdentityClaim[]
+  wallet         Wallet?
+  moduleActivity ModuleActivity[]
+  moduleInterest ModuleInterest[]
+  healthEntries  HealthEntry[]
+  healthGoals    HealthGoal[]
+  aiInsights     AIInsight[]
+  moodEntries    MoodEntry[]
+  journalEntries JournalEntry[]
+  learningGoals  LearningGoal[]
+  lessonSessions LessonSession[]
+  govRecords     GovRecord[]
+  researchStudies ResearchStudy[]
+  replications   Replication[]
+  peerReviews    PeerReview[]
+  econInterventions EconIntervention[]
+  infraProjects  InfraProject[]
+  energyLogs     EnergyLog[]
+
+  @@index([email])
+}
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  displayName String?
+  avatarUrl   String?
+  bio         String?
+  location    String?
+  timezone    String?
+
+  profileVisibility  String  @default("PRIVATE")
+  shareHealthData    Boolean @default(false)
+  shareEduProgress   Boolean @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model IdentityClaim {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  claimType      String
+  leafIndex      Int
+  encryptedValue String
+  displayLabel   String
+  isVerified     Boolean  @default(false)
+  verifiedBy     String?
+  verifiedAt     DateTime?
+  expiresAt      DateTime?
+  valueHash      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, claimType])
+  @@index([userId, claimType])
+}
+
+// ─── Token Economy ────────────────────────────────────────────────────────────
+
+model Wallet {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  foundBalance  BigInt @default(0)
+  voiceBalance  BigInt @default(0)
+  stakedFound   BigInt @default(0)
+  stakeStartedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions  Transaction[]
+  stakingEvents StakingEvent[]
+}
+
+model Transaction {
+  id       String @id @default(cuid())
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id])
+
+  tokenType    String
+  amount       BigInt
+  balanceAfter BigInt
+  txType       String
+  description  String
+  referenceId  String?
+  moduleId     String?
+  onChainTxHash String?
+
+  createdAt DateTime @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([walletId, tokenType])
+}
+
+model StakingEvent {
+  id       String @id @default(cuid())
+  walletId String
+  wallet   Wallet @relation(fields: [walletId], references: [id])
+
+  eventType String
+  amount    BigInt
+  createdAt DateTime @default(now())
+
+  @@index([walletId])
+}
+
+// ─── Module Activity ──────────────────────────────────────────────────────────
+
+model ModuleActivity {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId     String
+  activityKey  String
+  metadata     String?
+  foundAwarded BigInt   @default(0)
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, moduleId, activityKey])
+  @@index([userId, moduleId])
+}
+
+model ModuleInterest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId  String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, moduleId])
+}
+
+// ─── Health Intelligence ──────────────────────────────────────────────────────
+
+model HealthEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // VITALS | SYMPTOM | EXERCISE | SLEEP | NUTRITION | MEDICATION | MEASUREMENT
+  entryType  String
+  data       String   // JSON blob — flexible per type
+  notes      String?
+  recordedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId, entryType])
+  @@index([userId, recordedAt])
+}
+
+model HealthGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // STEPS | WEIGHT | SLEEP_HOURS | WATER_L | EXERCISE_MIN | BLOOD_PRESSURE | CUSTOM
+  goalType    String
+  title       String
+  target      String    // JSON — {value, unit}
+  current     String?   // JSON — latest logged value
+  deadline    DateTime?
+  isActive    Boolean   @default(true)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, isActive])
+}
+
+// ─── AI Insights (shared across modules) ─────────────────────────────────────
+
+model AIInsight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // HEALTH | MENTAL_HEALTH | EDUCATION
+  moduleId    String
+  // TREND | RECOMMENDATION | ALERT | SUMMARY | ENCOURAGEMENT
+  insightType String
+  content     String
+  dataContext String?  // brief description of what data was analyzed
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, moduleId, isRead])
+}
+
+// ─── Mental Health & Community ────────────────────────────────────────────────
+
+model MoodEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  score      Int      // 1-10
+  emotions   String   // JSON string[]
+  notes      String?
+  triggers   String?  // JSON string[]
+  activities String?  // JSON string[]
+  recordedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId, recordedAt])
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String?
+  content     String
+  mood        Int?     // optional mood score at writing time
+  tags        String?  // JSON string[]
+  isEncrypted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+// ─── Education Intelligence ───────────────────────────────────────────────────
+
+model LearningGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subject     String
+  topic       String
+  level       String    @default("BEGINNER")  // BEGINNER | INTERMEDIATE | ADVANCED
+  description String?
+  targetDate  DateTime?
+  isActive    Boolean   @default(true)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  sessions    LessonSession[]
+
+  @@index([userId, isActive])
+}
+
+model LessonSession {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalId    String?
+  goal      LearningGoal? @relation(fields: [goalId], references: [id])
+
+  subject   String
+  topic     String
+  level     String        @default("BEGINNER")
+  messages  String        // JSON {role:"user"|"assistant", content:string}[]
+  durationS Int           @default(0)  // seconds
+  score     Int?          // mastery score 0-100
+  createdAt DateTime      @default(now())
+
+  @@index([userId, createdAt])
+  @@index([goalId])
+}
+
+// ─── Governance Transparency ──────────────────────────────────────────────────
+
+model GovRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // POLITICIAN | VOTE | LEGISLATION | CIVIC_ACTION
+  entityType   String
+  title        String
+  jurisdiction String?
+  party        String?
+  office       String?
+  data         String   // JSON — flexible per entityType
+  sourceUrl    String?
+  notes        String?
+  aiAnalysis   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, entityType])
+  @@index([userId, createdAt])
+}
+
+// ─── DeSci Platform ───────────────────────────────────────────────────────────
+
+model ResearchStudy {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title        String
+  field        String   // biology | physics | psychology | economics | etc.
+  hypothesis   String
+  methodology  String
+  // PRE_REGISTERED | IN_PROGRESS | COMPLETED | PEER_REVIEWED
+  status       String   @default("PRE_REGISTERED")
+  results      String?
+  dataUrl      String?
+  isPublic     Boolean  @default(true)
+  aiReview     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  replications Replication[]
+  reviews      PeerReview[]
+
+  @@index([userId])
+  @@index([status, isPublic])
+}
+
+model Replication {
+  id        String        @id @default(cuid())
+  studyId   String
+  study     ResearchStudy @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // CONFIRMED | REFUTED | INCONCLUSIVE
+  outcome   String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([studyId])
+  @@index([userId])
+}
+
+model PeerReview {
+  id        String        @id @default(cuid())
+  studyId   String
+  study     ResearchStudy @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  quality   Int      // 1-5 methodology quality
+  rigor     Int      // 1-5 statistical rigor
+  comments  String
+  createdAt DateTime @default(now())
+
+  @@unique([studyId, userId])
+  @@index([studyId])
+}
+
+// ─── Economic Blueprint ───────────────────────────────────────────────────────
+
+model EconIntervention {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String
+  // HEALTH | EDUCATION | NUTRITION | ENERGY | INFRASTRUCTURE | GOVERNANCE | OTHER
+  category      String
+  region        String
+  costUSD       Float
+  description   String
+  // LOW | MEDIUM | HIGH | VERY_HIGH
+  evidenceLevel String   @default("MEDIUM")
+  roiScore      Int?     // 0-100, AI-generated Copenhagen Consensus style
+  timelineYears Int?
+  beneficiaries Int?
+  aiAnalysis    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category, roiScore])
+}
+
+// ─── Infrastructure Intelligence ─────────────────────────────────────────────
+
+model InfraProject {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  // ROAD | BRIDGE | BUILDING | WATER | ENERGY | DIGITAL | SANITATION | OTHER
+  projectType   String
+  location      String
+  climateZone   String?
+  // PLANNED | IN_PROGRESS | COMPLETED | MAINTENANCE
+  status        String   @default("PLANNED")
+  budgetUSD     Float?
+  lifespanYears Int?
+  // MINIMUM | STANDARD | PREMIUM
+  qualityTier   String   @default("STANDARD")
+  specs         String?  // JSON
+  tcoCostUSD    Float?   // Total cost of ownership (AI calculated)
+  tcoSavingsUSD Float?   // Savings vs minimum-spec alternative
+  aiAnalysis    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([projectType, status])
+}
+
+// ─── Decentralized Energy Grid ────────────────────────────────────────────────
+
+model EnergyLog {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // PRODUCTION | CONSUMPTION | STORAGE_CHARGE | STORAGE_DISCHARGE
+  logType      String
+  // SOLAR | WIND | HYDRO | BATTERY | GRID | GENERATOR | OTHER
+  sourceType   String
+  amountKwh    Float
+  pricePerKwh  Float?
+  co2SavedKg   Float?
+  peakDemand   Boolean  @default(false)
+  notes        String?
+  recordedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([userId, logType])
+  @@index([userId, recordedAt])
+}
+
+// ─── Email Verification ───────────────────────────────────────────────────────
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
