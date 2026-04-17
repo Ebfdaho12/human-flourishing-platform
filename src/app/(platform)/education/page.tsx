@@ -228,7 +228,16 @@ function TutorChat({
   }
 
   function renderMessage(content: string) {
-    return content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>")
+    // Sanitize to prevent XSS before rendering as HTML
+    const html = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>")
+    // Strip dangerous tags while keeping formatting
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/on\w+\s*=/gi, "")
+      .replace(/<iframe/gi, "&lt;iframe")
+      .replace(/<object/gi, "&lt;object")
+      .replace(/<embed/gi, "&lt;embed")
+      .replace(/<img[^>]*onerror/gi, "&lt;img onerror")
   }
 
   return (
