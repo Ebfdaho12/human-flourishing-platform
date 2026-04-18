@@ -245,6 +245,76 @@ export default function GovernancePage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Aletheia Integration */}
+      <Card className="mt-6 border-amber-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ExternalLink className="h-4 w-4 text-amber-600" />
+            Aletheia Truth Check
+          </CardTitle>
+          <CardDescription>Search Aletheia's database of 14,000+ public figures for credibility scores, documented claims, and funding connections</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AletheiaSearch />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function AletheiaSearch() {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  async function search() {
+    if (query.length < 2) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/aletheia?action=search&q=${encodeURIComponent(query)}`)
+      const data = await res.json()
+      setResults(data.figures ?? [])
+    } catch { setResults([]) }
+    setLoading(false)
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && search()}
+          placeholder="Search any politician, CEO, or public figure..."
+          className="flex-1"
+        />
+        <Button onClick={search} disabled={loading || query.length < 2} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+          {loading ? "..." : "Search"}
+        </Button>
+      </div>
+      {results.length > 0 && (
+        <div className="space-y-2">
+          {results.slice(0, 5).map((f: any, i: number) => (
+            <div key={i} className="rounded-lg border border-amber-100 bg-amber-50/50 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">{f.name}</p>
+                  <p className="text-xs text-muted-foreground">{f.title} {f.party ? `· ${f.party}` : ""} {f.country ? `· ${f.country}` : ""}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-amber-700">{f.credibilityScore ?? 50}/100</p>
+                  <p className="text-xs text-muted-foreground">Credibility</p>
+                </div>
+              </div>
+              {f.totalClaims > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{f.totalClaims} claims tracked · {f.verifiedClaims} verified · {f.refutedClaims} refuted</p>
+              )}
+            </div>
+          ))}
+          <p className="text-xs text-center text-muted-foreground">Powered by Aletheia Truth Protocol · aletheia.app</p>
+        </div>
+      )}
     </div>
   )
 }
