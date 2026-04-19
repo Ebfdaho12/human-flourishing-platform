@@ -313,8 +313,13 @@ export function AlyVoice() {
     setListening(false)
   }
 
-  // Check browser support
-  const supported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  // Only render on client after mount (prevents hydration mismatch)
+  if (!mounted) return null
+
+  const supported = "SpeechRecognition" in window || "webkitSpeechRecognition" in window
   if (!supported) return null
 
   return (
