@@ -32,8 +32,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           try {
+            if (!localStorage.getItem('hfp-theme-v2')) {
+              localStorage.setItem('hfp-theme', 'light');
+              localStorage.setItem('hfp-theme-v2', '1');
+            }
             if (localStorage.getItem('hfp-theme') === 'dark') {
-              document.documentElement.classList.add('dark')
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
             }
           } catch (e) {}
         `}} />
