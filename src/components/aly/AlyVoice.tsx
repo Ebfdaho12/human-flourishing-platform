@@ -68,18 +68,87 @@ function parseCommand(text: string): { action: string; data: any } | null {
   return null
 }
 
+// Voice preference — stored in localStorage
+function getVoicePreference(): "female" | "male" {
+  if (typeof window === "undefined") return "female"
+  return (localStorage.getItem("aly-voice") as "female" | "male") ?? "female"
+}
+
+function setVoicePreference(pref: "female" | "male") {
+  localStorage.setItem("aly-voice", pref)
+}
+
+function getBestVoice(gender: "female" | "male"): SpeechSynthesisVoice | null {
+  const voices = speechSynthesis.getVoices()
+  if (voices.length === 0) return null
+
+  // Ranked preferences for most natural-sounding voices per platform
+  const femalePreferences = [
+    "Microsoft Aria Online (Natural)",   // Edge — very natural
+    "Microsoft Jenny Online (Natural)",  // Edge
+    "Google US English",                 // Chrome — decent
+    "Samantha",                          // macOS — excellent
+    "Microsoft Zira",                    // Windows fallback
+    "Google UK English Female",          // Chrome
+  ]
+
+  const malePreferences = [
+    "Microsoft Guy Online (Natural)",    // Edge — very natural
+    "Microsoft Ryan Online (Natural)",   // Edge
+    "Google US English Male",            // Chrome
+    "Alex",                              // macOS
+    "Microsoft David",                   // Windows fallback
+    "Google UK English Male",            // Chrome
+    "Daniel",                            // macOS
+  ]
+
+  const preferences = gender === "female" ? femalePreferences : malePreferences
+
+  // Try exact matches first
+  for (const name of preferences) {
+    const match = voices.find(v => v.name.includes(name))
+    if (match) return match
+  }
+
+  // Try keyword matching
+  if (gender === "female") {
+    const natural = voices.find(v => v.name.includes("Natural") && (v.name.includes("Aria") || v.name.includes("Jenny") || v.name.includes("Sara")))
+    if (natural) return natural
+    const female = voices.find(v => (v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Zira") || v.name.includes("Hazel")) && v.lang.startsWith("en"))
+    if (female) return female
+  } else {
+    const natural = voices.find(v => v.name.includes("Natural") && (v.name.includes("Guy") || v.name.includes("Ryan") || v.name.includes("Davis")))
+    if (natural) return natural
+    const male = voices.find(v => (v.name.includes("Male") || v.name.includes("David") || v.name.includes("Daniel") || v.name.includes("Alex")) && v.lang.startsWith("en"))
+    if (male) return male
+  }
+
+  // Last resort: any English voice
+  return voices.find(v => v.lang.startsWith("en")) ?? voices[0] ?? null
+}
+
 function speak(text: string) {
   if ("speechSynthesis" in window) {
+    // Cancel any current speech
+    speechSynthesis.cancel()
+
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 1
-    utterance.pitch = 1.05
-    utterance.volume = 0.8
-    // Try to find a natural-sounding voice
-    const voices = speechSynthesis.getVoices()
-    const preferred = voices.find(v => v.name.includes("Samantha") || v.name.includes("Google") || v.name.includes("Natural") || v.lang === "en-US")
-    if (preferred) utterance.voice = preferred
+    utterance.rate = 0.95   // Slightly slower = more natural
+    utterance.pitch = getVoicePreference() === "female" ? 1.05 : 0.9
+    utterance.volume = 0.85
+
+    // Voices sometimes load async — retry if needed
+    const voice = getBestVoice(getVoicePreference())
+    if (voice) utterance.voice = voice
+
     speechSynthesis.speak(utterance)
   }
+}
+
+// Preload voices (some browsers load them async)
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  speechSynthesis.getVoices()
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices()
 }
 
 export function AlyVoice() {
@@ -87,7 +156,13 @@ export function AlyVoice() {
   const [transcript, setTranscript] = useState("")
   const [response, setResponse] = useState("")
   const [visible, setVisible] = useState(false)
+  const [voicePref, setVoicePref] = useState<"female" | "male">("female")
   const recognitionRef = useRef<any>(null)
+
+  // Load voice preference
+  useEffect(() => {
+    setVoicePref(getVoicePreference())
+  }, [])
 
   useEffect(() => {
     // Check if browser supports speech recognition
@@ -248,7 +323,7 @@ export function AlyVoice() {
       <button
         onClick={() => visible ? (listening ? stopListening() : startListening()) : startListening()}
         className={cn(
-          "fixed bottom-6 left-6 z-40 flex items-center gap-2 rounded-full shadow-xl transition-all",
+          "fixed bottom-20 left-6 z-40 flex items-center gap-2 rounded-full shadow-xl transition-all",
           listening
             ? "bg-red-500 text-white px-4 py-3 animate-pulse"
             : "bg-gradient-to-r from-violet-600 to-purple-600 text-white px-4 py-3 hover:scale-105"
@@ -260,7 +335,7 @@ export function AlyVoice() {
 
       {/* Response panel */}
       {visible && (response || transcript) && (
-        <div className="fixed bottom-20 left-6 z-40 w-80 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+        <div className="fixed bottom-32 left-6 z-40 w-80 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-white" />
@@ -286,7 +361,19 @@ export function AlyVoice() {
               <p className="text-sm text-muted-foreground animate-pulse">Listening...</p>
             )}
           </div>
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 space-y-2">
+            {/* Voice selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground">Voice:</span>
+              <button
+                onClick={() => { setVoicePreference("female"); setVoicePref("female"); speak("Hi, I'm Aly.") }}
+                className={cn("text-[10px] rounded-full px-2 py-0.5 transition-colors", voicePref === "female" ? "bg-pink-100 text-pink-700 font-medium" : "text-muted-foreground hover:bg-muted")}
+              >Female</button>
+              <button
+                onClick={() => { setVoicePreference("male"); setVoicePref("male"); speak("Hi, I'm Aly.") }}
+                className={cn("text-[10px] rounded-full px-2 py-0.5 transition-colors", voicePref === "male" ? "bg-blue-100 text-blue-700 font-medium" : "text-muted-foreground hover:bg-muted")}
+              >Male</button>
+            </div>
             <p className="text-[10px] text-muted-foreground">
               Try: "I'm feeling a 7" · "Slept 8 hours" · "What's my streak?" · "Drank 3 glasses of water"
             </p>
