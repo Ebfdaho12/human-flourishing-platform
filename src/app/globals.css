@@ -1,24 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8f9fc;
-  --foreground: #0f172a;
+  /* Warm, bright, easy on the eyes — enlightening/empowering feel */
+  --background: #faf9f7;
+  --foreground: #1a1a2e;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1a1a2e;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #1a1a2e;
   --primary: #7c3aed;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --secondary: #f5f3f0;
+  --secondary-foreground: #1a1a2e;
+  --muted: #f0eeeb;
+  --muted-foreground: #6b7280;
   --accent: #ede9fe;
   --accent-foreground: #5b21b6;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
+  --border: #e8e5e0;
+  --input: #e8e5e0;
   --ring: #7c3aed;
   --radius: 0.75rem;
 }
@@ -72,7 +73,8 @@
 }
 
 body {
-  background: linear-gradient(135deg, #f8f9fc 0%, #f0f0ff 50%, #f5f0ff 100%);
+  /* Warm cream gradient — not harsh white, not blue-tinted */
+  background: linear-gradient(135deg, #faf9f7 0%, #f5f0eb 40%, #f0eaff 100%);
   background-attachment: fixed;
   color: var(--foreground);
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -86,16 +88,16 @@ body.dark {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: #d1cdc7; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
 
 .gradient-text {
   background: linear-gradient(135deg, #7c3aed, #a78bfa);
@@ -109,5 +111,5 @@ body.dark {
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
 }

@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: `
           try {
-            if (localStorage.getItem('hfp-theme') === 'dark' || (!localStorage.getItem('hfp-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            if (localStorage.getItem('hfp-theme') === 'dark') {
               document.documentElement.classList.add('dark')
             }
           } catch (e) {}

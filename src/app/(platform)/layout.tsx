@@ -1,9 +1,14 @@
+import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { TopNav } from "@/components/layout/TopNav"
 import { FeedbackButton } from "@/components/layout/FeedbackButton"
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts"
 
-export default function PlatformLayout({ children }: { children: React.ReactNode }) {
+export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions)
+  if (!session) redirect("/login")
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Skip to content — accessibility */}
