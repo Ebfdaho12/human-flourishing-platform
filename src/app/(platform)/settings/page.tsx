@@ -138,6 +138,22 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Notifications */}
+      <Card className="card-hover">
+        <a href="/settings/notifications">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Download className="h-4 w-4 text-violet-500" />
+              <div>
+                <p className="text-sm font-medium">Notification Preferences</p>
+                <p className="text-xs text-muted-foreground">Control what reminders you see — supportive, not nagging</p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground">→</span>
+          </CardContent>
+        </a>
+      </Card>
+
       {/* Data Export */}
       <Card>
         <CardHeader>
