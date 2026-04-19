@@ -125,8 +125,19 @@ export async function stakeFound(userId: string, amount: bigint): Promise<void> 
   })
 }
 
-export async function unstakeFound(userId: string): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+/**
+ * Graduated VOICE burn on unstake:
+ * - Staked < 90 days: burn 90% of VOICE
+ * - Staked 90-180 days: burn 70%
+ * - Staked 180-365 days: burn 50%
+ * - Staked 1-2 years: burn 30%
+ * - Staked 3+ years: burn 10%
+ *
+ * This rewards loyalty — the longer you've been committed,
+ * the more governance power you keep when you leave.
+ */
+export async function unstakeFound(userId: string): Promise<{ voiceKept: bigint; voiceBurned: bigint }> {
+  return await prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } })
     if (!wallet) throw new Error("Wallet not found")
     if (wallet.stakedFound === 0n) throw new Error("Nothing staked")
@@ -134,14 +145,32 @@ export async function unstakeFound(userId: string): Promise<void> {
     const amount = wallet.stakedFound
     const newFoundBalance = wallet.foundBalance + amount
 
+    // Calculate graduated burn rate based on staking duration
+    let burnRate = 90 // default: burn 90%
+    if (wallet.stakeStartedAt) {
+      const daysStaked = Math.floor((Date.now() - wallet.stakeStartedAt.getTime()) / 86400000)
+      if (daysStaked >= 1095) burnRate = 10      // 3+ years: keep 90%
+      else if (daysStaked >= 730) burnRate = 20   // 2+ years: keep 80%
+      else if (daysStaked >= 365) burnRate = 30   // 1+ year: keep 70%
+      else if (daysStaked >= 180) burnRate = 50   // 6+ months: keep 50%
+      else if (daysStaked >= 90) burnRate = 70    // 3+ months: keep 30%
+      // < 90 days: keep only 10%
+    }
+
+    const voiceBurned = (wallet.voiceBalance * BigInt(burnRate)) / 100n
+    const voiceKept = wallet.voiceBalance - voiceBurned
+
     await tx.wallet.update({
       where: { id: wallet.id },
       data: {
         foundBalance: newFoundBalance,
         stakedFound: 0n,
         stakeStartedAt: null,
+        voiceBalance: voiceKept,
       },
     })
+
+    // Log FOUND return
     await tx.transaction.create({
       data: {
         walletId: wallet.id,
@@ -152,8 +181,25 @@ export async function unstakeFound(userId: string): Promise<void> {
         description: `Unstaked ${amount / 1_000_000n} FOUND`,
       },
     })
+
+    // Log VOICE burn
+    if (voiceBurned > 0n) {
+      await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          tokenType: "VOICE",
+          amount: -voiceBurned,
+          balanceAfter: voiceKept,
+          txType: "VOICE_BURN",
+          description: `${burnRate}% VOICE burned on unstake (${100 - burnRate}% retained for loyalty)`,
+        },
+      })
+    }
+
     await tx.stakingEvent.create({
       data: { walletId: wallet.id, eventType: "UNSTAKE", amount },
     })
+
+    return { voiceKept, voiceBurned }
   })
 }
