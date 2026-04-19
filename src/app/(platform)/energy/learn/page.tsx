@@ -295,6 +295,51 @@ export default function EnergyLearnPage() {
             </p>
           </div>
 
+          {/* How the energy physically gets there */}
+          <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50 p-5">
+            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-600" />
+              "But how does the energy get to my neighbor? It can't go over the internet."
+            </h3>
+            <div className="space-y-3 text-sm text-yellow-900 leading-relaxed">
+              <p>
+                Great question — and this is where most people get confused. <strong>The electricity doesn't travel
+                over the internet.</strong> It travels through the <strong>existing power lines</strong> — the same
+                wires already connecting every house on your street.
+              </p>
+              <p>
+                Those wires don't care who produced the electricity. Electrons don't have name tags. Here's what
+                actually happens:
+              </p>
+              <div className="rounded-lg bg-white/60 p-3 space-y-2">
+                <p>1. Your solar panels push excess electricity <strong>into the local power lines</strong> (the ones already on your street)</p>
+                <p>2. Your neighbor pulls electricity <strong>from those same local power lines</strong></p>
+                <p>3. The electricity physically flows from your house to theirs through the <strong>existing grid</strong> — it's already doing this today, you just don't get paid for it</p>
+              </div>
+              <p>
+                <strong>What travels over the internet is only the ACCOUNTING</strong> — the record of how much
+                you produced, how much they consumed, and the payment. That's what the blockchain handles.
+              </p>
+              <div className="rounded-lg bg-white/60 p-3">
+                <p className="font-medium mb-1">Think of it like a shared pool:</p>
+                <p>• You pour water in (produce energy)</p>
+                <p>• Your neighbor takes water out (consumes energy)</p>
+                <p>• The smart meter tracks who poured in and who took out</p>
+                <p>• The smart contract settles payment</p>
+                <p className="mt-2 font-medium">No new wires needed. No new infrastructure. The physical grid already exists.</p>
+              </div>
+              <p>
+                We're just changing <strong>WHO GETS PAID</strong> for the energy flowing through it — you,
+                instead of the utility company.
+              </p>
+              <p className="text-xs text-yellow-700">
+                <strong>Why utilities fight this:</strong> You're using their wires to cut them out of the transaction.
+                Some jurisdictions are starting to require "grid access fees" — a small fee for using the wires.
+                That's fair. But it's much less than the full markup utilities charge as middlemen.
+              </p>
+            </div>
+          </div>
+
           {/* Current reality */}
           <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
             <h3 className="font-semibold text-sm mb-2">Where Are We Today?</h3>
