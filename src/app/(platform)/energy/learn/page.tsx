@@ -215,10 +215,154 @@ export default function EnergyLearnPage() {
         </CardContent>
       </Card>
 
+      {/* How P2P Energy Trading Actually Works */}
+      <Card className="border-yellow-200">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sun className="h-4 w-4 text-yellow-500" /> How Do I Actually Sell Energy to My Neighbor?
+          </CardTitle>
+          <CardDescription>Step by step — from solar panels to getting paid</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* The story */}
+          <div className="rounded-xl bg-yellow-50 border border-yellow-200 p-4">
+            <p className="text-sm leading-relaxed text-yellow-900">
+              Let's say it's a sunny Tuesday afternoon. Your solar panels are producing 8 kW but your house is only
+              using 3 kW. That's 5 kW of extra electricity being generated. Right now, that surplus goes back to the
+              utility company — and they pay you a fraction of what they charge everyone else for it. That's not fair.
+              Here's how it works when YOU control your energy:
+            </p>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-4">
+            <StepCard number={1} title="You produce more than you use"
+              content="Your solar panels generate electricity. Your home uses some of it. The rest is surplus — energy that would otherwise be wasted or sold to the utility company for pennies."
+              simple="You make more electricity than your house needs. Instead of giving it away cheap, you keep it to sell yourself."
+            />
+
+            <StepCard number={2} title="A small device on your meter tracks it"
+              content="A hardware node (about the size of a phone charger, costs ~$15) plugs into your electrical panel. It measures exactly how much energy you produce, consume, and have available as surplus — in real-time."
+              simple="A tiny device on your electric panel counts exactly how much extra energy you have. It's like a fitness tracker but for your electricity."
+            />
+
+            <StepCard number={3} title="Your surplus gets listed on the marketplace"
+              content="The device automatically lists your available surplus on the P2P energy marketplace. It sets a price based on your preferences — maybe $0.10/kWh, which is less than the grid charges ($0.15/kWh) but more than the utility would pay you ($0.04/kWh)."
+              simple="Your extra energy automatically shows up in a marketplace — like listing something on eBay. You set the price. It's more than the utility would pay you, but less than what your neighbor pays the power company. Everyone wins."
+            />
+
+            <StepCard number={4} title="Your neighbor buys it"
+              content="Your neighbor (or anyone nearby on the local grid) sees your listing. Their device automatically buys your surplus because it's cheaper than grid electricity. They don't have to do anything — their device is set to 'buy cheapest available energy.'"
+              simple="Your neighbor's device automatically buys your cheaper energy instead of the expensive utility energy. They save money without doing anything. It happens automatically."
+            />
+
+            <StepCard number={5} title="Smart contract handles payment"
+              content="A smart contract on the blockchain automatically transfers payment from your neighbor's account to yours. No invoice. No bank. No waiting. The transaction is instant, transparent, and can't be faked."
+              simple="You get paid instantly and automatically. No bills, no banks, no waiting. Computer code handles the whole transaction — nobody can cheat because it's all recorded publicly."
+            />
+
+            <StepCard number={6} title="You earn FOUND tokens on top"
+              content="In addition to the energy payment, the platform rewards you with FOUND tokens for producing renewable energy. These tokens give you governance power over the energy grid and can be used across the entire Human Flourishing Platform."
+              simple="On top of getting paid for your energy, you earn bonus tokens just for producing clean energy. It's like cashback rewards for being green."
+            />
+          </div>
+
+          {/* The math */}
+          <div className="rounded-xl border border-border p-4">
+            <h3 className="font-semibold text-sm mb-3">The Math: Why Everyone Wins</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+                <span className="text-muted-foreground">What the utility pays you for surplus</span>
+                <span className="font-bold text-red-500">$0.03–0.05/kWh</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+                <span className="text-muted-foreground">What P2P marketplace pays you</span>
+                <span className="font-bold text-emerald-600">$0.08–0.12/kWh</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b border-border/50">
+                <span className="text-muted-foreground">What grid charges your neighbor</span>
+                <span className="font-bold text-red-500">$0.12–0.20/kWh</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-muted-foreground">What your neighbor pays on P2P</span>
+                <span className="font-bold text-emerald-600">$0.08–0.12/kWh</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              <strong>You earn 2-3x more</strong> than selling to the utility.
+              <strong> Your neighbor pays 20-40% less</strong> than grid rates.
+              The utility company — the middleman — is the only one who loses. That's why they fight P2P trading.
+            </p>
+          </div>
+
+          {/* Current reality */}
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+            <h3 className="font-semibold text-sm mb-2">Where Are We Today?</h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                <strong className="text-foreground">What works now:</strong> Track your production and consumption,
+                calculate solar ROI, see your climate impact, earn FOUND tokens, practice with the trading simulator.
+              </p>
+              <p>
+                <strong className="text-foreground">What's coming:</strong> Hardware nodes (~$15), real-time metering,
+                actual P2P trading with smart contract settlement, community energy pools.
+              </p>
+              <p>
+                <strong className="text-foreground">What exists elsewhere:</strong> Australia's Power Ledger,
+                Brooklyn Microgrid in NYC, and several European pilot programs have proven P2P energy trading works.
+                The technology exists. The regulations are catching up.
+              </p>
+            </div>
+          </div>
+
+          {/* Who benefits most */}
+          <div>
+            <h3 className="font-semibold text-sm mb-3">Who Benefits Most?</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { who: "Solar homeowners", why: "Earn 2-3x more for surplus energy than utility buyback rates" },
+                { who: "Renters & non-solar homes", why: "Buy cheaper, cleaner energy from neighbors instead of the grid" },
+                { who: "Rural communities", why: "Build energy independence — less reliance on distant power plants and aging infrastructure" },
+                { who: "Developing regions", why: "Skip the expensive centralized grid entirely — like how Africa skipped landlines and went straight to mobile phones" },
+              ].map(item => (
+                <div key={item.who} className="rounded-lg border border-border p-3">
+                  <p className="text-sm font-semibold">{item.who}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.why}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex gap-3">
         <a href="/energy" className="text-sm text-amber-600 hover:underline">← Energy Grid</a>
         <a href="/education/finance" className="text-sm text-emerald-600 hover:underline">Financial Literacy →</a>
       </div>
+    </div>
+  )
+}
+
+function StepCard({ number, title, content, simple }: { number: number; title: string; content: string; simple: string }) {
+  const [showSimple, setShowSimple] = useState(false)
+
+  return (
+    <div className="flex gap-4">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 text-white text-sm font-bold shadow">
+        {number}
+      </div>
+      <div className="flex-1">
+        <p className="font-semibold text-sm">{title}</p>
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          {showSimple ? simple : content}
+        </p>
+        <button onClick={() => setShowSimple(!showSimple)} className="text-[10px] text-amber-600 hover:underline mt-1">
+          {showSimple ? "Show detailed version" : "Explain it simpler →"}
+        </button>
+      </div>
+    </div>
+  )
+}
     </div>
   )
 }
