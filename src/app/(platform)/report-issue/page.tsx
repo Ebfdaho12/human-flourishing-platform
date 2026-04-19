@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { Bug, Send, CheckCircle, AlertTriangle, Lightbulb, Eye, Camera } from "lucide-react"
+import { Bug, Send, CheckCircle, AlertTriangle, Lightbulb, Eye, Camera, Mic, MicOff } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +38,34 @@ export default function ReportIssuePage() {
   const [steps, setSteps] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [recordingField, setRecordingField] = useState<"title" | "description" | "steps" | null>(null)
+
+  function startVoiceInput(field: "title" | "description" | "steps") {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) return
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = "en-US"
+
+    recognition.onresult = (event: any) => {
+      const text = event.results[0][0].transcript
+      if (field === "title") setTitle(prev => prev ? prev + " " + text : text)
+      if (field === "description") setDescription(prev => prev ? prev + " " + text : text)
+      if (field === "steps") setSteps(prev => prev ? prev + " " + text : text)
+      setRecording(false)
+      setRecordingField(null)
+    }
+
+    recognition.onend = () => { setRecording(false); setRecordingField(null) }
+    recognition.onerror = () => { setRecording(false); setRecordingField(null) }
+
+    setRecording(true)
+    setRecordingField(field)
+    recognition.start()
+  }
 
   // Auto-detect current page
   const currentPage = typeof window !== "undefined" ? window.location.pathname : ""
@@ -143,18 +171,36 @@ export default function ReportIssuePage() {
 
           <div className="space-y-1.5">
             <Label>Title — what's wrong in one sentence?</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Energy page doesn't show the new content after refresh" />
+            <div className="flex gap-2">
+              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Energy page doesn't show the new content after refresh" className="flex-1" />
+              <Button type="button" variant="outline" size="icon" onClick={() => startVoiceInput("title")}
+                className={cn("shrink-0", recordingField === "title" && "bg-red-100 border-red-300 text-red-600 animate-pulse")}>
+                {recordingField === "title" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Description — what happened?</Label>
+            <div className="flex items-center justify-between">
+              <Label>Description — what happened?</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => startVoiceInput("description")}
+                className={cn("text-xs h-7", recordingField === "description" && "text-red-600 animate-pulse")}>
+                {recordingField === "description" ? <><MicOff className="h-3 w-3" /> Recording...</> : <><Mic className="h-3 w-3" /> Speak it</>}
+              </Button>
+            </div>
             <Textarea value={description} onChange={e => setDescription(e.target.value)}
               placeholder="What did you expect to happen? What actually happened? Copy/paste any error messages you see."
               className="min-h-[100px]" />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Steps to reproduce (optional but very helpful)</Label>
+            <div className="flex items-center justify-between">
+              <Label>Steps to reproduce (optional but very helpful)</Label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => startVoiceInput("steps")}
+                className={cn("text-xs h-7", recordingField === "steps" && "text-red-600 animate-pulse")}>
+                {recordingField === "steps" ? <><MicOff className="h-3 w-3" /> Recording...</> : <><Mic className="h-3 w-3" /> Speak it</>}
+              </Button>
+            </div>
             <Textarea value={steps} onChange={e => setSteps(e.target.value)}
               placeholder="1. Go to /energy&#10;2. Click 'How does P2P trading work?'&#10;3. Page shows old content instead of the new explanation"
               className="min-h-[80px]" />
