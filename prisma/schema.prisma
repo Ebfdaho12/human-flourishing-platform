@@ -6,7 +6,7 @@ datasource db {
   // Switch to "postgresql" and set DATABASE_URL to your Postgres connection string for production.
   // Local dev: DATABASE_URL="file:./prisma/dev.db"  (SQLite, default)
   // Production: DATABASE_URL="postgresql://user:pass@host:5432/hfp?sslmode=require"
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
