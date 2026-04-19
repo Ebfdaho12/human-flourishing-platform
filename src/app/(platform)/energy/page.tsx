@@ -165,6 +165,22 @@ export default function EnergyPage() {
         <LogEnergyDialog onSaved={mutate} />
       </div>
 
+      {/* Learn about energy */}
+      <a href="/energy/learn" className="block">
+        <Card className="border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50 card-hover">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500">
+              <Leaf className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">How does P2P energy trading work?</p>
+              <p className="text-xs text-amber-600">Learn how to sell your solar energy to neighbors, calculate your ROI, and understand the decentralized grid</p>
+            </div>
+            <ExternalLink className="h-4 w-4 text-amber-400 shrink-0" />
+          </CardContent>
+        </Card>
+      </a>
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card><CardContent className="p-4 text-center">
