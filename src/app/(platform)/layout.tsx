@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { TopNav } from "@/components/layout/TopNav"
 import { FeedbackButton } from "@/components/layout/FeedbackButton"
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts"
+import { AlyVoice } from "@/components/aly/AlyVoice"
 
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -30,6 +31,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
         <main id="main-content" className="flex-1 overflow-y-auto p-6" role="main">
           {children}
         </main>
+        <AlyVoice />
         <FeedbackButton />
         <KeyboardShortcuts />
       </div>
