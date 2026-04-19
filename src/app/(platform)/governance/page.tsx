@@ -160,7 +160,7 @@ export default function GovernancePage() {
         <AddRecordDialog onSaved={mutate} />
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {ENTITY_TYPES.map((t) => {
           const Icon = t.icon
           return (
@@ -245,6 +245,35 @@ export default function GovernancePage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Civic Action Guide */}
+      <Card className="mt-6 border-emerald-200 bg-emerald-50/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CheckSquare className="h-4 w-4 text-emerald-600" />
+            Civic Action Guide
+          </CardTitle>
+          <CardDescription>Concrete steps to participate in governance. Every action earns 15 FOUND.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { title: "Register to Vote", desc: "Check registration status and register if needed. Most jurisdictions allow online registration.", action: "vote.org" },
+              { title: "Contact Your Representatives", desc: "Call or email your elected officials about issues that matter to you. One call takes 2 minutes.", action: "5calls.org" },
+              { title: "Attend a Town Hall", desc: "Show up at local government meetings. They're open to the public and your presence matters.", action: "townhallproject.com" },
+              { title: "Track Voting Records", desc: "Use this module to record how your representatives vote. Add records with sources.", action: "Track here" },
+              { title: "File a FOIA Request", desc: "Request public records from government agencies. It's your right under the Freedom of Information Act.", action: "foia.gov" },
+              { title: "Run for Local Office", desc: "School boards, city councils, and county seats are often uncontested. Your community needs you.", action: "runforsomething.net" },
+            ].map((item) => (
+              <div key={item.title} className="rounded-lg border border-emerald-200 bg-white/60 p-3">
+                <p className="text-sm font-medium">{item.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                <p className="text-xs text-emerald-600 font-medium mt-1.5">{item.action}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Aletheia Integration */}
       <Card className="mt-6 border-amber-200">

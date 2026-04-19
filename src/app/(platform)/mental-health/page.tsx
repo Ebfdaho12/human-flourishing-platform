@@ -1,7 +1,7 @@
 "use client"
 import { useState, useCallback } from "react"
 import useSWR from "swr"
-import { Brain, Plus, BookOpen, Phone, Sparkles, Heart, Smile, Frown, Meh, Edit3, Trash2 } from "lucide-react"
+import { Brain, Plus, BookOpen, Phone, Sparkles, Heart, Smile, Frown, Meh, Edit3, Trash2, Shield, Wind, Leaf, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -228,6 +228,97 @@ function NewJournalDialog({ onSaved, editEntry }: { onSaved: () => void; editEnt
   )
 }
 
+function SelfCarePanel() {
+  const { data } = useSWR("/api/mental-health/resources", fetcher)
+  const [activeExercise, setActiveExercise] = useState<number | null>(null)
+
+  const crisis: any[] = data?.crisis ?? []
+  const selfCare: any[] = data?.selfCare ?? []
+
+  return (
+    <div className="space-y-6">
+      {/* Self-care exercises */}
+      <div>
+        <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+          <Leaf className="h-4 w-4 text-emerald-500" />
+          Grounding & Coping Exercises
+        </h3>
+        <div className="grid gap-3">
+          {selfCare.map((exercise: any, i: number) => (
+            <Card
+              key={i}
+              className={cn(
+                "cursor-pointer transition-all",
+                activeExercise === i ? "border-emerald-300 bg-emerald-50/50" : "hover:border-border/80"
+              )}
+              onClick={() => setActiveExercise(activeExercise === i ? null : i)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-sm">{exercise.title}</p>
+                  <Wind className={cn("h-4 w-4 transition-transform", activeExercise === i ? "text-emerald-500 rotate-45" : "text-muted-foreground/30")} />
+                </div>
+                {activeExercise === i && (
+                  <div className="mt-3 pt-3 border-t border-border/30">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{exercise.description}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Crisis resources */}
+      <div>
+        <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+          <Shield className="h-4 w-4 text-rose-500" />
+          Crisis Resources — Real, Verified Helplines
+        </h3>
+        <div className="grid gap-2">
+          {crisis.map((resource: any, i: number) => (
+            <Card key={i}>
+              <CardContent className="p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{resource.name}</p>
+                      <Badge variant="outline" className="text-[10px] py-0">{resource.country}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{resource.description}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs font-medium text-rose-600">{resource.phone}</span>
+                      <span className="text-[10px] text-muted-foreground">{resource.available}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-muted-foreground/50 hover:text-rose-500 transition-colors shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <Card className="border-border/30 bg-card/50">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            All helplines listed are real, verified services available 24/7. If you or someone you know is in crisis, please reach out immediately.
+            You are not alone.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export default function MentalHealthPage() {
   const { data: moodData, mutate: mutateMood } = useSWR("/api/mental-health/mood?limit=14", fetcher)
   const { data: journalData, mutate: mutateJournal } = useSWR("/api/mental-health/journal?limit=10", fetcher)
@@ -300,13 +391,14 @@ export default function MentalHealthPage() {
         <TabsList>
           <TabsTrigger value="mood">Mood</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="selfcare">Self-Care</TabsTrigger>
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
         </TabsList>
 
         {/* ── Mood ── */}
         <TabsContent value="mood" className="mt-4 space-y-4">
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <Card><CardContent className="p-4 text-center">
               <p className={cn("text-2xl font-bold", avgMood ? moodColor(parseFloat(avgMood)) : "text-muted-foreground")}>
                 {avgMood ?? "—"}
@@ -433,6 +525,11 @@ export default function MentalHealthPage() {
               </Card>
             ))
           )}
+        </TabsContent>
+
+        {/* ── Self-Care & Resources ── */}
+        <TabsContent value="selfcare" className="mt-4 space-y-4">
+          <SelfCarePanel />
         </TabsContent>
 
         {/* ── AI Insights ── */}

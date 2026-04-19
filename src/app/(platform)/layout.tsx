@@ -1,20 +1,32 @@
 import { Sidebar } from "@/components/layout/Sidebar"
 import { TopNav } from "@/components/layout/TopNav"
+import { FeedbackButton } from "@/components/layout/FeedbackButton"
+import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts"
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Skip to content — accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:rounded-lg focus:bg-violet-600 focus:text-white focus:px-4 focus:py-2 focus:text-sm"
+      >
+        Skip to main content
+      </a>
+
       {/* Sidebar — hidden on mobile */}
-      <div className="hidden md:flex md:flex-col md:w-60 md:shrink-0">
+      <nav className="hidden md:flex md:flex-col md:w-60 md:shrink-0" aria-label="Main navigation">
         <Sidebar />
-      </div>
+      </nav>
 
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopNav />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main id="main-content" className="flex-1 overflow-y-auto p-6" role="main">
           {children}
         </main>
+        <FeedbackButton />
+        <KeyboardShortcuts />
       </div>
     </div>
   )

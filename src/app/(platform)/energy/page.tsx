@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import useSWR from "swr"
-import { Zap, Plus, Sun, Wind, Droplets, Battery, Plug, Gauge, Leaf } from "lucide-react"
+import { Zap, Plus, Sun, Wind, Droplets, Battery, Plug, Gauge, Leaf, Globe2, Thermometer, ExternalLink, ArrowUpDown, TrendingUp, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -83,7 +83,7 @@ function LogEnergyDialog({ onSaved }: { onSaved: () => void }) {
           </div>
           <div className="space-y-1.5">
             <Label>Energy source</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {Object.entries(SOURCE_META).map(([key, meta]) => {
                 const Icon = meta.icon
                 return (
@@ -217,6 +217,8 @@ export default function EnergyPage() {
           <TabsTrigger value="all">All Logs</TabsTrigger>
           <TabsTrigger value="production">Production</TabsTrigger>
           <TabsTrigger value="consumption">Consumption</TabsTrigger>
+          <TabsTrigger value="trading">P2P Trading</TabsTrigger>
+          <TabsTrigger value="climate">Climate Data</TabsTrigger>
         </TabsList>
 
         {[
@@ -274,7 +276,240 @@ export default function EnergyPage() {
             </TabsContent>
           )
         })}
+        <TabsContent value="trading" className="mt-4">
+          <P2PTradingPanel />
+        </TabsContent>
+
+        <TabsContent value="climate" className="mt-4">
+          <ClimateDataPanel />
+        </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function P2PTradingPanel() {
+  const { data, mutate: mutateTrading } = useSWR("/api/energy/trading", fetcher)
+  const [tradeKwh, setTradeKwh] = useState("")
+  const [tradePrice, setTradePrice] = useState("")
+  const [tradeAction, setTradeAction] = useState<"BUY" | "SELL">("BUY")
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState("")
+
+  if (!data) return <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Loading market data...</CardContent></Card>
+
+  const { userPosition, market, recentTrades, priceHistory } = data
+
+  async function executeTrade() {
+    if (!tradeKwh || !tradePrice) return
+    setLoading(true)
+    setMessage("")
+    const res = await fetch("/api/energy/trading", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: tradeAction, kwh: parseFloat(tradeKwh), pricePerKwh: parseFloat(tradePrice) }),
+    })
+    const result = await res.json()
+    setLoading(false)
+    setMessage(result.message ?? result.error)
+    setTradeKwh(""); setTradePrice("")
+    mutateTrading()
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Market overview */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-xs text-muted-foreground">Market Price</p>
+          <p className="text-lg font-bold text-amber-500">${market.currentPrice}/kWh</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-xs text-muted-foreground">Renewable Premium</p>
+          <p className="text-lg font-bold text-emerald-500">${market.renewablePrice}/kWh</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-xs text-muted-foreground">Active Listings</p>
+          <p className="text-lg font-bold">{market.totalListings}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-xs text-muted-foreground">24h Volume</p>
+          <p className="text-lg font-bold">{market.totalVolume} kWh</p>
+        </CardContent></Card>
+      </div>
+
+      {/* Price chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-amber-500" />
+            24h Price History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-[2px] h-20">
+            {priceHistory.map((p: any, i: number) => {
+              const min = Math.min(...priceHistory.map((x: any) => x.price))
+              const max = Math.max(...priceHistory.map((x: any) => x.price))
+              const range = max - min || 0.01
+              const height = Math.max(8, ((p.price - min) / range) * 100)
+              return (
+                <div
+                  key={i}
+                  className="flex-1 rounded-t bg-gradient-to-t from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 transition-colors"
+                  style={{ height: `${height}%`, opacity: 0.6 + (i / priceHistory.length) * 0.4 }}
+                  title={`${p.hour}: $${p.price}/kWh`}
+                />
+              )
+            })}
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            <span>{priceHistory[0]?.hour}</span>
+            <span>{priceHistory[priceHistory.length - 1]?.hour}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Trade form */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 text-violet-500" />
+            Place Order
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-xs text-muted-foreground">Your surplus: <strong className="text-foreground">{userPosition.surplus} kWh</strong></p>
+            <p className="text-xs text-muted-foreground">· Renewable: <strong className="text-emerald-500">{userPosition.renewablePct}%</strong></p>
+          </div>
+
+          {message && (
+            <div className={cn("rounded-lg px-3 py-2 text-xs", message.includes("Error") ? "bg-red-50 text-red-600 border border-red-200" : "bg-emerald-50 text-emerald-600 border border-emerald-200")}>
+              {message}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setTradeAction("BUY")}
+              className={cn("rounded-lg border p-3 text-center text-sm font-medium transition-colors", tradeAction === "BUY" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-border text-muted-foreground")}
+            >Buy Energy</button>
+            <button
+              onClick={() => setTradeAction("SELL")}
+              className={cn("rounded-lg border p-3 text-center text-sm font-medium transition-colors", tradeAction === "SELL" ? "border-amber-300 bg-amber-50 text-amber-700" : "border-border text-muted-foreground")}
+            >Sell Energy</button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Amount (kWh)</Label>
+              <Input type="number" step="0.1" placeholder="e.g. 10" value={tradeKwh} onChange={(e) => setTradeKwh(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Price ($/kWh)</Label>
+              <Input type="number" step="0.01" placeholder={`e.g. ${market.currentPrice}`} value={tradePrice} onChange={(e) => setTradePrice(e.target.value)} />
+            </div>
+          </div>
+
+          {tradeKwh && tradePrice && (
+            <p className="text-xs text-muted-foreground">
+              Total: <strong>${(parseFloat(tradeKwh) * parseFloat(tradePrice)).toFixed(2)}</strong>
+              {" · "}Reward: <strong className="text-violet-600">{Math.round(parseFloat(tradeKwh) * 2)} FOUND</strong>
+            </p>
+          )}
+
+          <Button onClick={executeTrade} disabled={loading || !tradeKwh || !tradePrice} className="w-full">
+            <DollarSign className="h-4 w-4" />
+            {loading ? "Executing..." : `${tradeAction === "BUY" ? "Buy" : "Sell"} ${tradeKwh || "0"} kWh`}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Recent trades */}
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Recent Community Trades</CardTitle></CardHeader>
+        <CardContent>
+          <div className="space-y-1.5">
+            {recentTrades.map((t: any, i: number) => (
+              <div key={i} className="flex items-center justify-between rounded-lg border border-border/30 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={cn("text-[10px] py-0", t.type === "SELL" ? "border-amber-300 text-amber-600" : "border-emerald-300 text-emerald-600")}>{t.type}</Badge>
+                  <span>{t.kwh} kWh</span>
+                  <span className="text-xs text-muted-foreground">({t.source})</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-medium">${t.price}/kWh</span>
+                  <span className="text-xs text-muted-foreground ml-2">{t.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-amber-200 bg-amber-50/30">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong>P2P Energy Trading:</strong> In production, this marketplace connects energy producers directly with consumers.
+            Solar panel owners sell surplus. Neighbors buy at below-grid rates. Smart contracts handle settlement in FOUND tokens.
+            No utility middlemen. Energy sovereignty for every community.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ClimateDataPanel() {
+  const { data } = useSWR("/api/energy/climate-bridge", fetcher)
+
+  if (!data) return <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Loading climate data...</CardContent></Card>
+
+  const connected = data.connected
+  const climateData: any[] = data.climate?.data ?? data.climate?.indicators ?? []
+
+  return (
+    <div className="space-y-4">
+      {!connected && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Globe2 className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700">{data.climate?.note ?? "Start Aletheia on port 3001 for live NOAA/NASA climate data."}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {climateData.map((item: any, i: number) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Thermometer className="h-4 w-4 text-sky-500" />
+                <p className="text-sm font-medium">{item.name ?? item.metric}</p>
+              </div>
+              <p className="text-2xl font-bold">{item.latest ?? item.value ?? "—"}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground">{item.source}</span>
+                <span className="text-xs text-muted-foreground">{item.period ?? item.year}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {connected && (
+        <p className="text-xs text-center text-muted-foreground">Live data from Aletheia — NOAA, NASA, and peer-reviewed climate datasets</p>
+      )}
+
+      <Card className="border-sky-200 bg-sky-50/30">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Your personal energy data connects to global climate context. Every kWh of renewable energy you produce contributes
+            to the transition. Track your impact alongside real-world environmental data.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

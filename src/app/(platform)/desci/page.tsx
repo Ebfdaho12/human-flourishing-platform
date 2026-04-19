@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import useSWR from "swr"
-import { FlaskConical, Plus, Sparkles, RefreshCw, Star, CheckCircle, XCircle, MinusCircle, Globe, Lock } from "lucide-react"
+import { FlaskConical, Plus, Sparkles, RefreshCw, Star, CheckCircle, XCircle, MinusCircle, Globe, Lock, DollarSign, AlertTriangle, ExternalLink, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -276,7 +276,7 @@ export default function DesciPage() {
         <PreRegisterDialog onSaved={refreshAll} />
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card><CardContent className="p-4 text-center">
           <p className="text-2xl font-bold text-blue-400">{stats.preRegistered}</p>
           <p className="text-xs text-muted-foreground mt-1">Pre-registered</p>
@@ -295,6 +295,7 @@ export default function DesciPage() {
         <TabsList>
           <TabsTrigger value="mine">My Studies</TabsTrigger>
           <TabsTrigger value="public">Public Registry</TabsTrigger>
+          <TabsTrigger value="bias">Funding Bias Check</TabsTrigger>
         </TabsList>
 
         <TabsContent value="mine" className="mt-4 space-y-3">
@@ -316,7 +317,124 @@ export default function DesciPage() {
             </CardContent></Card>
           ) : publicStudies.map((s) => <StudyCard key={s.id} study={s} showActions={s.userId !== undefined} />)}
         </TabsContent>
+
+        <TabsContent value="bias" className="mt-4">
+          <FundingBiasChecker />
+        </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function FundingBiasChecker() {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  async function search() {
+    if (query.length < 2) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/aletheia?action=search&q=${encodeURIComponent(query)}`)
+      const data = await res.json()
+      setResults(data.figures ?? [])
+    } catch { setResults([]) }
+    setLoading(false)
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="border-amber-200 bg-amber-50/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-amber-600" />
+            Research Funding Bias Checker
+          </CardTitle>
+          <CardDescription>
+            Who funds the research you're reading? Search Aletheia's database to check for conflicts of interest,
+            industry funding, and potential bias in published studies. Every paper has a funder — know who they are.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && search()}
+                placeholder="Search researcher, institution, or funding org..."
+                className="flex-1"
+              />
+              <Button onClick={search} disabled={loading || query.length < 2} variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
+                <Search className="h-4 w-4" />
+                {loading ? "..." : "Check"}
+              </Button>
+            </div>
+
+            {results.length > 0 && (
+              <div className="space-y-2">
+                {results.slice(0, 5).map((f: any, i: number) => (
+                  <Card key={i} className="border-amber-100">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{f.name}</p>
+                          <p className="text-xs text-muted-foreground">{f.title} {f.party ? `· ${f.party}` : ""} {f.country ? `· ${f.country}` : ""}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={cn("text-sm font-bold", f.credibilityScore >= 70 ? "text-emerald-600" : f.credibilityScore >= 40 ? "text-amber-600" : "text-red-600")}>
+                            {f.credibilityScore ?? 50}/100
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">Credibility</p>
+                        </div>
+                      </div>
+                      {f.totalClaims > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {f.totalClaims} claims tracked · {f.verifiedClaims} verified · {f.refutedClaims} refuted
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Common Sources of Research Bias
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {[
+              { title: "Industry Funding", desc: "Studies funded by companies with financial interest in results" },
+              { title: "Publication Bias", desc: "Positive results published, null results buried" },
+              { title: "P-Hacking", desc: "Running multiple analyses until finding significance" },
+              { title: "Conflict of Interest", desc: "Researchers with financial ties to outcomes" },
+              { title: "Selective Reporting", desc: "Only reporting favorable outcomes" },
+              { title: "Replication Crisis", desc: "65% of psychology studies fail to replicate" },
+            ].map((item) => (
+              <div key={item.title} className="rounded-lg border border-border/50 p-3">
+                <p className="text-sm font-medium">{item.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-teal-200 bg-teal-50/30">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            DeSci (Decentralized Science) exists because the current system incentivizes impressive-sounding results over truth.
+            Pre-registration, open data, and replication markets are the antidote. Every study on this platform has its hypothesis
+            locked before data collection — you can't change your prediction after seeing the answer.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

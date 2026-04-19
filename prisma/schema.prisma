@@ -43,6 +43,8 @@ model User {
   econInterventions EconIntervention[]
   infraProjects  InfraProject[]
   energyLogs     EnergyLog[]
+  healthCases    HealthCase[]
+  caseProposals  CaseProposal[]
 
   @@index([email])
 }
@@ -454,6 +456,80 @@ model EnergyLog {
 
   @@index([userId, logType])
   @@index([userId, recordedAt])
+}
+
+// ─── Anonymous Health Cases (ZK-Protected) ──────────────────────────────────
+// Patients share anonymized health data. Practitioners propose treatments.
+// Identity is ZK-proven (real user) but NEVER revealed until patient consents.
+
+model HealthCase {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Anonymous identifier — NOT the user's real ID
+  anonId        String   @unique @default(cuid())
+
+  title         String   // "Chronic fatigue with unexplained weight gain"
+  // CARDIOLOGY | NEUROLOGY | DERMATOLOGY | ENDOCRINOLOGY | GASTRO |
+  // ORTHOPEDIC | PULMONARY | PSYCHIATRY | GENERAL | OTHER
+  specialty     String
+  // Brief, de-identified symptom summary
+  symptoms      String
+  // Duration, onset, progression
+  timeline      String?
+  // Relevant health data the patient chooses to share (JSON)
+  sharedData    String?
+  // What the patient has already tried
+  priorTreatment String?
+  // What they're looking for
+  seekingHelp   String?
+
+  // OPEN | IN_REVIEW | MATCHED | CLOSED
+  status        String   @default("OPEN")
+  // Age range (not exact), sex, relevant demographics — all optional
+  demographics  String?  // JSON {ageRange, sex, relevantHistory}
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  proposals     CaseProposal[]
+
+  @@index([specialty, status])
+  @@index([userId])
+}
+
+model CaseProposal {
+  id              String   @id @default(cuid())
+  caseId          String
+  case            HealthCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  practitionerId  String
+  practitioner    User     @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+
+  // Practitioner's credentials and specialty
+  credentials     String   // "Board-certified endocrinologist, 12 years experience"
+  // Their analysis of the case
+  analysis        String
+  // Proposed treatment approach with reasoning
+  proposedTreatment String
+  // Evidence/research backing the proposal
+  evidence        String?
+  // Root cause theory
+  rootCauseTheory String?
+
+  // PENDING | VIEWED | ACCEPTED | DECLINED
+  status          String   @default("PENDING")
+  // If accepted, patient can reveal contact
+  contactRevealed Boolean  @default(false)
+  // Encrypted contact info — only decryptable by the practitioner who was accepted
+  encryptedContact String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([caseId])
+  @@index([practitionerId])
+  @@unique([caseId, practitionerId])
 }
 
 // ─── Email Verification ───────────────────────────────────────────────────────

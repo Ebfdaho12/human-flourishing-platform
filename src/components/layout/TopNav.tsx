@@ -12,6 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatFound, formatVoice } from "@/lib/utils"
+import { MobileNav } from "./MobileNav"
+import { SearchBar } from "./SearchBar"
+import { ThemeToggle } from "./ThemeToggle"
+import { NotificationBell } from "./NotificationBell"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -25,17 +29,21 @@ export function TopNav() {
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4">
-      <div className="flex-1" />
+      <MobileNav />
+      <SearchBar />
 
       <div className="flex items-center gap-4">
-        {/* Token pill */}
+        <NotificationBell />
+        <ThemeToggle />
+
+        {/* Token pill — abbreviated on mobile */}
         <Link
           href="/wallet"
           className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs transition-colors hover:border-primary/50"
         >
-          <span className="text-violet-400 font-medium">◈ {formatFound(foundBalance)} FOUND</span>
-          <span className="text-muted-foreground">|</span>
-          <span className="text-indigo-400 font-medium">⬡ {formatVoice(voiceBalance)} VOICE</span>
+          <span className="text-violet-400 font-medium">◈ {formatFound(foundBalance)} <span className="hidden sm:inline">FOUND</span></span>
+          <span className="text-muted-foreground hidden sm:inline">|</span>
+          <span className="text-indigo-400 font-medium hidden sm:inline">⬡ {formatVoice(voiceBalance)} VOICE</span>
         </Link>
 
         {/* User menu */}

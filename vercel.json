@@ -10,6 +10,25 @@
     "XAI_API_KEY": "@xai_api_key",
     "GEMINI_API_KEY": "@gemini_api_key",
     "CLAIM_ENCRYPTION_SECRET": "@hfp_claim_encryption_secret",
-    "RESEND_API_KEY": "@resend_api_key"
-  }
+    "RESEND_API_KEY": "@resend_api_key",
+    "ALETHEIA_API_URL": "@aletheia_api_url"
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+      ]
+    }
+  ]
 }

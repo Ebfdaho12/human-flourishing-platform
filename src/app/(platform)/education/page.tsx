@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import useSWR from "swr"
 import {
-  GraduationCap, Plus, Send, Sparkles, BookOpen, Target, ChevronRight, Bot, User, Loader2
+  GraduationCap, Plus, Send, Sparkles, BookOpen, Target, ChevronRight, Bot, User, Loader2, Flame, Clock, BarChart3, Trophy
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -317,6 +317,113 @@ function TutorChat({
   )
 }
 
+function ProgressPanel() {
+  const { data } = useSWR("/api/education/progress", fetcher)
+
+  if (!data) return <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">Loading progress...</CardContent></Card>
+
+  const { streak, totalSessions, totalMinutes, activeGoals, completedGoals, subjects, weeklyActivity } = data
+
+  return (
+    <div className="space-y-4">
+      {/* Top stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card><CardContent className="p-4 text-center">
+          <Flame className={cn("h-5 w-5 mx-auto mb-1", streak > 0 ? "text-orange-500" : "text-muted-foreground/30")} />
+          <p className="text-2xl font-bold text-orange-500">{streak}</p>
+          <p className="text-xs text-muted-foreground">Day streak</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <BookOpen className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+          <p className="text-2xl font-bold text-blue-500">{totalSessions}</p>
+          <p className="text-xs text-muted-foreground">Total sessions</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Clock className="h-5 w-5 mx-auto mb-1 text-violet-500" />
+          <p className="text-2xl font-bold text-violet-500">{totalMinutes}</p>
+          <p className="text-xs text-muted-foreground">Minutes learned</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Trophy className="h-5 w-5 mx-auto mb-1 text-amber-500" />
+          <p className="text-2xl font-bold text-amber-500">{completedGoals}</p>
+          <p className="text-xs text-muted-foreground">Goals completed</p>
+        </CardContent></Card>
+      </div>
+
+      {/* Weekly activity */}
+      {weeklyActivity && weeklyActivity.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Weekly Activity</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {weeklyActivity.map((w: any) => (
+                <div key={w.week} className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-24 shrink-0">{w.week}</span>
+                  <div className="flex-1 h-4 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, (w.sessions / Math.max(1, ...weeklyActivity.map((x: any) => x.sessions))) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 w-20 text-right">
+                    {w.sessions} sessions
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Subject mastery */}
+      {subjects && subjects.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Subject Mastery</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {subjects.map((s: any) => (
+                <div key={s.name} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{s.name}</p>
+                      <span className="text-xs text-muted-foreground">{s.topicCount} topics</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{s.sessions} sessions</span>
+                      <span>{s.totalMinutes} min</span>
+                      {s.avgScore !== null && (
+                        <Badge variant="outline" className={cn("text-xs", s.avgScore >= 80 ? "border-emerald-300 text-emerald-600" : s.avgScore >= 60 ? "border-blue-300 text-blue-600" : "border-amber-300 text-amber-600")}>
+                          {s.avgScore}/100
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", s.avgScore !== null && s.avgScore >= 80 ? "bg-emerald-500" : s.avgScore !== null && s.avgScore >= 60 ? "bg-blue-500" : "bg-amber-500")}
+                      style={{ width: `${s.avgScore ?? Math.min(100, s.sessions * 10)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {totalSessions === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <BarChart3 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No learning data yet.</p>
+            <p className="text-xs text-muted-foreground mt-1">Complete tutoring sessions to see your progress here.</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
 export default function EducationPage() {
   const { data: goalsData, mutate: mutateGoals } = useSWR("/api/education/goals", fetcher)
   const { data: sessionsData } = useSWR("/api/education/tutor?limit=10", fetcher)
@@ -376,6 +483,7 @@ export default function EducationPage() {
         <Tabs defaultValue="tutor">
           <TabsList>
             <TabsTrigger value="tutor">AI Tutor</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="goals">Goals</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
@@ -432,6 +540,11 @@ export default function EducationPage() {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* ── Progress ── */}
+          <TabsContent value="progress" className="mt-4">
+            <ProgressPanel />
           </TabsContent>
 
           {/* ── Goals ── */}

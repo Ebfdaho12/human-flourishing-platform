@@ -1,7 +1,7 @@
 "use client"
 import { useState, useCallback } from "react"
 import useSWR from "swr"
-import { Heart, Plus, Target, Sparkles, Activity, Moon, Dumbbell, Apple, Pill, Ruler, AlertCircle } from "lucide-react"
+import { Heart, Plus, Target, Sparkles, Activity, Moon, Dumbbell, Apple, Pill, Ruler, AlertCircle, Shield, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -232,6 +232,143 @@ function AddGoalDialog({ onSaved }: { onSaved: () => void }) {
   )
 }
 
+function TrendChart({ points, dataKey, label, color, unit }: { points: any[]; dataKey: string; label: string; color: string; unit?: string }) {
+  const values = points.map((p) => p[dataKey]).filter((v): v is number => typeof v === "number")
+  if (values.length === 0) return null
+
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-sm font-bold" style={{ color }}>{values[values.length - 1]}{unit ? ` ${unit}` : ""}</p>
+      </div>
+      <div className="flex items-end gap-[2px] h-16">
+        {values.slice(-30).map((v, i) => {
+          const height = Math.max(4, ((v - min) / range) * 100)
+          return (
+            <div
+              key={i}
+              className="flex-1 rounded-t transition-all hover:opacity-80"
+              style={{ height: `${height}%`, backgroundColor: color, minWidth: 3, opacity: 0.7 + (i / values.length) * 0.3 }}
+              title={`${points[points.length - values.length + i]?.date}: ${v}${unit ? ` ${unit}` : ""}`}
+            />
+          )
+        })}
+      </div>
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>Min: {min}{unit ? ` ${unit}` : ""}</span>
+        <span>Avg: {Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10}{unit ? ` ${unit}` : ""}</span>
+        <span>Max: {max}{unit ? ` ${unit}` : ""}</span>
+      </div>
+    </div>
+  )
+}
+
+function HealthTrendsPanel() {
+  const [trendType, setTrendType] = useState("VITALS")
+  const [days, setDays] = useState(30)
+  const { data } = useSWR(`/api/health/trends?type=${trendType}&days=${days}`, fetcher)
+
+  const points: any[] = data?.points ?? []
+  const summary: Record<string, any> = data?.summary ?? {}
+
+  const TREND_CONFIGS: Record<string, { fields: { key: string; label: string; color: string; unit?: string }[] }> = {
+    VITALS: { fields: [
+      { key: "heartRate", label: "Heart Rate", color: "#f43f5e", unit: "bpm" },
+      { key: "systolic", label: "BP Systolic", color: "#ef4444", unit: "mmHg" },
+      { key: "diastolic", label: "BP Diastolic", color: "#f97316", unit: "mmHg" },
+      { key: "oxygenSat", label: "O2 Saturation", color: "#06b6d4", unit: "%" },
+    ]},
+    EXERCISE: { fields: [
+      { key: "durationMin", label: "Duration", color: "#f97316", unit: "min" },
+      { key: "intensity", label: "Intensity", color: "#ef4444", unit: "/10" },
+      { key: "calories", label: "Calories", color: "#eab308", unit: "kcal" },
+    ]},
+    SLEEP: { fields: [
+      { key: "hoursSlept", label: "Hours Slept", color: "#6366f1", unit: "hrs" },
+      { key: "quality", label: "Sleep Quality", color: "#8b5cf6", unit: "/10" },
+    ]},
+    MEASUREMENT: { fields: [
+      { key: "weight", label: "Weight", color: "#06b6d4", unit: "lbs" },
+      { key: "steps", label: "Steps", color: "#10b981", unit: "" },
+      { key: "waist", label: "Waist", color: "#f59e0b", unit: "in" },
+    ]},
+    NUTRITION: { fields: [
+      { key: "calories", label: "Calories", color: "#22c55e", unit: "kcal" },
+      { key: "waterL", label: "Water", color: "#3b82f6", unit: "L" },
+    ]},
+  }
+
+  const config = TREND_CONFIGS[trendType] ?? TREND_CONFIGS.VITALS
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <Select value={trendType} onValueChange={setTrendType}>
+          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="VITALS">Vitals</SelectItem>
+            <SelectItem value="EXERCISE">Exercise</SelectItem>
+            <SelectItem value="SLEEP">Sleep</SelectItem>
+            <SelectItem value="MEASUREMENT">Measurements</SelectItem>
+            <SelectItem value="NUTRITION">Nutrition</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-1">
+          {[7, 14, 30, 60, 90].map((d) => (
+            <Button key={d} variant={days === d ? "default" : "outline"} size="sm" className="text-xs h-7 px-2" onClick={() => setDays(d)}>
+              {d}d
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {points.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Activity className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No {trendType.toLowerCase()} data in the last {days} days.</p>
+            <p className="text-xs text-muted-foreground mt-1">Log some entries to see your trends.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          <Card>
+            <CardContent className="p-4 space-y-6">
+              {config.fields.map((f) => (
+                <TrendChart key={f.key} points={points} dataKey={f.key} label={f.label} color={f.color} unit={f.unit} />
+              ))}
+            </CardContent>
+          </Card>
+
+          {Object.keys(summary).length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.entries(summary).map(([key, stats]: [string, any]) => {
+                const fieldMeta = config.fields.find((f) => f.key === key)
+                return (
+                  <Card key={key}>
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">{fieldMeta?.label ?? key}</p>
+                      <p className="text-lg font-bold mt-1">{stats.latest}{fieldMeta?.unit ? ` ${fieldMeta.unit}` : ""}</p>
+                      <p className="text-[10px] text-muted-foreground">{stats.count} readings · avg {stats.avg}</p>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          <p className="text-xs text-center text-muted-foreground">{points.length} data points over {days} days</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function HealthPage() {
   const { data: entriesData, mutate: mutateEntries } = useSWR("/api/health/entries?limit=50", fetcher)
   const { data: goalsData, mutate: mutateGoals } = useSWR("/api/health/goals", fetcher)
@@ -276,16 +413,33 @@ export default function HealthPage() {
         </div>
       </div>
 
+      {/* Anonymous Cases CTA */}
+      <a href="/health/cases" className="block">
+        <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 card-hover">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
+              <Shield className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold">Anonymous Health Cases</p>
+              <p className="text-xs text-muted-foreground">Share symptoms anonymously. Get practitioner proposals. Your identity stays hidden until you choose to connect.</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </CardContent>
+        </Card>
+      </a>
+
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
           <TabsTrigger value="log">Log</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <Card><CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-rose-400">{entries.length}</p>
               <p className="text-xs text-muted-foreground mt-1">Total entries</p>
@@ -359,6 +513,10 @@ export default function HealthPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="trends" className="mt-4">
+          <HealthTrendsPanel />
         </TabsContent>
 
         <TabsContent value="log" className="mt-4">

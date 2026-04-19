@@ -4,7 +4,11 @@ import { prisma } from "./prisma"
 import * as argon2 from "argon2"
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   pages: {
     signIn: "/login",
     error: "/login",

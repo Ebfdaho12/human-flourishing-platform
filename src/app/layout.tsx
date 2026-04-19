@@ -3,20 +3,41 @@ import "./globals.css"
 import { Providers } from "./providers"
 
 export const metadata: Metadata = {
-  title: "Human Flourishing Platform",
-  description: "Sovereignty first. Verified outcomes. Built to last.",
-  manifest: "/manifest.json",
-  themeColor: "#09090b",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "HFP",
+  title: {
+    default: "Human Flourishing Platform",
+    template: "%s | Human Flourishing Platform",
   },
+  description: "Nine interconnected systems for health, education, governance, and human flourishing — unified under a sovereignty-first identity layer.",
+  keywords: ["human flourishing", "health tracking", "education", "governance", "DeSci", "decentralized", "privacy", "ZK proofs"],
+  authors: [{ name: "Human Flourishing Platform" }],
+  openGraph: {
+    title: "Human Flourishing Platform",
+    description: "Nine systems. One identity. Your data. Health intelligence, Socratic education, governance transparency, and more.",
+    type: "website",
+    locale: "en_US",
+    siteName: "Human Flourishing Platform",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Human Flourishing Platform",
+    description: "Nine interconnected systems for health, education, and human flourishing.",
+  },
+  robots: { index: true, follow: true },
+  manifest: "/manifest.json",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full dark">
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            if (localStorage.getItem('hfp-theme') === 'dark' || (!localStorage.getItem('hfp-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+              document.documentElement.classList.add('dark')
+            }
+          } catch (e) {}
+        `}} />
+      </head>
       <body className="min-h-full bg-background text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>

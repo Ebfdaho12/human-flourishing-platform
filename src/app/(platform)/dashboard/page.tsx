@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { MODULES } from "@/lib/constants"
 import { ModuleGrid } from "@/components/dashboard/ModuleGrid"
+import { ActivityFeed, ModuleStats } from "@/components/dashboard/ActivityFeed"
+import { StreakWidget } from "@/components/dashboard/StreakWidget"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -28,10 +30,30 @@ export default async function DashboardPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="FOUND Balance" value={formatFound(foundBalance)} unit="FOUND" color="text-violet-400" />
-        <StatCard label="VOICE Power" value={formatVoice(voiceBalance)} unit="VOICE" color="text-indigo-400" />
-        <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-400" />
-        <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-400" />
+        <StatCard label="FOUND Balance" value={formatFound(foundBalance)} unit="FOUND" color="text-violet-500" />
+        <StatCard label="VOICE Power" value={formatVoice(voiceBalance)} unit="VOICE" color="text-indigo-500" />
+        <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-500" />
+        <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" />
+      </div>
+
+      {/* Streaks + daily checklist */}
+      <StreakWidget />
+
+      {/* Module usage */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <p className="text-xs text-muted-foreground mb-3">Module Usage</p>
+        <ModuleStats />
+      </div>
+
+      {/* Activity feed */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Your latest actions across all modules</p>
+        </div>
+        <div className="p-2">
+          <ActivityFeed />
+        </div>
       </div>
 
       {/* Module grid */}

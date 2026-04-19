@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ShieldCheck, Plus, CheckCircle, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
+import { AchievementsBadges } from "@/components/profile/AchievementsBadges"
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)
@@ -61,6 +62,17 @@ export default async function ProfilePage() {
               </code>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Achievements */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Achievements</CardTitle>
+          <CardDescription>Badges earned through genuine platform engagement</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AchievementsBadges />
         </CardContent>
       </Card>
 

@@ -69,9 +69,18 @@ export function Sidebar() {
           <ul className="space-y-0.5">
             {[
               { href: "/dashboard", label: "Dashboard" },
+              { href: "/explore", label: "Explore" },
+              { href: "/goals", label: "Goals" },
+              { href: "/timeline", label: "Timeline" },
+              { href: "/digest", label: "Weekly Digest" },
+              { href: "/privacy", label: "Privacy" },
+              { href: "/resources", label: "Resources" },
+              { href: "/about", label: "About" },
+              { href: "/community", label: "Community" },
               { href: "/profile", label: "Identity" },
               { href: "/wallet", label: "Wallet" },
               { href: "/settings", label: "Settings" },
+              { href: "/admin", label: "Admin" },
             ].map((item) => (
               <li key={item.href}>
                 <Link

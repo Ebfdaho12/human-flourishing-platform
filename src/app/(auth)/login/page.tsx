@@ -37,55 +37,58 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-sm border-border bg-card">
-      <CardHeader>
-        <CardTitle>Sign in</CardTitle>
-        <CardDescription>Enter your credentials to access the platform</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          {error && (
-            <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
+    <div className="w-full max-w-sm">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold">Welcome back</h1>
+        <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
+            {error}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline">
-              Create one
-            </Link>
-          </p>
-        </CardFooter>
+        )}
+
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            className="h-11"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className="h-11"
+          />
+        </div>
+
+        <Button type="submit" className="w-full h-11 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/25" disabled={loading}>
+          {loading ? "Signing in..." : "Sign in"}
+        </Button>
       </form>
-    </Card>
+
+      <p className="text-sm text-muted-foreground text-center mt-6">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="text-violet-600 font-medium hover:underline">
+          Create one free
+        </Link>
+      </p>
+    </div>
   )
 }

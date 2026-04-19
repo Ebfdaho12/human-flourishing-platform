@@ -23,6 +23,28 @@
   --radius: 0.75rem;
 }
 
+.dark {
+  --background: #0c0a1a;
+  --foreground: #e2e8f0;
+  --card: #161228;
+  --card-foreground: #e2e8f0;
+  --popover: #161228;
+  --popover-foreground: #e2e8f0;
+  --primary: #a78bfa;
+  --primary-foreground: #0f0720;
+  --secondary: #1e1a35;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1e1a35;
+  --muted-foreground: #94a3b8;
+  --accent: #2e1a65;
+  --accent-foreground: #c4b5fd;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #2d2548;
+  --input: #2d2548;
+  --ring: #a78bfa;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -56,6 +78,11 @@ body {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body,
+body.dark {
+  background: linear-gradient(135deg, #0c0a1a 0%, #0f0d24 50%, #120e28 100%);
 }
 
 .glass {
