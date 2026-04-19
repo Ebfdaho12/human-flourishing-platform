@@ -363,6 +363,3 @@ function StepCard({ number, title, content, simple }: { number: number; title: s
     </div>
   )
 }
-    </div>
-  )
-}
