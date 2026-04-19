@@ -1,12 +1,17 @@
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Only initialize Resend if API key is present — prevents build crashes
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-// Use onboarding@resend.dev for testing. Replace with your verified domain in production.
 const FROM = "Human Flourishing Platform <onboarding@resend.dev>"
 const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 export async function sendVerificationEmail(to: string, token: string) {
+  if (!resend) {
+    console.warn("RESEND_API_KEY not set — skipping verification email")
+    return
+  }
+
   const url = `${BASE_URL}/verify-email?token=${token}`
 
   await resend.emails.send({
