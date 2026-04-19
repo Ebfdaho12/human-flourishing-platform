@@ -76,6 +76,7 @@ export function Sidebar() {
               { href: "/privacy", label: "Privacy" },
               { href: "/resources", label: "Resources" },
               { href: "/about", label: "About" },
+              { href: "/report-issue", label: "Report Issue" },
               { href: "/community", label: "Community" },
               { href: "/profile", label: "Identity" },
               { href: "/wallet", label: "Wallet" },
