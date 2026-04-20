@@ -80,7 +80,7 @@ export function Sidebar() {
               { href: "/resources", label: "Resources" },
               { href: "/about", label: "About" },
               { href: "/report-issue", label: "Report Issue" },
-              { href: "/community", label: "Community" },
+              { href: "/community/hub", label: "Community" },
               { href: "/profile", label: "Identity" },
               { href: "/wallet", label: "Wallet" },
               { href: "/settings", label: "Settings" },

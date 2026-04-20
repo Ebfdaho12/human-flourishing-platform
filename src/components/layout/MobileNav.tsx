@@ -86,7 +86,7 @@ export function MobileNav() {
                     { href: "/explore", label: "Explore" },
                     { href: "/timeline", label: "Timeline" },
                     { href: "/digest", label: "Weekly Digest" },
-                    { href: "/community", label: "Community" },
+                    { href: "/community/hub", label: "Community" },
                     { href: "/profile", label: "Identity" },
                     { href: "/wallet", label: "Wallet" },
                     { href: "/settings", label: "Settings" },
