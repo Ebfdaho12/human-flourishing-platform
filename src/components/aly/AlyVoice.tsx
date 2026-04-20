@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Mic, MicOff, Volume2, X, Sparkles } from "lucide-react"
+import { Mic, MicOff, Volume2, X, Sparkles, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /**
@@ -422,20 +422,35 @@ export function AlyVoice() {
     setListening(false)
   }
 
+  const [textInput, setTextInput] = useState("")
+
+  function handleTextSubmit() {
+    if (!textInput.trim()) return
+    setTranscript(textInput.trim())
+    handleCommand(textInput.trim())
+    setTextInput("")
+  }
+
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  // Only render on client after mount (prevents hydration mismatch)
   if (!mounted) return null
 
-  const supported = "SpeechRecognition" in window || "webkitSpeechRecognition" in window
-  if (!supported) return null
+  const voiceSupported = "SpeechRecognition" in window || "webkitSpeechRecognition" in window
 
   return (
     <>
       {/* Aly button */}
       <button
-        onClick={() => visible ? (listening ? stopListening() : startListening()) : startListening()}
+        onClick={() => {
+          if (visible) {
+            if (listening) stopListening()
+            else if (voiceSupported) startListening()
+          } else {
+            setVisible(true)
+            if (voiceSupported) startListening()
+          }
+        }}
         className={cn(
           "fixed bottom-20 left-6 z-40 flex items-center gap-2 rounded-full shadow-xl transition-all",
           listening
@@ -443,12 +458,12 @@ export function AlyVoice() {
             : "bg-gradient-to-r from-violet-600 to-purple-600 text-white px-4 py-3 hover:scale-105"
         )}
       >
-        {listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+        {listening ? <MicOff className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
         <span className="text-sm font-medium">Aly</span>
       </button>
 
       {/* Response panel */}
-      {visible && (response || transcript) && (
+      {visible && (
         <div className="fixed bottom-32 left-6 z-40 w-80 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -488,8 +503,29 @@ export function AlyVoice() {
                 className={cn("text-[10px] rounded-full px-2 py-0.5 transition-colors", voicePref === "male" ? "bg-blue-100 text-blue-700 font-medium" : "text-muted-foreground hover:bg-muted")}
               >Male</button>
             </div>
+            {/* Text input — works even without voice */}
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleTextSubmit()}
+                placeholder="Type a command..."
+                className="flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-violet-400"
+              />
+              <button onClick={handleTextSubmit} disabled={!textInput.trim()}
+                className="rounded-lg bg-violet-600 text-white px-2 py-1.5 disabled:opacity-30 hover:bg-violet-700">
+                <Send className="h-3 w-3" />
+              </button>
+              {voiceSupported && (
+                <button onClick={listening ? stopListening : startListening}
+                  className={cn("rounded-lg px-2 py-1.5", listening ? "bg-red-500 text-white animate-pulse" : "bg-muted text-muted-foreground hover:bg-muted/80")}>
+                  {listening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                </button>
+              )}
+            </div>
             <p className="text-[10px] text-muted-foreground">
-              Try: "I'm feeling a 7" · "Slept 8 hours" · "What's my streak?" · "Open budget" · "Go to family meeting" · "Show me my rights" · "Help"
+              Try: "open budget" · "go to family meeting" · "mood 7" · "slept 8 hours" · "help"
             </p>
           </div>
         </div>
