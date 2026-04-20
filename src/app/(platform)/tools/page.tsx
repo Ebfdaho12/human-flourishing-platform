@@ -6,7 +6,7 @@ import {
   Home, Apple, Shield, Globe2, BookOpen, Target, Calculator, Briefcase,
   Baby, Clock, Flame, Star, PenLine, Scale, Layers, Moon, MessageCircle,
   Trophy, CreditCard, Utensils, Radio, Monitor, Coins, ChevronRight,
-  Zap, MapPin, TrendingUp, Landmark
+  Zap, MapPin, TrendingUp, Landmark, Sparkles
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -106,6 +106,59 @@ const TOOLS: Tool[] = [
   { name: "Economics Data", href: "/economics", desc: "Copenhagen Consensus ROI, FRED data, narratives", icon: TrendingUp, category: "Core Modules", tags: ["economics", "data", "FRED", "ROI"] },
   { name: "Energy", href: "/energy", desc: "Production, P2P trading, climate data, solar ROI", icon: Zap, category: "Core Modules", tags: ["energy", "solar", "P2P", "climate"] },
   { name: "Infrastructure", href: "/infrastructure", desc: "TCO analysis and global benchmarks", icon: Wrench, category: "Core Modules", tags: ["infrastructure", "TCO", "benchmarks"] },
+
+  // ─── NEW: Social & Community ──────────────────────────────────
+  { name: "Community Hub", href: "/community/hub", desc: "Discussion rooms, messages, and accountability partners", icon: Users, category: "Community", tags: ["social", "discuss", "connect", "community"] },
+  { name: "Accountability Partners", href: "/accountability", desc: "Pair up with someone on a shared goal — 95% success rate", icon: Users, category: "Community", tags: ["accountability", "goals", "partner"] },
+  { name: "Family Groups", href: "/family-group", desc: "Private encrypted spaces for your family", icon: Users, category: "Community", tags: ["family", "private", "messaging", "group"] },
+  { name: "Community Insights", href: "/insights", desc: "Evidence-backed learnings shared by members", icon: Star, category: "Community", tags: ["insights", "sharing", "community"] },
+
+  // ─── NEW: Life Situations ──────────────────────────────────
+  { name: "Estate Planning", href: "/estate-planning", desc: "Will, POA, beneficiaries — 56% of Canadians don't have a will", icon: Shield, category: "Life Situations", tags: ["will", "estate", "POA", "planning"] },
+  { name: "Elder Care", href: "/elder-care", desc: "Housing options, costs, government programs, caregiver burnout", icon: Heart, category: "Life Situations", tags: ["aging", "parents", "care", "elderly"] },
+  { name: "Divorce Finance", href: "/divorce-finance", desc: "Asset splitting, support, credit, documents to gather", icon: DollarSign, category: "Life Situations", tags: ["divorce", "separation", "assets"] },
+  { name: "Difficult Conversations", href: "/difficult-conversations", desc: "Scripts for hard talks — money, boundaries, end-of-life", icon: Users, category: "Life Situations", tags: ["conversations", "scripts", "communication"] },
+  { name: "Grief & Loss", href: "/grief", desc: "Practical steps, costs, children & grief, crisis resources", icon: Heart, category: "Life Situations", tags: ["grief", "loss", "death", "support"] },
+  { name: "Insurance Guide", href: "/insurance-guide", desc: "What you need vs what they sell you (Canada)", icon: Shield, category: "Life Situations", tags: ["insurance", "life", "home", "auto"] },
+  { name: "Digital Legacy", href: "/digital-legacy", desc: "Passwords, accounts, crypto — what happens to your digital life", icon: Shield, category: "Life Situations", tags: ["digital", "passwords", "legacy", "accounts"] },
+  { name: "Conflict Resolution", href: "/conflict-resolution", desc: "De-escalation techniques that actually work", icon: Users, category: "Life Situations", tags: ["conflict", "resolution", "communication"] },
+
+  // ─── NEW: Additional Financial ──────────────────────────────
+  { name: "Rent vs Buy", href: "/rent-vs-buy", desc: "The honest math — sometimes renting IS smarter", icon: Home, category: "Financial", tags: ["rent", "buy", "housing", "compare"] },
+  { name: "Emergency Fund", href: "/emergency-fund", desc: "How much, how fast, where to keep it", icon: Shield, category: "Financial", tags: ["emergency", "savings", "fund"] },
+  { name: "Credit Score", href: "/credit-score", desc: "How it works, 6 myths debunked, build from scratch", icon: DollarSign, category: "Financial", tags: ["credit", "score", "borrowing"] },
+  { name: "First Job Checklist", href: "/first-job", desc: "12 steps that set you up for life", icon: Target, category: "Financial", tags: ["first job", "career", "young adult"] },
+  { name: "Side Income Tax", href: "/side-income-tax", desc: "HST, deductions, when to incorporate (Canada)", icon: DollarSign, category: "Financial", tags: ["tax", "self-employment", "HST", "deductions"] },
+  { name: "Money & Marriage", href: "/marriage-finance", desc: "Joint vs separate, money dates, biggest fights", icon: Heart, category: "Financial", tags: ["marriage", "couple", "money", "communication"] },
+
+  // ─── NEW: Additional Education ──────────────────────────────
+  { name: "Propaganda Techniques", href: "/propaganda", desc: "15 manipulation techniques — once you see them...", icon: Brain, category: "Education", tags: ["propaganda", "manipulation", "media"] },
+  { name: "Statistics Guide", href: "/statistics-guide", desc: "Mean vs median, correlation vs causation, p-values", icon: GraduationCap, category: "Education", tags: ["statistics", "data", "numbers"] },
+  { name: "Philosophy", href: "/philosophy", desc: "Stoicism, Existentialism, Pragmatism — for real life", icon: Brain, category: "Education", tags: ["philosophy", "stoicism", "meaning"] },
+  { name: "How Laws Work", href: "/how-laws-work", desc: "Bill to law process, where citizens influence (Canada)", icon: Landmark, category: "Education", tags: ["laws", "parliament", "bills", "Canada"] },
+  { name: "History of Democracy", href: "/democracy-history", desc: "Athens to now, what kills democracies, warning signs", icon: Globe2, category: "Education", tags: ["democracy", "history", "government"] },
+  { name: "Memory Techniques", href: "/memory-techniques", desc: "Spaced repetition, memory palace, Feynman technique", icon: Brain, category: "Education", tags: ["memory", "learning", "study"] },
+  { name: "Habit Science", href: "/habit-science", desc: "Cue-routine-reward, environment design, identity habits", icon: Brain, category: "Education", tags: ["habits", "behavior", "psychology"] },
+  { name: "Time Management", href: "/time-management", desc: "Eisenhower matrix, Pomodoro, deep work, elimination", icon: Clock, category: "Productivity", tags: ["time", "productivity", "focus"] },
+  { name: "Teach Kids Finance", href: "/kids-finance", desc: "Age-by-age money lessons from 3 to 18", icon: DollarSign, category: "Family", tags: ["kids", "money", "education", "financial literacy"] },
+  { name: "Critical Thinking", href: "/critical-thinking", desc: "Age-by-age exercises for independent thinking", icon: Brain, category: "Family", tags: ["kids", "thinking", "bias", "reasoning"] },
+
+  // ─── NEW: Health ──────────────────────────────────────────
+  { name: "Men's Health", href: "/mens-health", desc: "Screenings by decade, why men avoid doctors", icon: Heart, category: "Health", tags: ["mens", "health", "screening", "prevention"] },
+  { name: "Women's Health", href: "/womens-health", desc: "Screenings by decade, hormones, heart disease #1", icon: Heart, category: "Health", tags: ["womens", "health", "screening", "hormones"] },
+  { name: "Gut Health", href: "/gut-health", desc: "Microbiome, prebiotics vs probiotics, gut-brain", icon: Heart, category: "Health", tags: ["gut", "microbiome", "digestion", "probiotics"] },
+  { name: "Dental Health", href: "/dental-health", desc: "What prevents cavities, costs, affordable care", icon: Heart, category: "Health", tags: ["dental", "teeth", "cavities", "fluoride"] },
+  { name: "Eye Health", href: "/eye-health", desc: "Blue light, 20-20-20 rule, myopia epidemic", icon: Heart, category: "Health", tags: ["eyes", "screen", "vision", "blue light"] },
+  { name: "Hormone Health", href: "/hormone-health", desc: "Testosterone, estrogen, cortisol, thyroid basics", icon: Heart, category: "Health", tags: ["hormones", "testosterone", "thyroid"] },
+  { name: "Pain Management", href: "/pain-management", desc: "Non-pharmaceutical approaches that actually work", icon: Heart, category: "Health", tags: ["pain", "stretching", "natural", "management"] },
+
+  // ─── NEW: Discovery & Meta ──────────────────────────────────
+  { name: "Knowledge Map", href: "/knowledge-map", desc: "Visual canvas of how every tool connects", icon: Globe2, category: "Discovery", tags: ["map", "connections", "explore", "visual"] },
+  { name: "Progress Dashboard", href: "/progress", desc: "One view of your growth across all tools", icon: TrendingUp, category: "Discovery", tags: ["progress", "score", "tracking"] },
+  { name: "Onboarding Quiz", href: "/quiz", desc: "4 questions → personalized tool recommendations", icon: Target, category: "Discovery", tags: ["quiz", "personalized", "start"] },
+  { name: "Data Backup", href: "/data-backup", desc: "Export and import all your local data", icon: Shield, category: "Discovery", tags: ["backup", "export", "data", "security"] },
+  { name: "Favorites", href: "/favorites", desc: "Pin your most-used tools for quick access", icon: Star, category: "Discovery", tags: ["favorites", "pin", "quick access"] },
+  { name: "Promise Tracker", href: "/promise-tracker", desc: "What politicians promised vs what they did", icon: Landmark, category: "Canada", tags: ["promises", "politicians", "accountability"] },
 ]
 
 const CATEGORIES = [...new Set(TOOLS.map(t => t.category))]
@@ -120,6 +173,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Education": "text-amber-700 border-amber-400 bg-amber-50",
   "Career": "text-indigo-600 border-indigo-300 bg-indigo-50",
   "Core Modules": "text-slate-600 border-slate-300 bg-slate-50",
+  "Community": "text-violet-600 border-violet-300 bg-violet-50",
+  "Life Situations": "text-slate-600 border-slate-300 bg-slate-50",
+  "Discovery": "text-purple-600 border-purple-300 bg-purple-50",
+  "Canada": "text-red-600 border-red-300 bg-red-50",
 }
 
 export default function ToolsPage() {
