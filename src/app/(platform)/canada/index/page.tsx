@@ -51,6 +51,11 @@ const SECTIONS = [
       { name: "Healthcare", href: "/canada/healthcare", icon: Heart, desc: "Wait times, spending vs outcomes, what works elsewhere" },
       { name: "Education", href: "/canada/education", icon: GraduationCap, desc: "PISA decline, screen time, what works" },
       { name: "Infrastructure", href: "/canada/infrastructure", icon: Wrench, desc: "6-sector report card, $400B+ deficit" },
+      { name: "Crime & Safety", href: "/canada/crime", icon: Shield, desc: "Evidence-based: what reduces crime vs political theatre" },
+      { name: "Mental Health Crisis", href: "/canada/mental-health-crisis", icon: Heart, desc: "Rising rates, teen crisis, 6-18 month waits" },
+      { name: "Transportation", href: "/canada/transportation", icon: MapPin, desc: "Transit failures, intercity rail, why Toronto can't build" },
+      { name: "Poverty Map", href: "/canada/poverty", icon: Users, desc: "By province, demographic — what actually reduces poverty" },
+      { name: "Natural Disasters", href: "/canada/natural-disasters", icon: Shield, desc: "By region: wildfires, floods, ice storms, earthquakes" },
     ],
   },
   {
@@ -76,7 +81,7 @@ export default function CanadaIndexPage() {
           <h1 className="text-2xl font-bold">Canada — Complete Analysis</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          23 deep pages covering every major Canadian system. The most comprehensive publicly available analysis in one place.
+          28 deep pages covering every major Canadian system. The most comprehensive publicly available analysis in one place.
         </p>
       </div>
 
