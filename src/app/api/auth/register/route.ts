@@ -46,14 +46,18 @@ export async function POST(req: NextRequest) {
       return newUser
     })
 
-    // Award onboarding FOUND (idempotent)
-    await awardFound(
-      user.id,
-      "account_created",
-      "FOUNDATION",
-      TOKEN_AWARDS.ACCOUNT_CREATED,
-      "Welcome to the Human Flourishing Platform"
-    )
+    // Award onboarding FOUND (non-blocking — don't fail registration if this fails)
+    try {
+      await awardFound(
+        user.id,
+        "account_created",
+        "FOUNDATION",
+        TOKEN_AWARDS.ACCOUNT_CREATED,
+        "Welcome to the Human Flourishing Platform"
+      )
+    } catch (awardErr) {
+      console.warn("Failed to award FOUND:", awardErr)
+    }
 
     // Send verification email (fire-and-forget; don't block registration)
     try {
