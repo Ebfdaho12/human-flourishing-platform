@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import useSWR from "swr"
-import { Bell, Heart, Brain, Sparkles, Shield, Flame, ChevronRight } from "lucide-react"
+import { Bell, Heart, Brain, Sparkles, Shield, Flame, ChevronRight, X, CheckCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -17,8 +17,30 @@ const TYPE_META: Record<string, { icon: any; color: string; bg: string }> = {
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const { data } = useSWR("/api/notifications", fetcher, { refreshInterval: 60000 })
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
-  const notifications = data?.notifications ?? []
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("hfp-dismissed-notifications")
+      if (stored) setDismissed(new Set(JSON.parse(stored)))
+    } catch {}
+  }, [])
+
+  function dismiss(id: string) {
+    const next = new Set(dismissed)
+    next.add(id)
+    setDismissed(next)
+    localStorage.setItem("hfp-dismissed-notifications", JSON.stringify([...next]))
+  }
+
+  function dismissAll() {
+    const next = new Set(notifications.map((n: any) => n.id))
+    setDismissed(next)
+    localStorage.setItem("hfp-dismissed-notifications", JSON.stringify([...next]))
+  }
+
+  const allNotifications = data?.notifications ?? []
+  const notifications = allNotifications.filter((n: any) => !dismissed.has(n.id))
   const count = notifications.length
 
   return (
@@ -40,8 +62,13 @@ export function NotificationBell() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-card shadow-2xl z-50 overflow-hidden">
-            <div className="p-3 border-b border-border">
+            <div className="p-3 border-b border-border flex items-center justify-between">
               <h3 className="font-semibold text-sm">Notifications</h3>
+              {count > 0 && (
+                <button onClick={dismissAll} className="text-[10px] text-muted-foreground hover:text-violet-600 flex items-center gap-1">
+                  <CheckCheck className="h-3 w-3" /> Mark all read
+                </button>
+              )}
             </div>
 
             {notifications.length === 0 ? (
@@ -68,7 +95,10 @@ export function NotificationBell() {
                         <p className="text-sm font-medium">{n.title}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
                       </div>
-                      {n.action && <ChevronRight className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-1" />}
+                      <button onClick={e => { e.preventDefault(); e.stopPropagation(); dismiss(n.id) }}
+                        className="text-muted-foreground/20 hover:text-muted-foreground p-1 shrink-0">
+                        <X className="h-3 w-3" />
+                      </button>
                     </a>
                   )
                 })}
