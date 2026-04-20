@@ -81,6 +81,8 @@ export function MobileNav() {
                   {[
                     { href: "/dashboard", label: "Dashboard" },
                     { href: "/tools", label: "All Tools" },
+                    { href: "/progress", label: "Progress" },
+                    { href: "/canada/index", label: "Canada" },
                     { href: "/explore", label: "Explore" },
                     { href: "/timeline", label: "Timeline" },
                     { href: "/digest", label: "Weekly Digest" },
