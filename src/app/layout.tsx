@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           } catch (e) {}
         `}} />
       </head>
-      <body className="min-h-full bg-background text-foreground antialiased">
+      <body className="min-h-full bg-background text-foreground antialiased" role="application" aria-label="Human Flourishing Platform">
         <Providers>{children}</Providers>
       </body>
     </html>

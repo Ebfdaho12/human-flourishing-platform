@@ -113,3 +113,15 @@ body.dark {
   transform: translateY(-1px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
 }
+
+/* ─── Print Styles ───────────────────────────────────────────────── */
+@media print {
+  nav, aside, .fixed, [role="navigation"] { display: none !important; }
+  body, main { background: white !important; color: black !important; }
+  .rounded-xl, .rounded-lg { border: 1px solid #ddd !important; break-inside: avoid; }
+  body { font-size: 12pt !important; line-height: 1.5 !important; }
+  h1 { font-size: 18pt !important; } h2 { font-size: 14pt !important; }
+  a[href^="http"]:after { content: " (" attr(href) ")"; font-size: 9pt; color: #666; }
+  @page { margin: 1.5cm; }
+  main::before { content: "Human Flourishing Platform"; display: block; text-align: center; font-size: 10pt; color: #888; padding-bottom: 12pt; border-bottom: 1px solid #ddd; margin-bottom: 12pt; }
+}

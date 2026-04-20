@@ -4,6 +4,16 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   serverExternalPackages: ["argon2"],
+  // Performance: compress responses
+  compress: true,
+  // Performance: optimize images
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
+  // Performance: reduce JS bundle by excluding unused locales
+  experimental: {
+    optimizePackageImports: ["lucide-react", "@/components/ui"],
+  },
   async headers() {
     return [
       {
