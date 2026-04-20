@@ -7,6 +7,7 @@ import { ActivityFeed, ModuleStats } from "@/components/dashboard/ActivityFeed"
 import { StreakWidget } from "@/components/dashboard/StreakWidget"
 import { DailyCheckIn } from "@/components/dashboard/DailyCheckIn"
 import { Discover } from "@/components/dashboard/Discover"
+import { WhatsNew } from "@/components/dashboard/WhatsNew"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -82,6 +83,9 @@ export default async function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* What's new — platform updates feed */}
+      <WhatsNew />
 
       {/* Smart discovery — personalized recommendations */}
       <Discover />
