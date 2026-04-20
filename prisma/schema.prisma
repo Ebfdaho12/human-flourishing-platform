@@ -46,6 +46,18 @@ model User {
   healthCases    HealthCase[]
   caseProposals  CaseProposal[]
 
+  // Social & messaging
+  sentMessages       DirectMessage[]       @relation("SentMessages")
+  receivedMessages   DirectMessage[]       @relation("ReceivedMessages")
+  accountabilityAs   AccountabilityPartner[] @relation("AccountabilityUser")
+  accountabilityWith AccountabilityPartner[] @relation("AccountabilityPartner")
+  familyMemberships  FamilyMember[]
+  familyMessages     FamilyMessage[]       @relation("FamilyMessages")
+  discussionPosts    DiscussionPost[]      @relation("DiscussionPosts")
+  cohortMemberships  CohortMember[]
+  cohortMessages     CohortMessage[]       @relation("CohortMessages")
+  insights           Insight[]             @relation("Insights")
+
   @@index([email])
 }
 
@@ -544,5 +556,238 @@ model EmailVerification {
 
   @@index([userId])
   @@index([token])
+}
+
+// ─── Social & Messaging ──────────────────────────────────────────────────────
+
+// Direct messages between users (encrypted)
+model DirectMessage {
+  id          String   @id @default(cuid())
+  senderId    String
+  receiverId  String
+  content     String   // encrypted with recipient's public key
+  encrypted   Boolean  @default(true)
+  read        Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([receiverId, read])
+}
+
+// Accountability partner pairings
+model AccountabilityPartner {
+  id          String   @id @default(cuid())
+  userId      String
+  partnerId   String
+  goal        String   // what they're working on together
+  status      String   @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, ENDED
+  checkInDay  String   @default("MONDAY") // day of weekly check-in
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+
+  user        User     @relation("AccountabilityUser", fields: [userId], references: [id])
+  partner     User     @relation("AccountabilityPartner", fields: [partnerId], references: [id])
+  checkIns    PartnerCheckIn[]
+
+  @@unique([userId, partnerId])
+  @@index([userId])
+  @@index([partnerId])
+}
+
+model PartnerCheckIn {
+  id            String   @id @default(cuid())
+  partnershipId String
+  userId        String   // who is checking in
+  progress      String   // what they accomplished
+  blockers      String?  // what's in the way
+  nextWeekGoal  String?  // what they'll do next
+  rating        Int      @default(5) // 1-10 how the week went
+  createdAt     DateTime @default(now())
+
+  partnership   AccountabilityPartner @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+
+  @@index([partnershipId])
+}
+
+// Family groups (private spaces)
+model FamilyGroup {
+  id          String   @id @default(cuid())
+  name        String
+  createdBy   String
+  inviteCode  String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+
+  members     FamilyMember[]
+  messages    FamilyMessage[]
+
+  @@index([inviteCode])
+}
+
+model FamilyMember {
+  id          String   @id @default(cuid())
+  groupId     String
+  userId      String
+  role        String   @default("MEMBER") // ADMIN, MEMBER
+  joinedAt    DateTime @default(now())
+
+  group       FamilyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model FamilyMessage {
+  id          String   @id @default(cuid())
+  groupId     String
+  senderId    String
+  content     String
+  type        String   @default("TEXT") // TEXT, INSIGHT, CHECKIN, MILESTONE
+  metadata    String?  // JSON: tool link, achievement data, etc.
+  createdAt   DateTime @default(now())
+
+  group       FamilyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender      User        @relation("FamilyMessages", fields: [senderId], references: [id])
+
+  @@index([groupId])
+  @@index([groupId, createdAt])
+}
+
+// Topic discussion rooms
+model DiscussionRoom {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  category    String   // FINANCE, FAMILY, HEALTH, CANADA, EDUCATION, GENERAL
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  posts       DiscussionPost[]
+
+  @@index([slug])
+  @@index([category])
+}
+
+model DiscussionPost {
+  id          String   @id @default(cuid())
+  roomId      String
+  authorId    String
+  content     String
+  type        String   @default("DISCUSSION") // DISCUSSION, INSIGHT, QUESTION, RESOURCE
+  toolLink    String?  // link to a platform tool that inspired this post
+  sourceUrl   String?  // evidence/source link
+  upvotes     Int      @default(0)
+  downvotes   Int      @default(0)
+  replyCount  Int      @default(0)
+  parentId    String?  // for threaded replies
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  room        DiscussionRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  author      User           @relation("DiscussionPosts", fields: [authorId], references: [id])
+  votes       PostVote[]
+  replies     DiscussionPost[] @relation("PostReplies")
+  parent      DiscussionPost?  @relation("PostReplies", fields: [parentId], references: [id])
+
+  @@index([roomId, createdAt])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model PostVote {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  value     Int      // +1 or -1
+  createdAt DateTime @default(now())
+
+  post      DiscussionPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+// Community challenge cohorts
+model ChallengeCohort {
+  id            String   @id @default(cuid())
+  challengeId   String   // "health-30", "mindset-30", "finance-30"
+  name          String   // "January 2026 Health Kickstart"
+  startDate     DateTime
+  maxMembers    Int      @default(50)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  members       CohortMember[]
+  messages      CohortMessage[]
+
+  @@index([challengeId])
+  @@index([startDate])
+}
+
+model CohortMember {
+  id          String   @id @default(cuid())
+  cohortId    String
+  userId      String
+  progress    Int      @default(0) // days completed
+  joinedAt    DateTime @default(now())
+
+  cohort      ChallengeCohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id])
+
+  @@unique([cohortId, userId])
+  @@index([userId])
+}
+
+model CohortMessage {
+  id          String   @id @default(cuid())
+  cohortId    String
+  senderId    String
+  content     String
+  type        String   @default("CHAT") // CHAT, CHECKIN, MILESTONE, ENCOURAGEMENT
+  day         Int?     // which challenge day this relates to
+  createdAt   DateTime @default(now())
+
+  cohort      ChallengeCohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  sender      User            @relation("CohortMessages", fields: [senderId], references: [id])
+
+  @@index([cohortId, createdAt])
+}
+
+// User insights (public sharing — not a feed, topic-sorted)
+model Insight {
+  id          String   @id @default(cuid())
+  authorId    String
+  content     String   // the insight text (min 50 chars, max 500)
+  toolLink    String?  // which platform tool inspired this
+  topicTag    String   // FINANCE, FAMILY, HEALTH, CANADA, EDUCATION, GROWTH
+  sourceUrl   String?  // evidence link (optional but encouraged)
+  upvotes     Int      @default(0)
+  isAnonymous Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  author      User     @relation("Insights", fields: [authorId], references: [id])
+  votes       InsightVote[]
+
+  @@index([topicTag, createdAt])
+  @@index([authorId])
+}
+
+model InsightVote {
+  id        String   @id @default(cuid())
+  insightId String
+  userId    String
+  value     Int      // +1 helpful, -1 not helpful
+  createdAt DateTime @default(now())
+
+  insight   Insight  @relation(fields: [insightId], references: [id], onDelete: Cascade)
+
+  @@unique([insightId, userId])
 }
 
