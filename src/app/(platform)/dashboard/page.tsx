@@ -6,6 +6,7 @@ import { ModuleGrid } from "@/components/dashboard/ModuleGrid"
 import { ActivityFeed, ModuleStats } from "@/components/dashboard/ActivityFeed"
 import { StreakWidget } from "@/components/dashboard/StreakWidget"
 import { DailyCheckIn } from "@/components/dashboard/DailyCheckIn"
+import { Discover } from "@/components/dashboard/Discover"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -81,6 +82,9 @@ export default async function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Smart discovery — personalized recommendations */}
+      <Discover />
 
       {/* Module usage */}
       <div className="rounded-xl border border-border bg-card p-4">
