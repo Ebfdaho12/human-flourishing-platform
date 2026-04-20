@@ -12,14 +12,18 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Users can see their own feedback
+  // Admin can see ALL feedback; regular users see only their own
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim().toLowerCase())
+  const isAdmin = adminEmails.includes(session.user.email?.toLowerCase() ?? "")
+
   const feedback = await prisma.moduleActivity.findMany({
-    where: { userId: session.user.id, moduleId: "FEEDBACK" },
+    where: isAdmin ? { moduleId: "FEEDBACK" } : { userId: session.user.id, moduleId: "FEEDBACK" },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: isAdmin ? 100 : 20,
+    include: isAdmin ? { user: { select: { email: true } } } : undefined,
   })
 
-  return NextResponse.json({ feedback })
+  return NextResponse.json({ feedback, isAdmin })
 }
 
 export async function POST(req: NextRequest) {

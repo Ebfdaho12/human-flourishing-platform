@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import * as argon2 from "argon2"
+import { rateLimit } from "./security"
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -22,6 +23,9 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
+
+        // Rate limit login attempts: 5 per 5 minutes per email
+        if (!rateLimit(`login:${credentials.email.toLowerCase()}`, 5, 300000)) return null
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase().trim() },

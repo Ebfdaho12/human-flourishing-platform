@@ -149,9 +149,16 @@ export async function GET(req: NextRequest) {
   }
 
   if (format === "csv") {
-    // For CSV, flatten and return the first data type found
-    const key = Object.keys(exportData)[0]
-    const rows = exportData[key] ?? []
+    // For CSV, combine all data types with a "type" column
+    const allRows: any[] = []
+    for (const [key, rows] of Object.entries(exportData)) {
+      if (Array.isArray(rows)) {
+        for (const row of rows) {
+          allRows.push({ _dataType: key, ...row })
+        }
+      }
+    }
+    const rows = allRows
     if (rows.length === 0) {
       return new NextResponse("No data to export", { status: 200, headers: { "Content-Type": "text/plain" } })
     }

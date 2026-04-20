@@ -141,12 +141,12 @@ export default function GettingStartedPage() {
       {/* Platform overview */}
       <div>
         <h2 className="text-lg font-bold mb-3">What is On This Platform</h2>
-        <p className="text-xs text-muted-foreground mb-4">100+ tools across 10 categories. Everything you need for health, wealth, family, and personal growth — in one place.</p>
+        <p className="text-xs text-muted-foreground mb-4">60+ tools across 10 categories. Everything you need for health, wealth, family, and personal growth — in one place.</p>
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: "Financial Tools", count: "11", desc: "Budget, debt payoff, taxes, investments, negotiation", href: "/tools", color: "border-emerald-200 bg-emerald-50/30" },
             { label: "Family", count: "7", desc: "Family economics, meetings, screen time, chores, dates", href: "/tools", color: "border-rose-200 bg-rose-50/30" },
-            { label: "Health & Wellness", count: "14", desc: "Body, sleep, food, exercise, symptoms, medications", href: "/tools", color: "border-red-200 bg-red-50/30" },
+            { label: "Health & Wellness", count: "8", desc: "Body, sleep, food, exercise, symptoms, medications", href: "/tools", color: "border-red-200 bg-red-50/30" },
             { label: "Mental Health", count: "6", desc: "Gratitude, breathing, meditation, affirmations, journaling", href: "/tools", color: "border-violet-200 bg-violet-50/30" },
             { label: "Personal Growth", count: "10", desc: "Life wheel, values, skills, decisions, challenges, habits", href: "/tools", color: "border-cyan-200 bg-cyan-50/30" },
             { label: "Productivity", count: "5", desc: "Planner, routines, focus timer, notes, goals", href: "/tools", color: "border-blue-200 bg-blue-50/30" },
@@ -167,7 +167,7 @@ export default function GettingStartedPage() {
           ))}
         </div>
         <a href="/tools" className="block text-center mt-3">
-          <span className="text-sm text-violet-600 hover:underline font-medium">Browse all 100+ tools →</span>
+          <span className="text-sm text-violet-600 hover:underline font-medium">Browse all 60+ tools →</span>
         </a>
       </div>
 

@@ -12,8 +12,11 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // TODO: Add admin role check in production
-  // if (!session.user.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  // Admin check — restrict to platform owner
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim().toLowerCase())
+  if (!adminEmails.includes(session.user.email?.toLowerCase() ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())

@@ -73,7 +73,8 @@ export function computeMerkleRoot(
 // Prefix "v2:" distinguishes from the old XOR format ("v1:" or no prefix).
 
 function deriveKey(userId: string): Buffer {
-  const secret = process.env.CLAIM_ENCRYPTION_SECRET ?? "dev-secret-change-in-production"
+  const secret = process.env.CLAIM_ENCRYPTION_SECRET
+  if (!secret) throw new Error("CLAIM_ENCRYPTION_SECRET environment variable is required for identity claim encryption")
   // HKDF-SHA256 — deterministic 32-byte key per user
   return Buffer.from(
     hkdfSync("sha256", Buffer.from(secret), Buffer.from(userId), Buffer.from("hfp-claim-v2"), 32)
@@ -104,7 +105,8 @@ export function decryptClaimValue(encrypted: string, userId: string): string {
   }
 
   // Legacy XOR fallback for values encrypted before the upgrade
-  const secret = process.env.CLAIM_ENCRYPTION_SECRET ?? "dev-secret"
+  const secret = process.env.CLAIM_ENCRYPTION_SECRET
+  if (!secret) throw new Error("CLAIM_ENCRYPTION_SECRET environment variable is required")
   const key = createHash("sha256").update(`${secret}:${userId}`).digest()
   const buf = Buffer.from(encrypted, "base64")
   const decrypted = Buffer.alloc(buf.length)

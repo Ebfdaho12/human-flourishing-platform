@@ -5,11 +5,17 @@ import { prisma } from "@/lib/prisma"
 import { tutor, hasApiKey, NO_KEY_RESPONSE } from "@/lib/ai"
 import { awardFound } from "@/lib/tokens"
 import { TOKEN_AWARDS } from "@/lib/constants"
+import { rateLimit, rateLimitResponse } from "@/lib/security"
 import type { ChatMessage } from "@/lib/ai"
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  // Rate limit AI calls: 10 per minute per user
+  if (!rateLimit(`ai:${session.user.id}`, 10, 60000)) {
+    return NextResponse.json(rateLimitResponse(), { status: 429 })
+  }
 
   const body = await req.json()
   const { subject, topic, level, messages, goalId, sessionId } = body

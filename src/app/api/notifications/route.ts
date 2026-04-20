@@ -77,11 +77,12 @@ export async function GET() {
 
   // Milestone notifications
   const totalEntries = await prisma.healthEntry.count({ where: { userId } })
-  if (totalEntries === 10 || totalEntries === 50 || totalEntries === 100) {
+  const milestone = totalEntries >= 100 ? 100 : totalEntries >= 50 ? 50 : totalEntries >= 10 ? 10 : 0
+  if (milestone > 0) {
     notifications.push({
-      id: `milestone-${totalEntries}`,
+      id: `milestone-${milestone}`,
       type: "CELEBRATION",
-      title: `${totalEntries} health entries!`,
+      title: `${milestone}+ health entries!`,
       message: `You've logged ${totalEntries} health entries. Consistency is key.`,
       read: false,
     })

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { analyzeHealth, hasApiKey, NO_KEY_RESPONSE } from "@/lib/ai"
+import { rateLimit, rateLimitResponse } from "@/lib/security"
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -20,6 +21,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  if (!rateLimit(`ai:${session.user.id}`, 10, 60000)) {
+    return NextResponse.json(rateLimitResponse(), { status: 429 })
+  }
 
   if (!hasApiKey) {
     return NextResponse.json({ content: NO_KEY_RESPONSE, hasApiKey: false })

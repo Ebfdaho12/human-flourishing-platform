@@ -37,7 +37,7 @@ const CITIES: Record<string, {
   "Mexico City": { country: "MX", housing: 600, food: 200, transport: 30, healthcare: 80, utilities: 50, medianIncome: 1200, index: 25 },
   "Bangkok": { country: "TH", housing: 500, food: 200, transport: 40, healthcare: 60, utilities: 80, medianIncome: 1000, index: 22 },
   "Bali (Denpasar)": { country: "ID", housing: 400, food: 180, transport: 35, healthcare: 50, utilities: 60, medianIncome: 600, index: 18 },
-  "Medelliin": { country: "CO", housing: 450, food: 200, transport: 30, healthcare: 70, utilities: 60, medianIncome: 800, index: 20 },
+  "Medellín": { country: "CO", housing: 450, food: 200, transport: 30, healthcare: 70, utilities: 60, medianIncome: 800, index: 20 },
 }
 
 export default function CostOfLivingPage() {

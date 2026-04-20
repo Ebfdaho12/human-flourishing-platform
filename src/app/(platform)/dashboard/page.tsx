@@ -43,7 +43,7 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Quick Access</h2>
-          <a href="/tools" className="text-xs text-violet-600 hover:underline">All {100}+ tools →</a>
+          <a href="/tools" className="text-xs text-violet-600 hover:underline">All 60+ tools →</a>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[

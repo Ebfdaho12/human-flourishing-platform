@@ -1,5 +1,6 @@
 "use client"
 import { useState, useCallback, useRef, useEffect } from "react"
+import DOMPurify from "isomorphic-dompurify"
 import useSWR from "swr"
 import {
   GraduationCap, Plus, Send, Sparkles, BookOpen, Target, ChevronRight, Bot, User, Loader2, Flame, Clock, BarChart3, Trophy
@@ -228,16 +229,13 @@ function TutorChat({
   }
 
   function renderMessage(content: string) {
-    // Sanitize to prevent XSS before rendering as HTML
+    // Convert markdown-style bold and newlines to HTML
     const html = content.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>")
-    // Strip dangerous tags while keeping formatting
-    return html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-      .replace(/on\w+\s*=/gi, "")
-      .replace(/<iframe/gi, "&lt;iframe")
-      .replace(/<object/gi, "&lt;object")
-      .replace(/<embed/gi, "&lt;embed")
-      .replace(/<img[^>]*onerror/gi, "&lt;img onerror")
+    // Sanitize with DOMPurify — only allow safe formatting tags
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ["strong", "em", "br", "p", "ul", "li", "ol", "code", "pre", "b", "i"],
+      ALLOWED_ATTR: [],
+    })
   }
 
   return (
