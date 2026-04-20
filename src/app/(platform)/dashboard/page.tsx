@@ -5,6 +5,7 @@ import { MODULES } from "@/lib/constants"
 import { ModuleGrid } from "@/components/dashboard/ModuleGrid"
 import { ActivityFeed, ModuleStats } from "@/components/dashboard/ActivityFeed"
 import { StreakWidget } from "@/components/dashboard/StreakWidget"
+import { DailyCheckIn } from "@/components/dashboard/DailyCheckIn"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -35,6 +36,9 @@ export default async function DashboardPage() {
         <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-500" />
         <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" />
       </div>
+
+      {/* Daily check-in — the first thing you see every day */}
+      <DailyCheckIn />
 
       {/* Streaks + daily checklist */}
       <StreakWidget />
