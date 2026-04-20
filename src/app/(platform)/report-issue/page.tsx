@@ -213,31 +213,79 @@ export default function ReportIssuePage() {
         </CardContent>
       </Card>
 
-      {/* Previous reports */}
+      {/* Previous reports with status + rewards */}
       {reports.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Previous Reports</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Your Reports</h2>
           <div className="space-y-2">
-            {reports.map((r: any, i: number) => (
-              <Card key={i}>
-                <CardContent className="p-3 flex items-start gap-3">
-                  <Badge variant="outline" className={cn("text-[10px] shrink-0",
-                    r.metadata?.type === "BUG" ? "border-red-200 text-red-600" :
-                    r.metadata?.type === "UI" ? "border-amber-200 text-amber-600" :
-                    r.metadata?.type === "FEATURE" ? "border-emerald-200 text-emerald-600" :
-                    "border-blue-200 text-blue-600"
-                  )}>{r.metadata?.type ?? "REPORT"}</Badge>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{r.metadata?.title ?? "Report"}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.metadata?.description}</p>
-                  </div>
-                  <span className="text-[10px] text-muted-foreground shrink-0">{new Date(r.createdAt).toLocaleDateString()}</span>
-                </CardContent>
-              </Card>
-            ))}
+            {reports.map((r: any, i: number) => {
+              const meta = r.metadata || {}
+              const hasResponse = !!meta.adminResponse || !!meta.status
+              const statusColors: Record<string, string> = {
+                RECEIVED: "text-blue-600 border-blue-300 bg-blue-50",
+                IN_PROGRESS: "text-amber-600 border-amber-300 bg-amber-50",
+                FIXED: "text-emerald-600 border-emerald-300 bg-emerald-50",
+                IMPLEMENTED: "text-emerald-600 border-emerald-300 bg-emerald-50",
+                WONT_FIX: "text-slate-600 border-slate-300 bg-slate-50",
+                DUPLICATE: "text-slate-600 border-slate-300 bg-slate-50",
+              }
+              return (
+                <Card key={i} className={hasResponse ? "border-emerald-200" : ""}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <Badge variant="outline" className={cn("text-[10px] shrink-0",
+                        meta.type === "BUG" ? "border-red-200 text-red-600" :
+                        meta.type === "UI" ? "border-amber-200 text-amber-600" :
+                        meta.type === "FEATURE" ? "border-emerald-200 text-emerald-600" :
+                        "border-blue-200 text-blue-600"
+                      )}>{meta.type ?? "REPORT"}</Badge>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{meta.title ?? "Report"}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{meta.description}</p>
+
+                        {/* Status + response from admin */}
+                        {meta.status && (
+                          <div className="mt-2 rounded-lg border p-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline" className={cn("text-[9px]", statusColors[meta.status] || "")}>
+                                {meta.status.replace("_", " ")}
+                              </Badge>
+                              {meta.rewardAmount > 0 && (
+                                <Badge className="text-[9px] bg-violet-500 text-white">
+                                  +{meta.rewardAmount} FOUND earned!
+                                </Badge>
+                              )}
+                            </div>
+                            {meta.adminResponse && (
+                              <p className="text-xs text-emerald-700">{meta.adminResponse}</p>
+                            )}
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Responded {meta.respondedAt ? new Date(meta.respondedAt).toLocaleDateString() : ""}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground shrink-0">{new Date(r.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </div>
       )}
+
+      {/* Reward info */}
+      <Card className="border-violet-200 bg-violet-50/20">
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong>Your feedback earns FOUND tokens!</strong> When we fix a bug or implement a feature you suggested,
+            you get rewarded based on the impact: 25 FOUND for minor feedback, 100 for helpful, 250 for significant,
+            and 500 FOUND for critical issues. The better your feedback (specific, reproducible, actionable), the
+            more valuable it is — and the more you earn. You are helping build the platform for everyone.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }
