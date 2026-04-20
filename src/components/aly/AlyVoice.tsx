@@ -58,12 +58,114 @@ function parseCommand(text: string): { action: string; data: any } | null {
   if (/balance|found|how much/i.test(lower)) return { action: "query_balance", data: {} }
   if (/how am i doing|progress|summary/i.test(lower)) return { action: "query_summary", data: {} }
 
-  // Navigation
-  if (/health|vitals/i.test(lower)) return { action: "navigate", data: { path: "/health" } }
-  if (/mood|mental/i.test(lower)) return { action: "navigate", data: { path: "/mental-health" } }
-  if (/learn|education|study/i.test(lower)) return { action: "navigate", data: { path: "/education" } }
-  if (/wallet|token|found/i.test(lower)) return { action: "navigate", data: { path: "/wallet" } }
-  if (/dashboard|home/i.test(lower)) return { action: "navigate", data: { path: "/dashboard" } }
+  // Navigation — Aly knows every page on the platform
+  const NAV_MAP: [RegExp, string][] = [
+    // Core pages
+    [/dashboard|home\b/i, "/dashboard"],
+    [/all tools|tool directory|browse tools/i, "/tools"],
+    [/getting started|start here|new here/i, "/getting-started"],
+    [/explore|search/i, "/explore"],
+    [/settings/i, "/settings"],
+    [/profile|identity/i, "/profile"],
+    [/wallet|token|found\b/i, "/wallet"],
+    [/bookmarks?/i, "/bookmarks"],
+    [/report|issue|bug/i, "/report-issue"],
+    [/community/i, "/community"],
+    [/about/i, "/about"],
+    [/privacy/i, "/privacy"],
+    [/resources/i, "/resources"],
+
+    // Health
+    [/health|vitals/i, "/health"],
+    [/sleep track/i, "/health/sleep"],
+    [/sleep calc|bedtime|wake.?up time/i, "/sleep-calculator"],
+    [/exercise|workout|gym/i, "/health/exercise"],
+    [/food diary|food log|nutrition/i, "/health/food"],
+    [/water track|hydration/i, "/health/water"],
+    [/medic(?:ation|ine)|pills/i, "/health/medications"],
+    [/symptom/i, "/health/symptoms"],
+    [/body|bmi|weight track/i, "/health/body"],
+
+    // Mental health
+    [/mental|mood|self.?care/i, "/mental-health"],
+    [/gratitude|grateful/i, "/mental-health/gratitude"],
+    [/breath|breathing/i, "/mental-health/breathe"],
+    [/meditat/i, "/mental-health/meditate"],
+    [/affirm/i, "/mental-health/affirmations"],
+    [/journal prompt/i, "/mental-health/prompts"],
+
+    // Financial
+    [/budget/i, "/budget"],
+    [/net worth/i, "/net-worth"],
+    [/debt|payoff|snowball|avalanche/i, "/debt-payoff"],
+    [/compound interest|investing calculator/i, "/compound-interest"],
+    [/tax|taxes/i, "/tax-estimator"],
+    [/subscription|audit/i, "/subscriptions"],
+    [/cost of living|cities/i, "/cost-of-living"],
+    [/negotiat/i, "/negotiation"],
+    [/side hustle|extra income|freelance/i, "/side-hustles"],
+    [/financial literacy|money basics/i, "/education/finance"],
+
+    // Family
+    [/family econom|single income|one income|stay.?at.?home/i, "/family-economics"],
+    [/family meeting/i, "/family-meeting"],
+    [/screen time/i, "/screen-time"],
+    [/chores|allowance|kids chore/i, "/kids-chores"],
+    [/date night/i, "/date-nights"],
+    [/meal plan|grocery/i, "/meal-planner"],
+    [/relationship|inner circle|friends/i, "/relationships"],
+
+    // Personal growth
+    [/life wheel|life balance/i, "/life-wheel"],
+    [/core values|values discovery/i, "/values"],
+    [/vision board/i, "/vision"],
+    [/skill invent/i, "/skills"],
+    [/career path/i, "/career-path"],
+    [/decision journal/i, "/decisions"],
+    [/wins|celebrate|gratitude wall/i, "/wins"],
+    [/reading list|books/i, "/reading"],
+    [/challenge|30.?day/i, "/challenges"],
+    [/habit stack/i, "/habit-stack"],
+
+    // Productivity
+    [/planner|daily plan/i, "/planner"],
+    [/routine|morning routine|evening routine/i, "/routine"],
+    [/focus|pomodoro|timer/i, "/focus"],
+    [/notes?|brain dump/i, "/notes"],
+    [/goals?/i, "/goals"],
+
+    // Home
+    [/home maintenance|repair schedule/i, "/home-maintenance"],
+    [/emergency|preparedness|survival/i, "/preparedness"],
+    [/food system|food labels|organic|grow your own/i, "/food-system"],
+
+    // Education
+    [/economics education|austrian|friedman|hayek|keynes/i, "/education/economics"],
+    [/civiliz|empire|rise and fall|dalio/i, "/civilizations"],
+    [/money history|1971|gold standard|nixon/i, "/money-history"],
+    [/fallac|logical|argument/i, "/logical-fallacies"],
+    [/media ownership|who owns the news/i, "/media-ownership"],
+    [/rights|charter|bill of rights|freedom|constitution/i, "/rights"],
+    [/learn|education|study|tutor/i, "/education"],
+    [/personalized learn/i, "/education/personalized"],
+
+    // Workforce / Career
+    [/workforce|labor shortage|birth rate/i, "/workforce"],
+
+    // Core modules
+    [/governance|politic|legislation|vote/i, "/governance"],
+    [/desci|science|research|peer review/i, "/desci"],
+    [/economics? data|fred|gdp/i, "/economics"],
+    [/energy|solar|p2p energy/i, "/energy"],
+    [/infrastructure/i, "/infrastructure"],
+  ]
+
+  for (const [pattern, path] of NAV_MAP) {
+    if (pattern.test(lower)) return { action: "navigate", data: { path } }
+  }
+
+  // Help / what can you do
+  if (/help|what can you do|commands/i.test(lower)) return { action: "help", data: {} }
 
   return null
 }
@@ -194,7 +296,7 @@ export function AlyVoice() {
     const command = parseCommand(text)
 
     if (!command) {
-      const msg = "I didn't catch that. Try saying something like 'I'm feeling a 7' or 'logged 8 hours of sleep'."
+      const msg = "I didn't catch that. Try: 'I'm feeling a 7', 'slept 8 hours', 'open budget', 'go to family meeting', or say 'help' to hear everything I can do."
       setResponse(msg)
       speak(msg)
       return
@@ -293,6 +395,13 @@ export function AlyVoice() {
         speak(msg)
         break
       }
+
+      case "help": {
+        const msg = `I can do a lot! Say things like: log my mood, slept 8 hours, drank 3 glasses of water, what's my streak. Or navigate anywhere: take me to budget, open family meeting, show me my rights, go to debt payoff, open civilizations. I know all 100 pages on this platform.`
+        setResponse(msg)
+        speak(msg)
+        break
+      }
     }
   }
 
@@ -380,7 +489,7 @@ export function AlyVoice() {
               >Male</button>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Try: "I'm feeling a 7" · "Slept 8 hours" · "What's my streak?" · "Drank 3 glasses of water"
+              Try: "I'm feeling a 7" · "Slept 8 hours" · "What's my streak?" · "Open budget" · "Go to family meeting" · "Show me my rights" · "Help"
             </p>
           </div>
         </div>

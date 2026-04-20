@@ -6,6 +6,7 @@ import { TopNav } from "@/components/layout/TopNav"
 import { FeedbackButton } from "@/components/layout/FeedbackButton"
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts"
 import { AlyVoice } from "@/components/aly/AlyVoice"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -29,7 +30,9 @@ export default async function PlatformLayout({ children }: { children: React.Rea
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopNav />
         <main id="main-content" className="flex-1 overflow-y-auto p-6" role="main">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
         <AlyVoice />
         <FeedbackButton />

@@ -1,15 +1,29 @@
 import { withAuth } from "next-auth/middleware"
 
+/**
+ * Auth Proxy — protects all platform pages and API routes
+ *
+ * Next.js 16 uses proxy.ts instead of middleware.ts.
+ * This ensures unauthenticated users are redirected to /login
+ * for all protected routes. Individual API routes still do their
+ * own session checks (defense in depth).
+ *
+ * Public routes (no auth): /, /login, /register, /verify-email, /api/auth/*
+ */
 export default withAuth({
   pages: { signIn: "/login" },
 })
 
 export const config = {
   matcher: [
+    // Core platform pages
     "/dashboard/:path*",
     "/profile/:path*",
     "/wallet/:path*",
     "/settings/:path*",
+    "/admin/:path*",
+
+    // Core modules
     "/foundation/:path*",
     "/health/:path*",
     "/education/:path*",
@@ -19,5 +33,87 @@ export const config = {
     "/economics/:path*",
     "/infrastructure/:path*",
     "/mental-health/:path*",
+
+    // Financial tools
+    "/budget/:path*",
+    "/net-worth/:path*",
+    "/debt-payoff/:path*",
+    "/compound-interest/:path*",
+    "/tax-estimator/:path*",
+    "/subscriptions/:path*",
+    "/cost-of-living/:path*",
+    "/negotiation/:path*",
+    "/side-hustles/:path*",
+
+    // Family
+    "/family-economics/:path*",
+    "/family-meeting/:path*",
+    "/screen-time/:path*",
+    "/kids-chores/:path*",
+    "/date-nights/:path*",
+    "/meal-planner/:path*",
+    "/relationships/:path*",
+
+    // Personal growth
+    "/life-wheel/:path*",
+    "/values/:path*",
+    "/vision/:path*",
+    "/skills/:path*",
+    "/career-path/:path*",
+    "/decisions/:path*",
+    "/wins/:path*",
+    "/reading/:path*",
+    "/challenges/:path*",
+    "/habit-stack/:path*",
+
+    // Productivity
+    "/planner/:path*",
+    "/routine/:path*",
+    "/focus/:path*",
+    "/notes/:path*",
+    "/goals/:path*",
+
+    // Home
+    "/home-maintenance/:path*",
+    "/preparedness/:path*",
+    "/food-system/:path*",
+
+    // Education
+    "/civilizations/:path*",
+    "/money-history/:path*",
+    "/logical-fallacies/:path*",
+    "/media-ownership/:path*",
+    "/rights/:path*",
+
+    // Other
+    "/workforce/:path*",
+    "/sleep-calculator/:path*",
+    "/tools/:path*",
+    "/explore/:path*",
+    "/timeline/:path*",
+    "/digest/:path*",
+    "/community/:path*",
+    "/bookmarks/:path*",
+    "/report-issue/:path*",
+    "/onboarding/:path*",
+    "/getting-started/:path*",
+    "/tokens/:path*",
+    "/correlations/:path*",
+    "/knowledge/:path*",
+    "/habits/:path*",
+    "/emergency/:path*",
+
+    // API routes (returns 401 instead of redirect)
+    "/api/bookmarks/:path*",
+    "/api/health/:path*",
+    "/api/mental-health/:path*",
+    "/api/wallet/:path*",
+    "/api/feedback/:path*",
+    "/api/search/:path*",
+    "/api/streaks/:path*",
+    "/api/digest/:path*",
+    "/api/desci/:path*",
+    "/api/education/:path*",
+    "/api/correlations/:path*",
   ],
 }
