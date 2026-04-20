@@ -69,6 +69,7 @@ export function Sidebar() {
           <ul className="space-y-0.5">
             {[
               { href: "/dashboard", label: "Dashboard" },
+              { href: "/tools", label: "All Tools" },
               { href: "/explore", label: "Explore" },
               { href: "/goals", label: "Goals" },
               { href: "/timeline", label: "Timeline" },

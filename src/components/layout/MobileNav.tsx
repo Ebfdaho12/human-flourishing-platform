@@ -80,10 +80,9 @@ export function MobileNav() {
                 <ul className="space-y-0.5">
                   {[
                     { href: "/dashboard", label: "Dashboard" },
+                    { href: "/tools", label: "All Tools" },
                     { href: "/explore", label: "Explore" },
                     { href: "/timeline", label: "Timeline" },
-                    { href: "/digest", label: "Weekly Digest" },
-                    { href: "/explore", label: "Explore" },
                     { href: "/digest", label: "Weekly Digest" },
                     { href: "/community", label: "Community" },
                     { href: "/profile", label: "Identity" },

@@ -39,6 +39,45 @@ export default async function DashboardPage() {
       {/* Streaks + daily checklist */}
       <StreakWidget />
 
+      {/* Quick access tools */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">Quick Access</h2>
+          <a href="/tools" className="text-xs text-violet-600 hover:underline">All {100}+ tools →</a>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {[
+            { href: "/budget", label: "Budget", emoji: "💰" },
+            { href: "/health", label: "Health", emoji: "❤️" },
+            { href: "/planner", label: "Planner", emoji: "📋" },
+            { href: "/family-meeting", label: "Family Meeting", emoji: "👨‍👩‍👧‍👦" },
+            { href: "/notes", label: "Quick Notes", emoji: "📝" },
+            { href: "/focus", label: "Focus Timer", emoji: "⏱️" },
+            { href: "/mental-health", label: "Mental Health", emoji: "🧠" },
+            { href: "/goals", label: "Goals", emoji: "🎯" },
+          ].map(t => (
+            <a key={t.href} href={t.href} className="rounded-xl border border-border bg-card p-3 hover:bg-accent/50 transition-colors flex items-center gap-2.5">
+              <span className="text-lg">{t.emoji}</span>
+              <span className="text-sm font-medium">{t.label}</span>
+            </a>
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          {[
+            { href: "/education/economics", label: "Economics Education", color: "text-amber-600" },
+            { href: "/civilizations", label: "Civilizations", color: "text-red-600" },
+            { href: "/logical-fallacies", label: "Logical Fallacies", color: "text-violet-600" },
+            { href: "/rights", label: "Your Rights", color: "text-blue-600" },
+            { href: "/family-economics", label: "Family Economics", color: "text-rose-600" },
+            { href: "/negotiation", label: "Negotiation Scripts", color: "text-emerald-600" },
+          ].map(t => (
+            <a key={t.href} href={t.href} className="rounded-lg border border-border px-3 py-2 hover:bg-accent/50 transition-colors text-center">
+              <span className={`text-xs font-medium ${t.color}`}>{t.label}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* Module usage */}
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="text-xs text-muted-foreground mb-3">Module Usage</p>

@@ -138,12 +138,71 @@ export default function GettingStartedPage() {
         </Card>
       )}
 
+      {/* Platform overview */}
+      <div>
+        <h2 className="text-lg font-bold mb-3">What is On This Platform</h2>
+        <p className="text-xs text-muted-foreground mb-4">100+ tools across 10 categories. Everything you need for health, wealth, family, and personal growth — in one place.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: "Financial Tools", count: "11", desc: "Budget, debt payoff, taxes, investments, negotiation", href: "/tools", color: "border-emerald-200 bg-emerald-50/30" },
+            { label: "Family", count: "7", desc: "Family economics, meetings, screen time, chores, dates", href: "/tools", color: "border-rose-200 bg-rose-50/30" },
+            { label: "Health & Wellness", count: "14", desc: "Body, sleep, food, exercise, symptoms, medications", href: "/tools", color: "border-red-200 bg-red-50/30" },
+            { label: "Mental Health", count: "6", desc: "Gratitude, breathing, meditation, affirmations, journaling", href: "/tools", color: "border-violet-200 bg-violet-50/30" },
+            { label: "Personal Growth", count: "10", desc: "Life wheel, values, skills, decisions, challenges, habits", href: "/tools", color: "border-cyan-200 bg-cyan-50/30" },
+            { label: "Productivity", count: "5", desc: "Planner, routines, focus timer, notes, goals", href: "/tools", color: "border-blue-200 bg-blue-50/30" },
+            { label: "Education", count: "8", desc: "Economics, civilizations, money history, rights, fallacies", href: "/tools", color: "border-amber-200 bg-amber-50/30" },
+            { label: "Home", count: "3", desc: "Maintenance schedule, emergency prep, food system", href: "/tools", color: "border-orange-200 bg-orange-50/30" },
+          ].map(cat => (
+            <a key={cat.label} href={cat.href}>
+              <Card className={cn("card-hover h-full", cat.color)}>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold">{cat.label}</p>
+                    <span className="text-xs text-muted-foreground">{cat.count} tools</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{cat.desc}</p>
+                </CardContent>
+              </Card>
+            </a>
+          ))}
+        </div>
+        <a href="/tools" className="block text-center mt-3">
+          <span className="text-sm text-violet-600 hover:underline font-medium">Browse all 100+ tools →</span>
+        </a>
+      </div>
+
+      {/* Popular starting points */}
+      <div>
+        <h2 className="text-lg font-bold mb-3">Most Popular Starting Points</h2>
+        <div className="space-y-2">
+          {[
+            { label: "I want to get my finances in order", href: "/budget", desc: "Start with the Budget Calculator → see where your money goes → build a plan" },
+            { label: "I want to improve my family life", href: "/family-economics", desc: "Read Family Economics → try a Family Meeting → set up Screen Time tracking" },
+            { label: "I want to learn things school never taught", href: "/education/economics", desc: "Economics Education → Money History → Logical Fallacies → Your Rights" },
+            { label: "I want to get healthier", href: "/health", desc: "Health Dashboard → Sleep Calculator → 30-Day Health Challenge" },
+            { label: "I want to understand the world better", href: "/civilizations", desc: "Civilizations → Media Ownership → Economics → Governance" },
+          ].map(item => (
+            <a key={item.label} href={item.href}>
+              <Card className="card-hover">
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/20 shrink-0" />
+                </CardContent>
+              </Card>
+            </a>
+          ))}
+        </div>
+      </div>
+
       <Card className="border-violet-200 bg-violet-50/20">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>No pressure.</strong> Do one thing today. Come back tomorrow and do another.
             The platform adapts to your pace. Every small action compounds over time.
-            Consistency beats intensity, every time.
+            Consistency beats intensity, every time. Your data stays on your device — you own every byte.
           </p>
         </CardContent>
       </Card>
