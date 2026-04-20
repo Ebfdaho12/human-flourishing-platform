@@ -13,23 +13,31 @@ import { formatFound, formatVoice } from "@/lib/utils"
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
   const wallet = await prisma.wallet.findUnique({ where: { userId: session!.user.id } })
+  const profile = await prisma.userProfile.findUnique({ where: { userId: session!.user.id } })
   const claimCount = await prisma.identityClaim.count({ where: { userId: session!.user.id } })
   const activeCount = MODULES.filter((m) => m.status === "ACTIVE").length
 
   const foundBalance = wallet ? BigInt(wallet.foundBalance) : 0n
   const voiceBalance = wallet ? BigInt(wallet.voiceBalance) : 0n
+  const displayName = profile?.displayName || session?.user?.email?.split("@")[0] || ""
 
   return (
     <div className="space-y-8 max-w-5xl">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">
-          Welcome back{session?.user?.email ? `, ${session.user.email.split("@")[0]}` : ""}
+          Welcome back{displayName ? `, ${displayName}` : ""}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Your platform for health, education, and human flourishing.
+          Your platform for health, wealth, education, and human flourishing.
         </p>
+        {!profile?.displayName && (
+          <a href="/profile/edit" className="text-xs text-violet-600 hover:underline mt-1 block">Set your display name →</a>
+        )}
       </div>
+
+      {/* Daily check-in — THE FIRST THING every day */}
+      <DailyCheckIn />
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -39,9 +47,6 @@ export default async function DashboardPage() {
         <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" />
       </div>
 
-      {/* Daily check-in — the first thing you see every day */}
-      <DailyCheckIn />
-
       {/* Streaks + daily checklist */}
       <StreakWidget />
 
@@ -49,7 +54,7 @@ export default async function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Quick Access</h2>
-          <a href="/tools" className="text-xs text-violet-600 hover:underline">All 60+ tools →</a>
+          <a href="/tools" className="text-xs text-violet-600 hover:underline">All 110+ tools →</a>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
@@ -70,12 +75,12 @@ export default async function DashboardPage() {
         </div>
         <div className="grid grid-cols-3 gap-2 mt-2">
           {[
-            { href: "/education/economics", label: "Economics Education", color: "text-amber-600" },
-            { href: "/civilizations", label: "Civilizations", color: "text-red-600" },
-            { href: "/logical-fallacies", label: "Logical Fallacies", color: "text-violet-600" },
-            { href: "/rights", label: "Your Rights", color: "text-blue-600" },
+            { href: "/canada/index", label: "Canada Analysis", color: "text-red-600" },
+            { href: "/community/hub", label: "Community", color: "text-violet-600" },
+            { href: "/progress", label: "Your Progress", color: "text-emerald-600" },
+            { href: "/knowledge-map", label: "Knowledge Map", color: "text-blue-600" },
             { href: "/family-economics", label: "Family Economics", color: "text-rose-600" },
-            { href: "/negotiation", label: "Negotiation Scripts", color: "text-emerald-600" },
+            { href: "/financial-dashboard", label: "Financial Overview", color: "text-teal-600" },
           ].map(t => (
             <a key={t.href} href={t.href} className="rounded-lg border border-border px-3 py-2 hover:bg-accent/50 transition-colors text-center">
               <span className={`text-xs font-medium ${t.color}`}>{t.label}</span>

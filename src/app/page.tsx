@@ -188,7 +188,7 @@ export default async function LandingPage() {
             { title: "Privacy by architecture", desc: "Zero-knowledge proofs, encrypted claims, no tracking. We can't see your data even if we wanted to.", icon: Lock },
             { title: "Your data belongs to you", desc: "Export everything. Delete everything. No lock-in, no hostage data. CSV, JSON, or take the whole database.", icon: Database },
             { title: "AI as bridge, not destination", desc: "AI tutoring, health insights, and analysis tools. But the platform works fully without any API key — AI enhances, never gates.", icon: Sparkles },
-            { title: "Connected to truth", desc: "Governance and economics modules connect to Aletheia's truth protocol — 14,000+ public figures, both sides of every issue.", icon: Globe2 },
+            { title: "Connected to truth", desc: "Governance and economics modules connect to Aletheia's truth protocol — 17,500+ public figures, both sides of every issue.", icon: Globe2 },
             { title: "Token-aligned incentives", desc: "FOUND tokens for meaningful actions. VOICE governance power through staking. No pump-and-dump — utility drives value.", icon: TrendingUp },
             { title: "Open source forever", desc: "Every line of code is public. Fork it, audit it, improve it. Truth and human flourishing belong to everyone.", icon: Users },
           ].map((item) => {
@@ -217,13 +217,13 @@ export default async function LandingPage() {
               <h2 className="text-2xl md:text-3xl font-bold mb-4">Connected to Aletheia</h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
                 Your governance and economics modules pull from Aletheia's truth protocol —
-                14,000+ public figures, 800+ investigated narratives, credibility scores computed from data,
+                17,500+ public figures, 14,000+ investigated narratives, credibility scores computed from data,
                 funding links that follow the money. Both sides of every issue. We never tell you what to think.
               </p>
               <div className="flex flex-wrap gap-3 text-xs text-amber-800">
-                <span className="rounded-full bg-amber-100 px-3 py-1">14,000+ public figures</span>
-                <span className="rounded-full bg-amber-100 px-3 py-1">800+ narratives</span>
-                <span className="rounded-full bg-amber-100 px-3 py-1">3,300+ funding links</span>
+                <span className="rounded-full bg-amber-100 px-3 py-1">17,500+ public figures</span>
+                <span className="rounded-full bg-amber-100 px-3 py-1">14,000+ narratives</span>
+                <span className="rounded-full bg-amber-100 px-3 py-1">41 funding/lobbying links</span>
                 <span className="rounded-full bg-amber-100 px-3 py-1">Both sides always</span>
               </div>
             </div>

@@ -141,7 +141,7 @@ export default function GettingStartedPage() {
       {/* Platform overview */}
       <div>
         <h2 className="text-lg font-bold mb-3">What is On This Platform</h2>
-        <p className="text-xs text-muted-foreground mb-4">60+ tools across 10 categories. Everything you need for health, wealth, family, and personal growth — in one place.</p>
+        <p className="text-xs text-muted-foreground mb-4">110+ tools across 10 categories. Everything you need for health, wealth, family, and personal growth — in one place.</p>
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: "Financial Tools", count: "11", desc: "Budget, debt payoff, taxes, investments, negotiation", href: "/tools", color: "border-emerald-200 bg-emerald-50/30" },
@@ -167,7 +167,7 @@ export default function GettingStartedPage() {
           ))}
         </div>
         <a href="/tools" className="block text-center mt-3">
-          <span className="text-sm text-violet-600 hover:underline font-medium">Browse all 60+ tools →</span>
+          <span className="text-sm text-violet-600 hover:underline font-medium">Browse all 110+ tools →</span>
         </a>
       </div>
 

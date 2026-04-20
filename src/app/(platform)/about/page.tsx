@@ -77,14 +77,14 @@ export default function AboutPage() {
         <h2 className="text-lg font-semibold mb-4">By the Numbers</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { value: "49", label: "Platform Pages" },
-            { value: "62", label: "API Endpoints" },
-            { value: "9", label: "Core Modules" },
+            { value: "187", label: "Platform Pages" },
+            { value: "70", label: "API Endpoints" },
+            { value: "9+", label: "Core Modules + 110 Tools" },
             { value: "96", label: "Automated Tests" },
-            { value: "30,726", label: "Public Figures (Aletheia)" },
-            { value: "14,022", label: "Investigated Narratives" },
-            { value: "6,471", label: "Funding Links" },
-            { value: "57", label: "Data Importers" },
+            { value: "17,500+", label: "Public Figures (Aletheia)" },
+            { value: "14,000+", label: "Investigated Narratives" },
+            { value: "41", label: "Funding Links (Lobbying/Contracts)" },
+            { value: "65", label: "Data Importers" },
           ].map((stat) => (
             <Card key={stat.label}>
               <CardContent className="p-3 text-center">
