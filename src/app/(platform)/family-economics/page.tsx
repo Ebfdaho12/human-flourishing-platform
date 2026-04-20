@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 // ────────────────────────────────────────────
@@ -402,7 +403,7 @@ export default function FamilyEconomicsPage() {
         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-red-500" /> The Numbers: Costs vs. Wages
         </h2>
-        <p className="text-xs text-muted-foreground mb-3">Since 1970, wages grew ~670%. These costs grew far more:</p>
+        <p className="text-xs text-muted-foreground mb-3">Since 1970, <Explain tip="How much the average worker earns — wages are the money you get paid for your job">wages</Explain> grew ~670%. These costs grew far more:</p>
         <div className="space-y-2">
           {COST_EXPLOSION.map(item => {
             const Icon = item.icon
@@ -433,7 +434,7 @@ export default function FamilyEconomicsPage() {
           <AlertTriangle className="h-5 w-5 text-amber-500" /> The Dual-Income Trap
         </h2>
         <p className="text-xs text-muted-foreground mb-3">
-          Based on research by Elizabeth Warren (before politics — her academic work as a Harvard bankruptcy law professor).
+          Based on research by Elizabeth Warren (before politics — her academic work as a Harvard <Explain tip="Bankruptcy means a person or company legally declares they cannot pay their debts. A bankruptcy law professor studies why this happens and how the system handles it">bankruptcy law</Explain> professor).
         </p>
         <div className="space-y-3">
           {DUAL_INCOME_TRAP.map((item, i) => (
@@ -472,7 +473,7 @@ export default function FamilyEconomicsPage() {
                 </div>
                 {s.income2 > 0 && (
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-2">
-                    <span className="text-muted-foreground">2nd gross income:</span>
+                    <span className="text-muted-foreground">2nd <Explain tip="Gross income is your total pay BEFORE taxes and deductions. Net income is what you actually take home">gross income</Explain>:</span>
                     <span className="text-right font-medium text-emerald-600">+${s.income2.toLocaleString()}</span>
                     <span className="text-muted-foreground">Childcare:</span>
                     <span className="text-right font-medium text-red-500">-${s.childcare.toLocaleString()}</span>

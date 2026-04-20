@@ -5,6 +5,7 @@ import { MapPin, DollarSign, Home, Car, Apple, GraduationCap, Heart, TrendingUp,
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 const CITIES: Record<string, {
@@ -69,7 +70,7 @@ export default function CostOfLivingPage() {
           </div>
           <h1 className="text-2xl font-bold">Cost of Living Comparison</h1>
         </div>
-        <p className="text-sm text-muted-foreground">Compare real costs between cities. Make informed decisions about where to live.</p>
+        <p className="text-sm text-muted-foreground">Compare real costs between cities. Make informed decisions about where to live. All amounts in <Explain tip="US dollars per month. For other currencies, the relative comparisons still hold — a city that costs 50% less will cost roughly 50% less regardless of currency">USD/month</Explain>.</p>
       </div>
 
       {/* City selectors */}
@@ -96,7 +97,7 @@ export default function CostOfLivingPage() {
           <CardContent className="p-4 text-center">
             <p className="text-sm font-medium">{cityA}</p>
             <p className="text-2xl font-bold">${totalA.toLocaleString()}/mo</p>
-            <p className="text-xs text-muted-foreground">Index: {a.index}</p>
+            <p className="text-xs text-muted-foreground"><Explain tip="A score that compares this city's overall cost to New York City (NYC = 100). A score of 50 means roughly half the cost of NYC">Index</Explain>: {a.index}</p>
             <p className={cn("text-sm font-medium mt-1", savingsA >= 0 ? "text-emerald-600" : "text-red-500")}>
               {savingsA >= 0 ? "+" : ""}${savingsA.toLocaleString()} savings
             </p>
@@ -106,7 +107,7 @@ export default function CostOfLivingPage() {
           <CardContent className="p-4 text-center">
             <p className="text-sm font-medium">{cityB}</p>
             <p className="text-2xl font-bold">${totalB.toLocaleString()}/mo</p>
-            <p className="text-xs text-muted-foreground">Index: {b.index}</p>
+            <p className="text-xs text-muted-foreground"><Explain tip="A score that compares this city's overall cost to New York City (NYC = 100). A score of 50 means roughly half the cost of NYC">Index</Explain>: {b.index}</p>
             <p className={cn("text-sm font-medium mt-1", savingsB >= 0 ? "text-emerald-600" : "text-red-500")}>
               {savingsB >= 0 ? "+" : ""}${savingsB.toLocaleString()} savings
             </p>

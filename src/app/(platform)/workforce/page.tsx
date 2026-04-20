@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Users, TrendingUp, TrendingDown, AlertTriangle, GraduationCap, BarChart3, Globe2, Baby, ChevronDown, ChevronUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 // Real data from BLS, Census Bureau, and industry reports
@@ -298,9 +299,9 @@ export default function WorkforcePage() {
           <Card className="border-amber-200 bg-amber-50/30">
             <CardContent className="p-4">
               <p className="text-sm text-amber-800 leading-relaxed">
-                <strong>Why birth rates matter for careers:</strong> A country with a 1.3 birth rate today will have
+                <strong>Why <Explain tip="The average number of children born per woman. If it is below 2.1, the population shrinks over time because not enough children are being born to replace the people who pass away">birth rates</Explain> matter for careers:</strong> A country with a 1.3 birth rate today will have
                 40% fewer 20-year-olds entering the workforce in 20 years. That means labor shortages in EVERY field,
-                not just trades. Countries below replacement rate (2.1) must either increase births, increase immigration,
+                not just trades. Countries below <Explain tip="The number of children per woman needed to keep the population the same size over time — about 2.1 in developed countries (slightly above 2 to account for those who do not have children)">replacement rate</Explain> (2.1) must either increase births, increase immigration,
                 or automate — there is no fourth option.
               </p>
             </CardContent>

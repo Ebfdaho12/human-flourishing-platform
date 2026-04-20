@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 // ────────────────────────────────────────────
@@ -418,7 +419,7 @@ export default function CivilizationsPage() {
         </h2>
         <p className="text-xs text-muted-foreground mb-4">
           Identified by Sir John Glubb (1976), expanded by Ray Dalio (2021), confirmed by Peter Turchin&apos;s
-          quantitative analysis. The names differ but the pattern is identical across 3,000+ years of data.
+          <Explain tip="Using math and data to study history instead of just reading stories — counting things like wars, inequality, and population to find patterns">quantitative analysis</Explain>. The names differ but the pattern is identical across 3,000+ years of data.
         </p>
         <div className="space-y-3">
           {STAGES.map((stage, i) => {
@@ -679,8 +680,8 @@ export default function CivilizationsPage() {
             and positioned their families accordingly. Here is what history teaches:
           </p>
           <ul className="text-xs text-muted-foreground space-y-1.5">
-            <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Own real assets</strong> — In every currency debasement, people who owned land, tools, and productive assets preserved wealth. People who held cash lost everything.</span></li>
-            <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Build real skills</strong> — An electrician, farmer, nurse, or welder has value in any system. A middleman in a financialized economy does not.</span></li>
+            <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Own real assets</strong> — In every <Explain tip="When a government reduces the value of its money by printing more of it or removing the precious metal backing. Your money buys less even though the number stays the same">currency debasement</Explain>, people who owned land, tools, and productive assets preserved wealth. People who held cash lost everything.</span></li>
+            <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Build real skills</strong> — An electrician, farmer, nurse, or welder has value in any system. A middleman in a <Explain tip="An economy where more money is made from moving money around (stocks, loans, insurance) than from actually making things. When finance grows bigger than production, the economy becomes fragile">financialized economy</Explain> does not.</span></li>
             <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Strengthen your family</strong> — In every transition period, the family unit is the most reliable institution. Invest in relationships, not just portfolios.</span></li>
             <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Reduce dependency</strong> — Grow food, reduce debt, build community. The less you depend on systems you cannot control, the more resilient you are.</span></li>
             <li className="flex gap-2"><ArrowRight className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" /> <span><strong>Educate your children</strong> — Teach them history, critical thinking, and practical skills. The generation that understands the cycle has the power to break it — or at least navigate it.</span></li>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 interface BudgetLine {
@@ -308,7 +309,7 @@ export default function BudgetPage() {
       {totalIncome > 0 && totalExpenses > 0 && (
         <Card className={cn("border-2", savingsRate >= 20 ? "border-emerald-200 bg-emerald-50/20" : savingsRate >= 10 ? "border-amber-200 bg-amber-50/20" : "border-red-200 bg-red-50/20")}>
           <CardContent className="p-4">
-            <p className="text-sm font-semibold mb-2">50/30/20 Rule Check</p>
+            <p className="text-sm font-semibold mb-2"><Explain tip="A simple budgeting guideline: spend 50% of your income on NEEDS (housing, food, bills), 30% on WANTS (entertainment, dining out, hobbies), and save/invest 20%. If your needs are over 50%, that is the first place to look for savings">50/30/20 Rule</Explain> Check</p>
             <div className="grid grid-cols-3 gap-3 mb-2">
               <div className="text-center">
                 <p className={cn("text-lg font-bold", needsPct <= 50 ? "text-emerald-600" : "text-red-500")}>{needsPct}%</p>

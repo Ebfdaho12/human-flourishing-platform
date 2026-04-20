@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -429,9 +430,9 @@ function FundingBiasChecker() {
       <Card className="border-teal-200 bg-teal-50/30">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            DeSci (Decentralized Science) exists because the current system incentivizes impressive-sounding results over truth.
-            Pre-registration, open data, and replication markets are the antidote. Every study on this platform has its hypothesis
-            locked before data collection — you can't change your prediction after seeing the answer.
+            <Explain tip="Decentralized Science — a movement to make scientific research open, transparent, and not controlled by a few big journals or institutions. Anyone can participate, verify, and fund research">DeSci</Explain> (Decentralized Science) exists because the current system incentivizes impressive-sounding results over truth.
+            <Explain tip="Registering your hypothesis and methodology BEFORE you run the experiment. This prevents researchers from changing their prediction after seeing the results to make it look like they were right all along">Pre-registration</Explain>, open data, and <Explain tip="When other scientists repeat your experiment to see if they get the same results. If nobody can replicate your findings, they might not be real. Currently, over 50% of psychology studies fail replication">replication</Explain> markets are the antidote. Every study on this platform has its hypothesis
+            locked before data collection — you cannot change your prediction after seeing the answer.
           </p>
         </CardContent>
       </Card>

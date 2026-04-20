@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 interface Entry {
@@ -89,7 +90,7 @@ export default function NetWorthPage() {
       {/* Net worth display */}
       <Card className={cn("border-2", netWorth >= 0 ? "border-emerald-200 bg-emerald-50/30" : "border-red-200 bg-red-50/30")}>
         <CardContent className="p-6 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Net Worth</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1"><Explain tip="Your net worth is everything you OWN (assets) minus everything you OWE (debts). If you own a $300K house but owe $200K on the mortgage, that part of your net worth is $100K. It is the single most important number in personal finance">Net Worth</Explain></p>
           <p className={cn("text-4xl font-bold", netWorth >= 0 ? "text-emerald-600" : "text-red-600")}>
             ${Math.abs(netWorth).toLocaleString()}
           </p>

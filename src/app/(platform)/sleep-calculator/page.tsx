@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Moon, Sun, Clock, ArrowRight, Sparkles, BedDouble } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 // Average sleep cycle = 90 minutes
@@ -202,15 +203,15 @@ export default function SleepCalculatorPage() {
             <div className="flex gap-3 items-start">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 text-xs font-bold">2</div>
               <div>
-                <p className="text-sm font-medium">Deep Sleep (Stage 3-4)</p>
-                <p className="text-xs text-muted-foreground">Body repairs itself, growth hormone released, immune system strengthens. Hardest to wake from. ~40 minutes.</p>
+                <p className="text-sm font-medium"><Explain tip="The deepest stage of sleep where your body does most of its physical repair — muscles grow, tissues heal, and your immune system gets stronger. If you wake up during this stage, you feel extremely groggy and confused">Deep Sleep</Explain> (Stage 3-4)</p>
+                <p className="text-xs text-muted-foreground">Body repairs itself, <Explain tip="A natural chemical your body releases during deep sleep that helps build muscle, repair tissue, and support growth in children. Exercise and deep sleep increase it; poor sleep decreases it">growth hormone</Explain> released, immune system strengthens. Hardest to wake from. ~40 minutes.</p>
               </div>
             </div>
             <div className="flex gap-3 items-start">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-xs font-bold">3</div>
               <div>
-                <p className="text-sm font-medium">REM Sleep (Dream Stage)</p>
-                <p className="text-xs text-muted-foreground">Brain processes emotions, consolidates memories, boosts creativity. ~30 minutes.</p>
+                <p className="text-sm font-medium"><Explain tip="Rapid Eye Movement sleep — the stage where you dream. Your eyes move quickly, your brain is almost as active as when you are awake, and your body is temporarily paralyzed so you do not act out your dreams. This stage is critical for learning, memory, and emotional health">REM Sleep</Explain> (Dream Stage)</p>
+                <p className="text-xs text-muted-foreground">Brain processes emotions, <Explain tip="The process of moving new information from short-term memory into long-term memory. This is why studying before bed and getting good sleep helps you remember — your brain 'saves' what you learned while you sleep">consolidates memories</Explain>, boosts creativity. ~30 minutes.</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground border-t border-border pt-2">

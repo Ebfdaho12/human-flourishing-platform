@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -173,8 +174,8 @@ export default function EnergyPage() {
               <Leaf className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">How does P2P energy trading work?</p>
-              <p className="text-xs text-amber-600">Learn how to sell your solar energy to neighbors, calculate your ROI, and understand the decentralized grid</p>
+              <p className="text-sm font-semibold text-amber-800">How does <Explain tip="Peer-to-peer energy trading lets people who generate their own electricity (from solar panels, wind, etc.) sell their extra power directly to their neighbors instead of only selling back to the utility company">P2P energy trading</Explain> work?</p>
+              <p className="text-xs text-amber-600">Learn how to sell your solar energy to neighbors, calculate your <Explain tip="Return on Investment — how much money you make back compared to what you spent. If solar panels cost $20,000 and save you $3,000/year, your ROI is 15% per year">ROI</Explain>, and understand the decentralized grid</p>
             </div>
             <ExternalLink className="h-4 w-4 text-amber-400 shrink-0" />
           </CardContent>
