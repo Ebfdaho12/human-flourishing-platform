@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { storeSessionKey } from "@/lib/client-encryption"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,11 +29,12 @@ export default function LoginPage() {
       })
 
       setLoading(false)
-      console.log("SignIn result:", JSON.stringify(result))
 
       if (result?.error) {
-        setError(`Login failed: ${result.error} (status: ${result.status})`)
+        setError(result.error === "CredentialsSignin" ? "Invalid email or password" : "Login failed. Please try again.")
       } else if (result?.ok) {
+        // Store encryption key in session (derived from password, never sent to server)
+        storeSessionKey(password)
         router.push("/dashboard")
         router.refresh()
       } else {
