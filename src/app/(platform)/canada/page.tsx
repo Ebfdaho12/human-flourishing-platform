@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 // ────────────────────────────────────────────
 // Canada's strategic assets
@@ -492,6 +493,8 @@ export default function CanadaPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="sovereignty" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/civilizations" className="text-sm text-amber-600 hover:underline">Civilizations</a>

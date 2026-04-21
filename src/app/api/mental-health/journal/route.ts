@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { awardFound } from "@/lib/tokens"
 import { TOKEN_AWARDS } from "@/lib/constants"
+import { auditLog } from "@/lib/audit"
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -88,6 +89,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    auditLog({ userId: session.user.id, action: "CREATE", resource: "journal", resourceId: entry.id })
+
     return NextResponse.json({ entry: { ...entry, tags: entry.tags ? JSON.parse(entry.tags) : [] } }, { status: 201 })
   } catch (error) {
     console.error("[API] POST /api/mental-health/journal:", error)
@@ -120,6 +123,8 @@ export async function PATCH(req: NextRequest) {
       },
     })
 
+    auditLog({ userId: session.user.id, action: "UPDATE", resource: "journal", resourceId: entry.id })
+
     return NextResponse.json({ entry: { ...entry, tags: entry.tags ? JSON.parse(entry.tags) : [] } })
   } catch (error) {
     console.error("[API] PATCH /api/mental-health/journal:", error)
@@ -142,6 +147,8 @@ export async function DELETE(req: NextRequest) {
     if (!existing) return NextResponse.json({ error: "Entry not found" }, { status: 404 })
 
     await prisma.journalEntry.delete({ where: { id: entryId } })
+
+    auditLog({ userId: session.user.id, action: "DELETE", resource: "journal", resourceId: entryId })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

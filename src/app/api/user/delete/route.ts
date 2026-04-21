@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { auditLog } from "@/lib/audit"
 
 const CONFIRMATION_PHRASE = "DELETE MY ACCOUNT"
 
@@ -139,6 +140,8 @@ export async function DELETE(req: NextRequest) {
       // Finally, delete the user
       await tx.user.delete({ where: { id: userId } })
     })
+
+    auditLog({ userId, action: "DELETE", resource: "profile", metadata: "full account deletion" })
 
     return NextResponse.json({
       success: true,

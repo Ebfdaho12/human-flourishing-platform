@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { rateLimit, rateLimitResponse, sanitizeInput } from "@/lib/security"
+import { auditLog } from "@/lib/audit"
 
 /**
  * Family Groups API
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
         members: { create: { userId: session.user.id, role: "ADMIN" } },
       },
     })
+    auditLog({ userId: session.user.id, action: "CREATE", resource: "family_group", resourceId: group.id })
     return NextResponse.json({ group })
   }
 
@@ -93,6 +95,7 @@ export async function POST(req: NextRequest) {
         type: type || "TEXT",
       },
     })
+    auditLog({ userId: session.user.id, action: "CREATE", resource: "family_message", resourceId: msg.id })
     return NextResponse.json({ message: msg })
   }
 

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 const WAIT_TIMES = [
   { procedure: "Family doctor (new patient)", wait: "2-5 years", benchmark: "24-48 hours (Netherlands)", note: "6.5 million Canadians have no family doctor. Walk-in clinics are the de facto primary care system." },
@@ -237,6 +238,8 @@ export default function CanadaHealthcarePage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="healthcare" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Sovereignty Report</a>

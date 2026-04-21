@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 const CITY_DATA = [
   { city: "Vancouver", avg: 1210000, median: 1080000, rent1br: 2800, incomeToPrice: 15.2, vacancy: 0.9, note: "Geographic constraint (mountains + ocean) limits supply. Foreign investment historically massive. Most unaffordable city in North America by income-to-price ratio." },
@@ -232,6 +233,8 @@ export default function CanadaHousingPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="housing" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Canada Sovereignty</a>

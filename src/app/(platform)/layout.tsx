@@ -7,6 +7,7 @@ import { FeedbackButton } from "@/components/layout/FeedbackButton"
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts"
 import { AlyVoice } from "@/components/aly/AlyVoice"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { MilestoneCelebration } from "@/components/dashboard/MilestoneCelebration"
 
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -34,6 +35,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
             {children}
           </ErrorBoundary>
         </main>
+        <MilestoneCelebration />
         <AlyVoice />
         <FeedbackButton />
         <KeyboardShortcuts />

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { getWalletBalance } from "@/lib/tokens"
 import { prisma } from "@/lib/prisma"
+import { auditLog } from "@/lib/audit"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -10,6 +11,8 @@ export async function GET() {
 
   try {
     const wallet = await getWalletBalance(session.user.id)
+
+    auditLog({ userId: session.user.id, action: "READ", resource: "wallet" })
 
     return NextResponse.json({
       foundBalance: wallet.foundBalance.toString(),

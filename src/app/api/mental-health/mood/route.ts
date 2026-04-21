@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { awardFound } from "@/lib/tokens"
 import { TOKEN_AWARDS } from "@/lib/constants"
+import { auditLog } from "@/lib/audit"
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -80,6 +81,8 @@ export async function POST(req: NextRequest) {
         "7-day mood tracking streak"
       )
     }
+
+    auditLog({ userId: session.user.id, action: "CREATE", resource: "mood_entry", resourceId: entry.id })
 
     return NextResponse.json({
       entry: {
