@@ -181,6 +181,10 @@ export const config = {
     "/breathwork/:path*",
     "/body-composition/:path*",
     "/my-path/:path*",
+    "/daily-habits/:path*",
+    "/gratitude/:path*",
+    "/evening-review/:path*",
+    "/trends/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
