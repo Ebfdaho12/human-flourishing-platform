@@ -22,25 +22,38 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
+        try {
+          if (!credentials?.email || !credentials?.password) return null
 
-        // Rate limit login attempts: 5 per 5 minutes per email
-        if (!rateLimit(`login:${credentials.email.toLowerCase()}`, 5, 300000)) return null
+          // Rate limit login attempts: 5 per 5 minutes per email
+          if (!rateLimit(`login:${credentials.email.toLowerCase()}`, 5, 300000)) {
+            console.log("AUTH: rate limited for", credentials.email)
+            return null
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
-          include: { profile: true },
-        })
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email.toLowerCase().trim() },
+            include: { profile: true },
+          })
 
-        if (!user) return null
+          if (!user) {
+            console.log("AUTH: no user found for", credentials.email)
+            return null
+          }
 
-        const valid = await argon2.verify(user.passwordHash, credentials.password)
-        if (!valid) return null
+          console.log("AUTH: user found, verifying password...")
+          const valid = await argon2.verify(user.passwordHash, credentials.password)
+          console.log("AUTH: password valid:", valid)
+          if (!valid) return null
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.profile?.displayName ?? null,
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.profile?.displayName ?? null,
+          }
+        } catch (error) {
+          console.error("AUTH ERROR:", error)
+          return null
         }
       },
     }),
