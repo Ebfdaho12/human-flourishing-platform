@@ -195,6 +195,12 @@ export const config = {
     "/fasting/:path*",
     "/peptides/:path*",
     "/testosterone/:path*",
+    "/flourishing-score/:path*",
+    "/character-sheet/:path*",
+    "/stoicism/:path*",
+    "/scientific-literacy/:path*",
+    "/future-self/:path*",
+    "/supplements/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
