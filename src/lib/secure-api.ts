@@ -16,6 +16,26 @@
  */
 
 import { encryptJSON, decryptJSON, getSessionKey } from "./client-encryption"
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "./csrf"
+
+/**
+ * Read the CSRF token from the cookie (client-side only)
+ */
+function getCsrfToken(): string {
+  if (typeof document === "undefined") return ""
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`))
+  return match ? match[1] : ""
+}
+
+/**
+ * Build headers for state-changing requests, including CSRF token
+ */
+function mutationHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  const token = getCsrfToken()
+  if (token) headers[CSRF_HEADER_NAME] = token
+  return headers
+}
 
 // Fields that must be encrypted before sending to server
 const SENSITIVE_FIELDS = new Set([
@@ -76,7 +96,7 @@ export async function securePost(url: string, body: Record<string, any>): Promis
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mutationHeaders(),
     body: JSON.stringify(encryptedBody),
   })
 

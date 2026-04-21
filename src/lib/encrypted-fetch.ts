@@ -14,6 +14,27 @@
  */
 
 import { encryptJSON, decryptJSON, getSessionKey } from "./client-encryption"
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "./csrf"
+
+/**
+ * Read the CSRF token from the cookie (client-side only).
+ * Returns empty string if not found or running on the server.
+ */
+function getCsrfToken(): string {
+  if (typeof document === "undefined") return ""
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`))
+  return match ? match[1] : ""
+}
+
+/**
+ * Build headers object that includes Content-Type and the CSRF token (if available)
+ */
+function mutationHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  const token = getCsrfToken()
+  if (token) headers[CSRF_HEADER_NAME] = token
+  return headers
+}
 
 // Fields that contain sensitive user data and must be encrypted
 const SENSITIVE_FIELDS = new Set([
@@ -113,7 +134,7 @@ export async function encryptedPost(url: string, body: Record<string, any>): Pro
   const encryptedBody = await encryptBody(body)
   return fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mutationHeaders(),
     body: JSON.stringify(encryptedBody),
   })
 }
@@ -125,7 +146,7 @@ export async function encryptedPatch(url: string, body: Record<string, any>): Pr
   const encryptedBody = await encryptBody(body)
   return fetch(url, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: mutationHeaders(),
     body: JSON.stringify(encryptedBody),
   })
 }
@@ -136,7 +157,7 @@ export async function encryptedPatch(url: string, body: Record<string, any>): Pr
 export async function encryptedDelete(url: string, body?: Record<string, any>): Promise<Response> {
   return fetch(url, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: mutationHeaders(),
     ...(body ? { body: JSON.stringify(body) } : {}),
   })
 }

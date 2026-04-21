@@ -1,4 +1,6 @@
 import { withAuth } from "next-auth/middleware"
+import { validateCsrf } from "@/lib/csrf"
+import { NextRequest } from "next/server"
 
 /**
  * Auth Proxy — protects all platform pages and API routes
@@ -8,11 +10,25 @@ import { withAuth } from "next-auth/middleware"
  * for all protected routes. Individual API routes still do their
  * own session checks (defense in depth).
  *
+ * CSRF protection: state-changing requests (POST/PATCH/PUT/DELETE) to /api/*
+ * must include a valid x-csrf-token header matching the csrf-token cookie.
+ * NextAuth routes (/api/auth/*) are excluded — NextAuth has its own CSRF.
+ *
  * Public routes (no auth): /, /login, /register, /verify-email, /api/auth/*
  */
-export default withAuth({
+
+const authMiddleware = withAuth({
   pages: { signIn: "/login" },
 })
+
+export default async function proxy(request: NextRequest) {
+  // CSRF check runs first — reject invalid mutations before auth
+  const csrfError = validateCsrf(request)
+  if (csrfError) return csrfError
+
+  // Delegate to NextAuth's withAuth for authentication
+  return (authMiddleware as any)(request, {} as any)
+}
 
 export const config = {
   matcher: [
