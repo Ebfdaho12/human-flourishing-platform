@@ -84,12 +84,28 @@ export default async function LandingPage() {
             </div>
             <div className="flex items-center gap-1.5">
               <Eye className="h-4 w-4 text-violet-500" />
-              <span>Zero-knowledge proofs</span>
+              <span>Zero-knowledge architecture</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Database className="h-4 w-4 text-violet-500" />
               <span>You own your data</span>
             </div>
+          </div>
+
+          {/* Stats bar */}
+          <div className="flex flex-wrap justify-center gap-8 mt-10 text-center">
+            {[
+              { value: "250+", label: "Tools & pages" },
+              { value: "28", label: "Canada deep-dives" },
+              { value: "20+", label: "Peptide profiles" },
+              { value: "7", label: "Breathwork protocols" },
+              { value: "0", label: "Tracking pixels" },
+            ].map((stat, i) => (
+              <div key={i}>
+                <p className="text-2xl font-bold text-violet-600">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -230,6 +246,50 @@ export default async function LandingPage() {
             <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-xl shadow-amber-500/25">
               <Globe2 className="h-12 w-12 text-white" />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Daily rhythm + gamification */}
+      <section className="px-6 py-20 max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-600 mb-3">Not Just Tools — A System</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Your daily operating system</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            A complete daily rhythm that turns information into transformation. Morning to evening, every day compounds.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { time: "Morning", tool: "Daily Briefing", desc: "Streaks, mood snapshot, goals, daily wisdom", emoji: "☀️" },
+            { time: "All Day", tool: "Habit Tracking", desc: "Check off habits, build streaks, earn XP", emoji: "✅" },
+            { time: "Any Time", tool: "Health Logging", desc: "Mood, sleep, exercise, water, body comp", emoji: "❤️" },
+            { time: "Evening", tool: "Evening Review", desc: "Rate your day, capture lessons, set tomorrow", emoji: "🌙" },
+            { time: "Weekly", tool: "Reflection", desc: "Zoom out. See trends. Adjust course.", emoji: "📊" },
+          ].map((item, i) => (
+            <div key={i} className="rounded-2xl border border-border bg-white/80 p-4 text-center">
+              <span className="text-2xl">{item.emoji}</span>
+              <p className="text-[10px] text-violet-600 font-medium mt-2">{item.time}</p>
+              <p className="text-xs font-semibold mt-0.5">{item.tool}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 text-center">
+            <p className="text-lg">🎮</p>
+            <p className="text-xs font-semibold">RPG Character Sheet</p>
+            <p className="text-[10px] text-muted-foreground">Real-life stats, XP, levels, achievements</p>
+          </div>
+          <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4 text-center">
+            <p className="text-lg">🧠</p>
+            <p className="text-xs font-semibold">AI-Powered Insights</p>
+            <p className="text-[10px] text-muted-foreground">Correlations between mood, sleep, exercise, moon phases</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-center">
+            <p className="text-lg">🔐</p>
+            <p className="text-xs font-semibold">Military-Grade Encryption</p>
+            <p className="text-[10px] text-muted-foreground">AES-256-GCM. We cannot read your data. Period.</p>
           </div>
         </div>
       </section>

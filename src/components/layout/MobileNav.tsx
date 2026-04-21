@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { MODULES } from "@/lib/constants"
 import { cn } from "@/lib/utils"
-import { ShieldCheck, Menu, X } from "lucide-react"
+import { ShieldCheck, Menu, X, Sun, CheckSquare, Heart, Moon as MoonIcon, TrendingUp, BarChart3 } from "lucide-react"
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -44,27 +44,51 @@ export function MobileNav() {
               </button>
             </div>
 
-            {/* Modules */}
             <nav className="py-3 px-2">
-              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Modules
-              </p>
+              {/* Daily Rhythm */}
+              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Daily Rhythm</p>
+              <ul className="space-y-0.5 mb-3">
+                {[
+                  { href: "/morning-briefing", label: "Morning Briefing", icon: Sun, color: "text-amber-500" },
+                  { href: "/daily-habits", label: "Daily Habits", icon: CheckSquare, color: "text-emerald-500" },
+                  { href: "/gratitude", label: "Gratitude", icon: Heart, color: "text-rose-400" },
+                  { href: "/evening-review", label: "Evening Review", icon: MoonIcon, color: "text-indigo-500" },
+                  { href: "/trends", label: "Your Trends", icon: TrendingUp, color: "text-violet-500" },
+                  { href: "/correlations", label: "Correlations", icon: BarChart3, color: "text-blue-500" },
+                ].map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <li key={item.href}>
+                      <Link href={item.href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors", isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>
+                        <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : item.color)} />
+                        {item.label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+
+              {/* Health */}
+              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Health</p>
+              <ul className="space-y-0.5 mb-3">
+                {["/health", "/sleep-optimization", "/nutrition", "/strength-training", "/supplements", "/breathwork", "/fascia"].map(href => {
+                  const label = href.slice(1).split("-").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")
+                  return (
+                    <li key={href}><Link href={href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors", pathname === href ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>{label}</Link></li>
+                  )
+                })}
+              </ul>
+
+              {/* Modules */}
+              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Modules</p>
               <ul className="space-y-0.5">
                 {MODULES.map((mod) => {
                   const isActive = pathname.startsWith(`/${mod.slug}`)
                   const Icon = mod.icon
                   return (
                     <li key={mod.id}>
-                      <Link
-                        href={`/${mod.slug}`}
-                        onClick={() => setOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                          isActive
-                            ? "bg-accent text-accent-foreground font-medium"
-                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                        )}
-                      >
+                      <Link href={`/${mod.slug}`} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors", isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>
                         <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
                         <span>{mod.title}</span>
                       </Link>
@@ -73,39 +97,41 @@ export function MobileNav() {
                 })}
               </ul>
 
+              {/* Discover */}
               <div className="mt-4 pt-4 border-t border-border">
-                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Account
-                </p>
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Discover</p>
                 <ul className="space-y-0.5">
                   {[
                     { href: "/dashboard", label: "Dashboard" },
+                    { href: "/life-os", label: "Life OS" },
+                    { href: "/character-sheet", label: "Character Sheet" },
                     { href: "/tools", label: "All Tools" },
-                    { href: "/progress", label: "Progress" },
+                    { href: "/my-path", label: "My Path" },
+                    { href: "/30-day-challenges", label: "Challenges" },
                     { href: "/canada/index", label: "Canada" },
-                    { href: "/explore", label: "Explore" },
-                    { href: "/timeline", label: "Timeline" },
-                    { href: "/digest", label: "Weekly Digest" },
                     { href: "/community/hub", label: "Community" },
+                    { href: "/people", label: "People" },
+                    { href: "/book-library", label: "Book Library" },
+                    { href: "/whats-new", label: "What's New" },
+                  ].map((item) => (
+                    <li key={item.href}><Link href={item.href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors", pathname === item.href ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>{item.label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Account */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Account</p>
+                <ul className="space-y-0.5">
+                  {[
                     { href: "/profile", label: "Identity" },
                     { href: "/wallet", label: "Wallet" },
+                    { href: "/privacy-architecture", label: "Privacy" },
                     { href: "/settings", label: "Settings" },
+                    { href: "/report-issue", label: "Report Issue" },
                     { href: "/admin", label: "Admin" },
                   ].map((item) => (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                          pathname === item.href
-                            ? "bg-accent text-accent-foreground font-medium"
-                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                        )}
-                      >
-                        {item.label}
-                      </Link>
-                    </li>
+                    <li key={item.href}><Link href={item.href} onClick={() => setOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors", pathname === item.href ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground")}>{item.label}</Link></li>
                   ))}
                 </ul>
               </div>
