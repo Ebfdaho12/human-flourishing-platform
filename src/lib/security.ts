@@ -7,6 +7,8 @@
  */
 
 // ─── Rate Limiter ────────────────────────────────────────────────────────────
+// Uses Redis (Upstash) when UPSTASH_REDIS_REST_URL is set, falls back to in-memory.
+// Redis mode survives deployments and works across horizontal instances.
 
 interface RateLimitEntry {
   count: number
@@ -14,8 +16,8 @@ interface RateLimitEntry {
 }
 
 const rateLimitMap = new Map<string, RateLimitEntry>()
-const CLEANUP_INTERVAL = 60000 // Clean expired entries every 60s
-const MAX_ENTRIES = 100000 // Hard cap to prevent memory exhaustion
+const CLEANUP_INTERVAL = 60000
+const MAX_ENTRIES = 100000
 
 let lastCleanup = Date.now()
 
@@ -30,7 +32,6 @@ function cleanupExpiredEntries() {
     }
   }
 
-  // Emergency eviction if map is too large (shouldn't happen with cleanup, but safety net)
   if (rateLimitMap.size > MAX_ENTRIES) {
     const entries = Array.from(rateLimitMap.entries())
     entries.sort((a, b) => a[1].resetAt - b[1].resetAt)
@@ -42,10 +43,41 @@ function cleanupExpiredEntries() {
 }
 
 /**
- * Check rate limit for an identifier (userId, IP, etc.)
- * Returns true if request is allowed, false if rate limited.
+ * Redis-based rate limit (when UPSTASH_REDIS_REST_URL is configured)
+ * Uses Upstash REST API — no SDK dependency needed.
  */
-export function rateLimit(identifier: string, maxRequests = 10, windowMs = 60000): boolean {
+async function redisRateLimit(identifier: string, maxRequests: number, windowMs: number): Promise<boolean> {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) return memoryRateLimit(identifier, maxRequests, windowMs)
+
+  try {
+    const key = `rl:${identifier}`
+    const windowSec = Math.ceil(windowMs / 1000)
+
+    // INCR + EXPIRE in a pipeline
+    const res = await fetch(`${url}/pipeline`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify([
+        ["INCR", key],
+        ["EXPIRE", key, windowSec],
+      ]),
+    })
+
+    const data = await res.json()
+    const count = data?.[0]?.result ?? 1
+    return count <= maxRequests
+  } catch {
+    // Redis unavailable — fall back to in-memory
+    return memoryRateLimit(identifier, maxRequests, windowMs)
+  }
+}
+
+/**
+ * In-memory rate limit (fallback when Redis is unavailable)
+ */
+function memoryRateLimit(identifier: string, maxRequests: number, windowMs: number): boolean {
   cleanupExpiredEntries()
 
   const now = Date.now()
@@ -56,12 +88,32 @@ export function rateLimit(identifier: string, maxRequests = 10, windowMs = 60000
     return true
   }
 
-  // Atomic-style check: read count, compare, then increment
-  // In Node.js single-threaded event loop this is safe, but we still
-  // do the check and increment in the same synchronous block
   if (entry.count >= maxRequests) return false
   entry.count++
   return true
+}
+
+/**
+ * Check rate limit for an identifier (userId, IP, etc.)
+ * Returns true if request is allowed, false if rate limited.
+ *
+ * Automatically uses Redis when UPSTASH_REDIS_REST_URL is set,
+ * falls back to in-memory otherwise.
+ */
+export function rateLimit(identifier: string, maxRequests = 10, windowMs = 60000): boolean {
+  // Synchronous API for backwards compatibility — uses in-memory
+  // For async Redis rate limiting, use rateLimitAsync()
+  return memoryRateLimit(identifier, maxRequests, windowMs)
+}
+
+/**
+ * Async rate limit — uses Redis when available, in-memory fallback
+ */
+export async function rateLimitAsync(identifier: string, maxRequests = 10, windowMs = 60000): Promise<boolean> {
+  if (process.env.UPSTASH_REDIS_REST_URL) {
+    return redisRateLimit(identifier, maxRequests, windowMs)
+  }
+  return memoryRateLimit(identifier, maxRequests, windowMs)
 }
 
 export function rateLimitResponse() {

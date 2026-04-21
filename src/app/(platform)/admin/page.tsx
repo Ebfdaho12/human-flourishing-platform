@@ -1,23 +1,39 @@
 "use client"
 
+import { useState } from "react"
 import useSWR from "swr"
 import {
   Users, Heart, Brain, GraduationCap, Landmark, Zap, FlaskConical,
   TrendingUp, Building2, Shield, Activity, Database, BarChart3,
-  BookOpen, FileText, Server
+  BookOpen, FileText, Server, Eye, MessageCircle
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { secureFetcher } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 export default function AdminPage() {
   const { data } = useSWR("/api/admin/stats", fetcher, { refreshInterval: 30000 })
+  const [auditResource, setAuditResource] = useState("")
+  const [auditAction, setAuditAction] = useState("")
+  const { data: auditData, mutate: refreshAudit } = useSWR(
+    `/api/admin/audit?limit=50${auditResource ? `&resource=${auditResource}` : ""}${auditAction ? `&action=${auditAction}` : ""}`,
+    fetcher
+  )
+  const { data: feedbackData } = useSWR("/api/feedback", fetcher)
 
   if (!data) return <div className="p-8 text-center text-muted-foreground">Loading admin dashboard...</div>
 
   const { users, content, system } = data
+  const audit = auditData?.logs || []
+  const auditPagination = auditData?.pagination || {}
+  const feedback = feedbackData?.feedback || []
+  const pendingFeedback = feedback.filter((f: any) => f.status === "PENDING" || !f.status)
 
   return (
     <div className="space-y-8 max-w-6xl">
@@ -31,6 +47,15 @@ export default function AdminPage() {
           Last updated: {new Date(data.timestamp).toLocaleTimeString()}
         </Badge>
       </div>
+
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback {pendingFeedback.length > 0 && <Badge className="ml-1 bg-red-500 text-[9px]">{pendingFeedback.length}</Badge>}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-8 mt-4">
 
       {/* User metrics */}
       <div>
@@ -103,6 +128,7 @@ export default function AdminPage() {
               { href: "/community", label: "Community" },
               { href: "/health/cases", label: "Health Cases" },
               { href: "/settings", label: "Settings" },
+              { href: "/settings/data", label: "GDPR / Data" },
               { href: "/onboarding", label: "Onboarding Tour" },
             ].map((link) => (
               <a key={link.href} href={link.href} className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/50 transition-colors">
@@ -112,6 +138,63 @@ export default function AdminPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Eye className="h-4 w-4" /> Audit Logs</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex gap-2">
+                <Input placeholder="Filter resource..." value={auditResource} onChange={e => setAuditResource(e.target.value)} className="h-8 text-sm w-40" />
+                <Input placeholder="Filter action..." value={auditAction} onChange={e => setAuditAction(e.target.value)} className="h-8 text-sm w-32" />
+                <Button variant="outline" size="sm" onClick={() => refreshAudit()}>Refresh</Button>
+              </div>
+              {auditPagination.total != null && <p className="text-[10px] text-muted-foreground">{auditPagination.total} total logs</p>}
+              <div className="space-y-1">
+                {audit.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center">No audit logs yet.</p>
+                ) : audit.map((log: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 rounded border p-2 text-xs">
+                    <Badge variant="outline" className={cn("text-[8px] shrink-0",
+                      log.action === "CREATE" ? "border-emerald-300 text-emerald-700" :
+                      log.action === "DELETE" ? "border-red-300 text-red-700" :
+                      log.action === "UPDATE" ? "border-blue-300 text-blue-700" :
+                      "border-slate-300 text-slate-600"
+                    )}>{log.action}</Badge>
+                    <span className="text-muted-foreground truncate flex-1">{log.resource}{log.resourceId ? ` #${log.resourceId.slice(0, 8)}` : ""}</span>
+                    <span className="text-[9px] text-muted-foreground shrink-0">{log.user?.email?.split("@")[0] ?? "?"}</span>
+                    <span className="text-[9px] text-muted-foreground shrink-0">{new Date(log.createdAt).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="feedback" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><MessageCircle className="h-4 w-4" /> User Feedback</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {feedback.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">No feedback submitted yet.</p>
+              ) : feedback.slice(0, 20).map((fb: any, i: number) => (
+                <div key={i} className={cn("rounded border p-3", !fb.status || fb.status === "PENDING" ? "border-amber-200 bg-amber-50/20" : "")}>
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge variant="outline" className="text-[9px]">{fb.type || "GENERAL"}</Badge>
+                    <Badge variant="outline" className={cn("text-[9px]",
+                      fb.status === "RESOLVED" ? "border-emerald-300 text-emerald-700" :
+                      fb.status === "IN_PROGRESS" ? "border-blue-300 text-blue-700" :
+                      "border-amber-300 text-amber-700"
+                    )}>{fb.status || "PENDING"}</Badge>
+                  </div>
+                  <p className="text-xs">{fb.content || fb.message}</p>
+                  <span className="text-[9px] text-muted-foreground">{new Date(fb.createdAt).toLocaleDateString()}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

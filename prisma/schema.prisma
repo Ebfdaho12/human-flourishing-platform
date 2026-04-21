@@ -46,6 +46,8 @@ model User {
   healthCases    HealthCase[]
   caseProposals  CaseProposal[]
 
+  auditLogs          AuditLog[]
+
   // Social & messaging
   sentMessages       DirectMessage[]       @relation("SentMessages")
   receivedMessages   DirectMessage[]       @relation("ReceivedMessages")
@@ -542,6 +544,25 @@ model CaseProposal {
   @@index([caseId])
   @@index([practitionerId])
   @@unique([caseId, practitionerId])
+}
+
+// ─── Audit Logging ────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  metadata   String?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([resource])
 }
 
 // ─── Email Verification ───────────────────────────────────────────────────────
