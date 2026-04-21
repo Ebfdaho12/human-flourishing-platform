@@ -80,17 +80,17 @@ function parseCommand(text: string): { action: string; data: any } | null {
     [/health|vitals/i, "/health"],
     [/sleep track/i, "/health/sleep"],
     [/sleep calc|bedtime|wake.?up time/i, "/sleep-calculator"],
-    [/exercise|workout|gym/i, "/health/exercise"],
-    [/food diary|food log|nutrition/i, "/health/food"],
-    [/water track|hydration/i, "/health/water"],
+    [/exercise|gym|cardio/i, "/health/exercise"],
+    [/food diary|food log/i, "/health/food"],
+    [/water log|water intake/i, "/health/water"],
     [/medic(?:ation|ine)|pills/i, "/health/medications"],
     [/symptom/i, "/health/symptoms"],
-    [/body|bmi|weight track/i, "/health/body"],
+    [/bmi|body measurement/i, "/health/body"],
 
     // Mental health
     [/mental|mood|self.?care/i, "/mental-health"],
-    [/gratitude|grateful/i, "/mental-health/gratitude"],
-    [/breath|breathing/i, "/mental-health/breathe"],
+    [/gratitude journal|mental.?health gratitude/i, "/mental-health/gratitude"],
+    [/breathing exercise|meditative breath/i, "/mental-health/breathe"],
     [/meditat/i, "/mental-health/meditate"],
     [/affirm/i, "/mental-health/affirmations"],
     [/journal prompt/i, "/mental-health/prompts"],
@@ -103,7 +103,7 @@ function parseCommand(text: string): { action: string; data: any } | null {
     [/tax|taxes/i, "/tax-estimator"],
     [/subscription|audit/i, "/subscriptions"],
     [/cost of living|cities/i, "/cost-of-living"],
-    [/negotiat/i, "/negotiation"],
+    [/negotiation tactic/i, "/negotiation"],
     [/side hustle|extra income|freelance/i, "/side-hustles"],
     [/financial literacy|money basics/i, "/education/finance"],
 
@@ -114,37 +114,37 @@ function parseCommand(text: string): { action: string; data: any } | null {
     [/chores|allowance|kids chore/i, "/kids-chores"],
     [/date night/i, "/date-nights"],
     [/meal plan|grocery/i, "/meal-planner"],
-    [/relationship|inner circle|friends/i, "/relationships"],
+    [/inner circle|friends|partner/i, "/relationships"],
 
     // Personal growth
     [/life wheel|life balance/i, "/life-wheel"],
     [/core values|values discovery/i, "/values"],
-    [/vision board/i, "/vision"],
-    [/skill invent/i, "/skills"],
+    [/vision statement/i, "/vision"],
+    [/skill inventor|skill audit/i, "/skills"],
     [/career path/i, "/career-path"],
-    [/decision journal/i, "/decisions"],
+    [/decision log/i, "/decisions"],
     [/wins|celebrate|gratitude wall/i, "/wins"],
-    [/reading list|books/i, "/reading"],
-    [/challenge|30.?day/i, "/challenges"],
+    [/reading progress|currently reading/i, "/reading"],
+    [/active challenge|my challenge/i, "/challenges"],
     [/habit stack/i, "/habit-stack"],
 
     // Productivity
     [/planner|daily plan/i, "/planner"],
-    [/routine|morning routine|evening routine/i, "/routine"],
-    [/focus|pomodoro|timer/i, "/focus"],
+    [/routine|my routine/i, "/routine"],
+    [/focus mode|deep work/i, "/focus"],
     [/notes?|brain dump/i, "/notes"],
     [/goals?/i, "/goals"],
 
     // Home
     [/home maintenance|repair schedule/i, "/home-maintenance"],
-    [/emergency|preparedness|survival/i, "/preparedness"],
+    [/preparedness|survival|doomsday/i, "/preparedness"],
     [/food system|food labels|organic|grow your own/i, "/food-system"],
 
     // Education
     [/economics education|austrian|friedman|hayek|keynes/i, "/education/economics"],
     [/civiliz|empire|rise and fall|dalio/i, "/civilizations"],
     [/money history|1971|gold standard|nixon/i, "/money-history"],
-    [/fallac|logical|argument/i, "/logical-fallacies"],
+    [/logical fallac|argument fallac|straw ?man/i, "/logical-fallacies"],
     [/media ownership|who owns the news/i, "/media-ownership"],
     [/rights|charter|bill of rights|freedom|constitution/i, "/rights"],
     [/learn|education|study|tutor/i, "/education"],
@@ -159,6 +159,67 @@ function parseCommand(text: string): { action: string; data: any } | null {
     [/economics? data|fred|gdp/i, "/economics"],
     [/energy|solar|p2p energy/i, "/energy"],
     [/infrastructure/i, "/infrastructure"],
+
+    // Life OS & Core Tools
+    [/life os|life operating system|command center/i, "/life-os"],
+    [/character sheet|rpg|stats|xp|level/i, "/character-sheet"],
+    [/flourishing score|flourishing|my score/i, "/flourishing-score"],
+    [/daily habits|habits checklist|check off/i, "/daily-habits"],
+    [/gratitude|grateful|three things/i, "/gratitude"],
+    [/evening review|evening\b|close the day/i, "/evening-review"],
+    [/morning briefing|morning\b|good morning/i, "/morning-briefing"],
+    [/my trends|trends?\b/i, "/trends"],
+    [/focus timer|pomodoro|focus\b/i, "/focus-timer"],
+    [/water tracker|water\b|hydration/i, "/water-tracker"],
+
+    // Biohacking & Body
+    [/breathwork|breathing|breath\b/i, "/breathwork"],
+    [/cold exposure|cold shower|ice bath/i, "/cold-exposure"],
+    [/sauna|heat exposure/i, "/sauna"],
+    [/fasting|intermittent fasting|autophagy/i, "/fasting"],
+    [/peptides|bpc|tb500/i, "/peptides"],
+    [/testosterone|hormones/i, "/testosterone"],
+    [/supplements|vitamin|magnesium/i, "/supplements"],
+    [/sleep optimization|sleep tips/i, "/sleep-optimization"],
+    [/nutrition|macros|diet/i, "/nutrition"],
+    [/posture|ergonomics/i, "/posture"],
+    [/strength training|workout|lifting/i, "/strength-training"],
+    [/body composition|body fat|weight tracker/i, "/body-composition"],
+    [/fascia|connective tissue|fascial/i, "/fascia"],
+
+    // Mind & Learning
+    [/mental models|first principles|thinking/i, "/mental-models"],
+    [/cognitive bias|biases|fallacy/i, "/cognitive-biases"],
+    [/stoicism|stoic|marcus aurelius/i, "/stoicism"],
+    [/scientific literacy|read a study/i, "/scientific-literacy"],
+    [/decision journal|decision|decisions/i, "/decision-journal"],
+    [/negotiation|negotiate|salary/i, "/negotiation-guide"],
+    [/books|book library|reading list/i, "/book-library"],
+    [/communication|nvc|attachment style/i, "/communication"],
+
+    // Resilience & Wellness
+    [/emergency prep|emergency kit|first aid/i, "/emergency-prep"],
+    [/dopamine|attention economy/i, "/dopamine"],
+    [/anxiety|stress toolkit|panic/i, "/anxiety-toolkit"],
+    [/30 day|challenge|challenges/i, "/30-day-challenges"],
+    [/energy management|energy level/i, "/energy-management"],
+
+    // Vision & Growth
+    [/vision board|visualization|manifest/i, "/vision-board"],
+    [/people tracker|relationships|contacts/i, "/people"],
+    [/skill tree|skills|skill\b/i, "/skill-tree"],
+    [/future self|letter to self/i, "/future-self"],
+
+    // Astrology & Cycles
+    [/chinese zodiac|zodiac|compatibility/i, "/chinese-zodiac"],
+    [/lunar|moon|moon phase/i, "/lunar-cycles"],
+
+    // Meta & Community
+    [/whats new|updates|changelog/i, "/whats-new"],
+    [/my path|personalized path/i, "/my-path"],
+    [/hive mind|aggregate|collective/i, "/hive-mind"],
+    [/trajectory|life trajectory/i, "/trajectory"],
+    [/financial independence|fire\b|fi calculator/i, "/financial-independence"],
   ]
 
   for (const [pattern, path] of NAV_MAP) {

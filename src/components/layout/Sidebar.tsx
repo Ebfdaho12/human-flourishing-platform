@@ -58,6 +58,33 @@ export function Sidebar() {
           })}
         </ul>
 
+        <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Health</p>
+        <ul className="space-y-0.5 mb-3">
+          {[
+            { href: "/health", label: "Health Dashboard" },
+            { href: "/sleep-optimization", label: "Sleep" },
+            { href: "/nutrition", label: "Nutrition" },
+            { href: "/strength-training", label: "Training" },
+            { href: "/supplements", label: "Supplements" },
+            { href: "/breathwork", label: "Breathwork" },
+            { href: "/fascia", label: "Fascia" },
+          ].map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  pathname === item.href || pathname.startsWith(item.href + "/")
+                    ? "bg-accent text-accent-foreground font-medium"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                )}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
         <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Modules
         </p>
@@ -103,17 +130,25 @@ export function Sidebar() {
           <ul className="space-y-0.5">
             {[
               { href: "/dashboard", label: "Dashboard" },
+              { href: "/life-os", label: "Life OS" },
+              { href: "/character-sheet", label: "Character Sheet" },
               { href: "/tools", label: "All Tools" },
               { href: "/my-path", label: "My Path" },
+              { href: "/vision-board", label: "Vision Board" },
+              { href: "/skill-tree", label: "Skill Tree" },
+              { href: "/30-day-challenges", label: "Challenges" },
               { href: "/whats-new", label: "What's New" },
               { href: "/canada/index", label: "Canada" },
               { href: "/explore", label: "Explore" },
               { href: "/community/hub", label: "Community" },
+              { href: "/people", label: "People" },
               { href: "/goals", label: "Goals" },
               { href: "/progress", label: "Progress" },
               { href: "/weekly-reflection", label: "Weekly Reflection" },
               { href: "/trajectory", label: "Life Trajectory" },
               { href: "/digest", label: "Weekly Digest" },
+              { href: "/book-library", label: "Book Library" },
+              { href: "/negotiation-guide", label: "Negotiation" },
             ].map((item) => (
               <li key={item.href}>
                 <Link

@@ -59,8 +59,28 @@ model User {
   cohortMemberships  CohortMember[]
   cohortMessages     CohortMessage[]       @relation("CohortMessages")
   insights           Insight[]             @relation("Insights")
+  userData           UserData[]
 
   @@index([email])
+}
+
+// ─── Generic User Data Store ──────────────────────────────────────────────────
+// Stores JSON blobs per user per key. Used for client-side trackers that need
+// persistence: habits, gratitude, water, decisions, challenges, people, skills,
+// vision board, energy logs, body composition, lunar logs, etc.
+// Data is encrypted client-side before storage (zero-knowledge).
+
+model UserData {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String   // e.g., "daily-habits", "gratitude", "water-log", "decisions"
+  data      String   @db.Text // Encrypted JSON blob
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([userId])
 }
 
 model UserProfile {
