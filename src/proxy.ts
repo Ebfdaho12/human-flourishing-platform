@@ -158,6 +158,8 @@ export const config = {
     "/retirement/:path*",
     "/investing/:path*",
     "/fascia/:path*",
+    "/chinese-zodiac/:path*",
+    "/lunar-cycles/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
