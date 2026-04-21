@@ -213,6 +213,10 @@ export const config = {
     "/book-library/:path*",
     "/communication/:path*",
     "/emergency-prep/:path*",
+    "/focus-timer/:path*",
+    "/water-tracker/:path*",
+    "/energy-management/:path*",
+    "/vision-board/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
