@@ -208,6 +208,11 @@ export const config = {
     "/strength-training/:path*",
     "/hive-mind/:path*",
     "/character-sheet/:path*",
+    "/decision-journal/:path*",
+    "/negotiation-guide/:path*",
+    "/book-library/:path*",
+    "/communication/:path*",
+    "/emergency-prep/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
