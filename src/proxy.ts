@@ -157,6 +157,7 @@ export const config = {
     "/inflation/:path*",
     "/retirement/:path*",
     "/investing/:path*",
+    "/fascia/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
