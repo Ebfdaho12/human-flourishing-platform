@@ -97,7 +97,7 @@ export default function TrajectoryPage() {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Your Current Situation</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className="text-[10px] text-muted-foreground">Age</label>
             <Input type="number" value={age} onChange={e => setAge(Number(e.target.value) || 25)} className="h-8 text-sm" /></div>
             <div><label className="text-[10px] text-muted-foreground">Annual income</label>
@@ -105,7 +105,7 @@ export default function TrajectoryPage() {
             <div><label className="text-[10px] text-muted-foreground">Monthly savings</label>
             <Input type="number" value={monthlySavings || ""} onChange={e => setMonthlySavings(Number(e.target.value) || 0)} className="h-8 text-sm" /></div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className="text-[10px] text-muted-foreground">Total debt</label>
             <Input type="number" value={currentDebt || ""} onChange={e => setCurrentDebt(Number(e.target.value) || 0)} className="h-8 text-sm" /></div>
             <div><label className="text-[10px] text-muted-foreground">Debt payment/mo</label>
@@ -113,7 +113,7 @@ export default function TrajectoryPage() {
             <div><label className="text-[10px] text-muted-foreground">Exercise days/wk</label>
             <Input type="number" min={0} max={7} value={exerciseDays} onChange={e => setExerciseDays(Number(e.target.value) || 0)} className="h-8 text-sm" /></div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div><label className="text-[10px] text-muted-foreground">Sleep hours/night</label>
             <Input type="number" step="0.5" value={sleepHours} onChange={e => setSleepHours(Number(e.target.value) || 6)} className="h-8 text-sm" /></div>
             <div><label className="text-[10px] text-muted-foreground">Screen hours/day</label>
@@ -136,7 +136,7 @@ export default function TrajectoryPage() {
                 <span className="text-sm font-semibold">You at age {p.age}</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Financial */}
                 <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2.5">
                   <DollarSign className="h-3.5 w-3.5 text-emerald-500 mb-1" />

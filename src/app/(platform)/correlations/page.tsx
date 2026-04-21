@@ -2,13 +2,18 @@
 
 import { useState } from "react"
 import useSWR from "swr"
-import { Moon, Sun, Calendar, Clock, TrendingUp, BarChart3, Sparkles } from "lucide-react"
+import { Moon, Sun, Calendar, Clock, TrendingUp, BarChart3, Sparkles, AlertTriangle, Dumbbell, Brain, Lightbulb } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+import { secureFetcher } from "@/lib/encrypted-fetch"
+
+const fetcher = secureFetcher
+
+const INSIGHT_ICONS: Record<string, any> = { positive: TrendingUp, warning: AlertTriangle, neutral: Lightbulb }
+const INSIGHT_COLORS: Record<string, string> = { positive: "border-emerald-200 bg-emerald-50/20 text-emerald-700", warning: "border-amber-200 bg-amber-50/20 text-amber-700", neutral: "border-blue-200 bg-blue-50/20 text-blue-700" }
 
 const MOON_EMOJIS: Record<string, string> = {
   "New Moon": "🌑", "Waxing Crescent": "🌒", "First Quarter": "🌓",
@@ -22,7 +27,7 @@ export default function CorrelationsPage() {
 
   if (!data) return <div className="p-8 text-center text-muted-foreground">Loading correlations...</div>
 
-  const { currentMoon, moonCorrelations, dayCorrelations, seasonCorrelations, hourActivity, sleepMoodCorrelation, dataPoints } = data
+  const { currentMoon, moonCorrelations, dayCorrelations, seasonCorrelations, hourActivity, sleepMoodCorrelation, dataPoints, insights, exerciseMoodDelta, exerciseDayCount, restDayCount } = data
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -68,6 +73,56 @@ export default function CorrelationsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Smart Insights */}
+          {insights && insights.length > 0 && (
+            <Card className="border-2 border-violet-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-violet-500" /> Your Personal Insights
+                </CardTitle>
+                <CardDescription>Patterns discovered from your data — the platform is learning about you</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {insights.map((insight: any, i: number) => {
+                  const Icon = INSIGHT_ICONS[insight.type] || Lightbulb
+                  return (
+                    <div key={i} className={cn("rounded-lg border p-3 flex items-start gap-3", INSIGHT_COLORS[insight.type])}>
+                      <Icon className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs leading-relaxed">{insight.text}</p>
+                        <Badge variant="outline" className="text-[8px] mt-1">{insight.confidence} confidence</Badge>
+                      </div>
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Exercise vs Mood */}
+          {exerciseMoodDelta !== null && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Dumbbell className="h-4 w-4 text-orange-500" /> Exercise vs Mood
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <p className={cn("text-4xl font-bold", exerciseMoodDelta > 0.3 ? "text-emerald-600" : exerciseMoodDelta < -0.3 ? "text-red-500" : "text-muted-foreground")}>
+                    {exerciseMoodDelta > 0 ? "+" : ""}{exerciseMoodDelta}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Mood difference on exercise days vs rest days
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Based on {exerciseDayCount} exercise days and {restDayCount} rest days
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Moon phase vs mood */}
           {moonCorrelations.length > 0 && (
@@ -131,7 +186,7 @@ export default function CorrelationsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {seasonCorrelations.map((sc: any) => (
                     <div key={sc.season} className="text-center p-3 rounded-lg border border-border/50">
                       <p className="text-lg">{sc.season === "Spring" ? "🌱" : sc.season === "Summer" ? "☀️" : sc.season === "Fall" ? "🍂" : "❄️"}</p>

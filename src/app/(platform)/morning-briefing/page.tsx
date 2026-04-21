@@ -240,7 +240,7 @@ export default function MorningBriefingPage() {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Quick Actions</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               { href: "/mental-health", label: "Mood Check-In", icon: Heart, color: "text-rose-500 bg-rose-50 border-rose-200" },
               { href: "/health", label: "Log Health", icon: Activity, color: "text-emerald-500 bg-emerald-50 border-emerald-200" },

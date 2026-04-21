@@ -193,7 +193,7 @@ export default function BudgetPage() {
 
       {/* Summary bar */}
       {totalIncome > 0 && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card>
             <CardContent className="p-3 text-center">
               <p className="text-lg font-bold text-emerald-600">${totalIncome.toLocaleString()}</p>
@@ -291,7 +291,7 @@ export default function BudgetPage() {
                   title={`${cat.category}: $${cat.total.toLocaleString()} (${Math.round((cat.total / totalExpenses) * 100)}%)`} />
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {categoryTotals.filter(c => c.total > 0).sort((a, b) => b.total - a.total).map((cat, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", cat.color)} />

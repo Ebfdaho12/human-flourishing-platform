@@ -60,7 +60,7 @@ export default function FasciaPage() {
             envelops every muscle, bone, nerve, organ, and blood vessel in your body. It is not separate pieces — it is one
             continuous structure from head to toe.
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[
               { label: "Structural support", desc: "Holds organs, muscles, and bones in place" },
               { label: "Force transmission", desc: "Transfers mechanical force between muscles — you are not just muscles pulling bones, you are a tensegrity structure" },

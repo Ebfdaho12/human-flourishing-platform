@@ -73,7 +73,7 @@ export default async function DashboardPage() {
             </a>
           ))}
         </div>
-        <div className="grid grid-cols-3 gap-2 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
           {[
             { href: "/canada/index", label: "Canada Analysis", color: "text-red-600" },
             { href: "/community/hub", label: "Community", color: "text-violet-600" },

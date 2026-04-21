@@ -180,6 +180,94 @@ export async function GET(req: Request) {
       sleepMoodCorrelation = den !== 0 ? Math.round((num / den) * 100) / 100 : null
     }
 
+    // ─── Exercise vs Mood ───
+    const exerciseEntries = await prisma.healthEntry.findMany({
+      where: { userId, entryType: "EXERCISE", recordedAt: { gte: since } },
+      select: { data: true, recordedAt: true },
+      orderBy: { recordedAt: "asc" },
+    })
+
+    const exerciseDates = new Set(exerciseEntries.map(e => new Date(e.recordedAt).toISOString().split("T")[0]))
+    const moodOnExerciseDays: number[] = []
+    const moodOnRestDays: number[] = []
+    for (const entry of moodEntries) {
+      const dateStr = new Date(entry.recordedAt).toISOString().split("T")[0]
+      if (exerciseDates.has(dateStr)) moodOnExerciseDays.push(entry.score)
+      else moodOnRestDays.push(entry.score)
+    }
+
+    const exerciseMoodDelta = moodOnExerciseDays.length >= 3 && moodOnRestDays.length >= 3
+      ? Math.round(((moodOnExerciseDays.reduce((a, b) => a + b, 0) / moodOnExerciseDays.length)
+        - (moodOnRestDays.reduce((a, b) => a + b, 0) / moodOnRestDays.length)) * 10) / 10
+      : null
+
+    // ─── Generate Smart Insights ───
+    const insights: { text: string; type: "positive" | "warning" | "neutral"; confidence: "high" | "medium" | "low" }[] = []
+
+    // Sleep-mood insight
+    if (sleepMoodCorrelation !== null && Math.abs(sleepMoodCorrelation) > 0.3) {
+      insights.push({
+        text: sleepMoodCorrelation > 0
+          ? `Your mood correlates positively with sleep (r=${sleepMoodCorrelation}). On nights you sleep more, your mood the next day tends to be ${Math.abs(sleepMoodCorrelation) > 0.5 ? "significantly" : "noticeably"} higher.`
+          : `Unusually, your mood shows a negative correlation with sleep hours (r=${sleepMoodCorrelation}). This might indicate oversleeping on low-mood days rather than sleep causing low mood.`,
+        type: sleepMoodCorrelation > 0 ? "positive" : "neutral",
+        confidence: Math.abs(sleepMoodCorrelation) > 0.5 ? "high" : "medium",
+      })
+    }
+
+    // Exercise-mood insight
+    if (exerciseMoodDelta !== null && Math.abs(exerciseMoodDelta) > 0.3) {
+      insights.push({
+        text: exerciseMoodDelta > 0
+          ? `Your mood averages ${exerciseMoodDelta} points higher on days you exercise (${moodOnExerciseDays.length} exercise days vs ${moodOnRestDays.length} rest days). Movement measurably improves your mood.`
+          : `Your mood is slightly lower on exercise days (${Math.abs(exerciseMoodDelta)} points). This might indicate you exercise when stressed, or that your exercise routine is too intense.`,
+        type: exerciseMoodDelta > 0.5 ? "positive" : "neutral",
+        confidence: moodOnExerciseDays.length >= 10 ? "high" : "medium",
+      })
+    }
+
+    // Day-of-week insight
+    const validDays = dayCorrelations.filter((d: any) => d.avgMood !== null && d.entries >= 3)
+    if (validDays.length >= 5) {
+      const best = validDays.reduce((a: any, b: any) => a.avgMood > b.avgMood ? a : b)
+      const worst = validDays.reduce((a: any, b: any) => a.avgMood < b.avgMood ? a : b)
+      if (best.avgMood - worst.avgMood > 0.5) {
+        insights.push({
+          text: `${best.day}s are your best day (avg mood ${best.avgMood}), while ${worst.day}s are your lowest (${worst.avgMood}). The gap of ${Math.round((best.avgMood - worst.avgMood) * 10) / 10} points suggests your weekly rhythm significantly affects your wellbeing.`,
+          type: "neutral",
+          confidence: "high",
+        })
+      }
+    }
+
+    // Moon phase insight
+    if (moonCorrelations.length >= 4) {
+      const bestMoon = moonCorrelations[0]
+      const worstMoon = moonCorrelations[moonCorrelations.length - 1]
+      if (bestMoon.avgMood - worstMoon.avgMood > 0.5 && bestMoon.entries >= 3 && worstMoon.entries >= 3) {
+        insights.push({
+          text: `Your mood tends to be highest during ${bestMoon.phase} (${bestMoon.avgMood}/10) and lowest during ${worstMoon.phase} (${worstMoon.avgMood}/10). Based on ${moodEntries.length} mood entries over ${days} days.`,
+          type: "neutral",
+          confidence: moodEntries.length >= 30 ? "medium" : "low",
+        })
+      }
+    }
+
+    // Low sleep warning
+    const recentSleep = sleepEntries.slice(-7)
+    if (recentSleep.length >= 5) {
+      const avgRecentSleep = recentSleep.reduce((sum, s) => {
+        const d = JSON.parse(s.data || "{}"); return sum + (d.hoursSlept || 0)
+      }, 0) / recentSleep.length
+      if (avgRecentSleep < 6.5 && avgRecentSleep > 0) {
+        insights.push({
+          text: `Your average sleep this week is ${Math.round(avgRecentSleep * 10) / 10} hours — below the 7-hour minimum for cognitive function. Research shows this reduces reaction time, decision-making quality, and emotional regulation.`,
+          type: "warning",
+          confidence: "high",
+        })
+      }
+    }
+
     // Current moon phase
     const currentMoon = getMoonPhase(new Date())
 
@@ -192,6 +280,10 @@ export async function GET(req: Request) {
       hourActivity,
       sleepMoodCorrelation,
       sleepMoodPairs: sleepMoodPairs.length,
+      exerciseMoodDelta,
+      exerciseDayCount: moodOnExerciseDays.length,
+      restDayCount: moodOnRestDays.length,
+      insights,
       dataPoints: moodEntries.length,
       disclaimer: "Correlations are not causation. These patterns are for personal exploration only — not medical advice.",
     })
