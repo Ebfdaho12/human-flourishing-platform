@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 const WHAT_WE_GROW = [
   { product: "Wheat", globalRank: "#6 producer, #3 exporter", selfSufficient: "400%+", note: "We grow 4x what we eat. Major export to 70+ countries. The prairies feed millions globally." },
@@ -210,6 +211,8 @@ export default function CanadaFoodSecurityPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="food security" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Sovereignty Report</a>

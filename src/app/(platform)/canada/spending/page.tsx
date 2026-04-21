@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 // ────────────────────────────────────────────
 // Federal spending breakdown (2023-2024 fiscal year)
@@ -238,6 +239,8 @@ export default function CanadaSpendingPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="government spending" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Canada Sovereignty Report</a>

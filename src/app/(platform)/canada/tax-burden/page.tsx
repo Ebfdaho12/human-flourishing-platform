@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 // Ontario as default — most common
 function calcFederalTax(income: number): number {
@@ -263,6 +264,8 @@ export default function CanadaTaxBurdenPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="taxation" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/tax-estimator" className="text-sm text-blue-600 hover:underline">Tax Estimator</a>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 const PROVINCIAL_MIX = [
   { province: "Quebec", hydro: 95, nuclear: 0, gas: 2, wind: 3, solar: 0, coal: 0, price: "$0.073/kWh", note: "Cheapest electricity in North America. Almost entirely hydro. Massive export potential." },
@@ -220,6 +221,8 @@ export default function CanadaEnergyPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="energy" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Sovereignty Report</a>

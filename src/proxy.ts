@@ -177,6 +177,9 @@ export const config = {
     "/chinese-zodiac/:path*",
     "/lunar-cycles/:path*",
     "/morning-briefing/:path*",
+    "/whats-new/:path*",
+    "/breathwork/:path*",
+    "/body-composition/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",

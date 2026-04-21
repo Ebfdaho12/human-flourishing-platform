@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 const CURRENT_STATE = [
   { metric: "Defence spending (% GDP)", canada: "1.3%", natoTarget: "2.0%", usSpending: "3.5%", gap: "$15B+/year below NATO target", verdict: "FAILING" },
@@ -236,6 +237,8 @@ export default function CanadaDefencePage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="defence military" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Sovereignty Report</a>

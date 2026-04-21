@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { AletheiaConnection } from "@/components/AletheiaConnection"
 
 const NUMBERS = [
   { year: "2015", permanent: 271845, temporary: 350000, total: 621845, housing: 195000, note: "Pre-Trudeau baseline. Immigration roughly matched housing capacity." },
@@ -229,6 +230,8 @@ export default function CanadaImmigrationPage() {
           </p>
         </CardContent>
       </Card>
+
+      <AletheiaConnection topic="immigration" />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/canada" className="text-sm text-red-600 hover:underline">Sovereignty Report</a>
