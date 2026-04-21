@@ -10,6 +10,7 @@ import { Discover } from "@/components/dashboard/Discover"
 import { WhatsNew } from "@/components/dashboard/WhatsNew"
 import { DailyRhythm } from "@/components/dashboard/DailyRhythm"
 import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions"
+import { HealthSnapshot } from "@/components/dashboard/HealthSnapshot"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -54,6 +55,9 @@ export default async function DashboardPage() {
         <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-500" />
         <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" />
       </div>
+
+      {/* Health snapshot with sparklines */}
+      <HealthSnapshot />
 
       {/* Streaks + daily checklist */}
       <StreakWidget />
