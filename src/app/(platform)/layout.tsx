@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { TopNav } from "@/components/layout/TopNav"
 import { FeedbackButton } from "@/components/layout/FeedbackButton"
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts"
+import { SearchOverlay } from "@/components/layout/SearchOverlay"
 import { AlyVoice } from "@/components/aly/AlyVoice"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { MilestoneCelebration } from "@/components/dashboard/MilestoneCelebration"
@@ -39,6 +40,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
         <AlyVoice />
         <FeedbackButton />
         <KeyboardShortcuts />
+        <SearchOverlay />
       </div>
     </div>
   )

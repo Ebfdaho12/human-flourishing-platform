@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatFound, formatVoice } from "@/lib/utils"
+import { Search } from "lucide-react"
 import { MobileNav } from "./MobileNav"
 import { SearchBar } from "./SearchBar"
 import { ThemeToggle } from "./ThemeToggle"
@@ -33,6 +34,16 @@ export function TopNav() {
       <SearchBar />
 
       <div className="flex items-center gap-4">
+        <button
+          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          aria-label="Search pages (Cmd+K)"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <kbd className="hidden lg:inline-flex h-5 items-center rounded border border-border bg-background px-1.5 text-[10px] font-mono text-muted-foreground">
+            ⌘K
+          </kbd>
+        </button>
         <NotificationBell />
         <ThemeToggle />
 

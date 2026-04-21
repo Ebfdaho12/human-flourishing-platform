@@ -217,6 +217,9 @@ export const config = {
     "/water-tracker/:path*",
     "/energy-management/:path*",
     "/vision-board/:path*",
+    "/life-os/:path*",
+    "/people/:path*",
+    "/skill-tree/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
