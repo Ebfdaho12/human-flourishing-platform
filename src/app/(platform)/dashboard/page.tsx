@@ -8,6 +8,8 @@ import { StreakWidget } from "@/components/dashboard/StreakWidget"
 import { DailyCheckIn } from "@/components/dashboard/DailyCheckIn"
 import { Discover } from "@/components/dashboard/Discover"
 import { WhatsNew } from "@/components/dashboard/WhatsNew"
+import { DailyRhythm } from "@/components/dashboard/DailyRhythm"
+import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -36,7 +38,13 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Daily check-in — THE FIRST THING every day */}
+      {/* Daily rhythm — the core engagement loop */}
+      <DailyRhythm />
+
+      {/* Smart suggestions — personalized next actions */}
+      <SmartSuggestions />
+
+      {/* Daily check-in — mood + health quick log */}
       <DailyCheckIn />
 
       {/* Quick stats */}
