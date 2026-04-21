@@ -191,6 +191,10 @@ export const config = {
     "/posture/:path*",
     "/financial-independence/:path*",
     "/dopamine/:path*",
+    "/sauna/:path*",
+    "/fasting/:path*",
+    "/peptides/:path*",
+    "/testosterone/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
