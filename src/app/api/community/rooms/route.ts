@@ -13,15 +13,20 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rooms = await prisma.discussionRoom.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { posts: true } },
-    },
-  })
+  try {
+    const rooms = await prisma.discussionRoom.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { posts: true } },
+      },
+    })
 
-  return NextResponse.json({ rooms })
+    return NextResponse.json({ rooms })
+  } catch (error) {
+    console.error("[API] GET /api/community/rooms:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -43,31 +48,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Content too long (max 2000 chars)" }, { status: 400 })
   }
 
-  const room = await prisma.discussionRoom.findUnique({ where: { slug: roomSlug } })
-  if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 })
+  try {
+    const room = await prisma.discussionRoom.findUnique({ where: { slug: roomSlug } })
+    if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 })
 
-  const post = await prisma.discussionPost.create({
-    data: {
-      roomId: room.id,
-      authorId: session.user.id,
-      content: sanitizeInput(content),
-      type: type || "DISCUSSION",
-      toolLink: toolLink || null,
-      sourceUrl: sourceUrl || null,
-      parentId: parentId || null,
-    },
-    include: {
-      author: { select: { profile: { select: { displayName: true } } } },
-    },
-  })
-
-  // Update reply count on parent if this is a reply
-  if (parentId) {
-    await prisma.discussionPost.update({
-      where: { id: parentId },
-      data: { replyCount: { increment: 1 } },
+    const post = await prisma.discussionPost.create({
+      data: {
+        roomId: room.id,
+        authorId: session.user.id,
+        content: sanitizeInput(content),
+        type: type || "DISCUSSION",
+        toolLink: toolLink || null,
+        sourceUrl: sourceUrl || null,
+        parentId: parentId || null,
+      },
+      include: {
+        author: { select: { profile: { select: { displayName: true } } } },
+      },
     })
-  }
 
-  return NextResponse.json({ post })
+    // Update reply count on parent if this is a reply
+    if (parentId) {
+      await prisma.discussionPost.update({
+        where: { id: parentId },
+        data: { replyCount: { increment: 1 } },
+      })
+    }
+
+    return NextResponse.json({ post })
+  } catch (error) {
+    console.error("[API] POST /api/community/rooms:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

@@ -10,8 +10,9 @@ import { formatFound, formatVoice, formatDateTime } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { Coins, Vote, Lock, ArrowUpRight, ArrowDownRight, TrendingUp, Clock } from "lucide-react"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const TX_TYPE_LABELS: Record<string, string> = {
   EARN_CONTRIBUTION: "Earned",
@@ -51,11 +52,7 @@ export default function WalletPage() {
     setMessage("")
     const amount = action === "stake" ? BigInt(parseFloat(stakeAmount) * 1_000_000) : undefined
 
-    const res = await fetch("/api/tokens/stake", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, amount: amount?.toString() }),
-    })
+    const res = await encryptedPost("/api/tokens/stake", { action, amount: amount?.toString() })
     const data = await res.json()
     setLoading(false)
 

@@ -10,12 +10,19 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const projects = await prisma.infraProject.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-  })
+  try {
 
-  return NextResponse.json({ projects, hasApiKey })
+    const projects = await prisma.infraProject.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+    })
+
+    return NextResponse.json({ projects, hasApiKey })
+
+  } catch (error) {
+    console.error("[API] GET /api/infrastructure/projects:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -94,16 +101,23 @@ export async function PATCH(req: NextRequest) {
   const { projectId, status, notes } = body
   if (!projectId) return NextResponse.json({ error: "projectId required" }, { status: 400 })
 
-  const existing = await prisma.infraProject.findFirst({ where: { id: projectId, userId: session.user.id } })
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
 
-  const project = await prisma.infraProject.update({
-    where: { id: projectId },
-    data: {
-      ...(status ? { status } : {}),
-      ...(notes !== undefined ? { notes } : {}),
-    },
-  })
+    const existing = await prisma.infraProject.findFirst({ where: { id: projectId, userId: session.user.id } })
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  return NextResponse.json({ project })
+    const project = await prisma.infraProject.update({
+      where: { id: projectId },
+      data: {
+        ...(status ? { status } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+      },
+    })
+
+    return NextResponse.json({ project })
+
+  } catch (error) {
+    console.error("[API] PATCH /api/infrastructure/projects:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

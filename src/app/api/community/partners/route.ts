@@ -13,19 +13,26 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const partnerships = await prisma.accountabilityPartner.findMany({
-    where: {
-      OR: [{ userId: session.user.id }, { partnerId: session.user.id }],
-      status: "ACTIVE",
-    },
-    include: {
-      user: { select: { id: true, profile: { select: { displayName: true } } } },
-      partner: { select: { id: true, profile: { select: { displayName: true } } } },
-      checkIns: { orderBy: { createdAt: "desc" }, take: 5 },
-    },
-  })
+  try {
 
-  return NextResponse.json({ partnerships })
+    const partnerships = await prisma.accountabilityPartner.findMany({
+      where: {
+        OR: [{ userId: session.user.id }, { partnerId: session.user.id }],
+        status: "ACTIVE",
+      },
+      include: {
+        user: { select: { id: true, profile: { select: { displayName: true } } } },
+        partner: { select: { id: true, profile: { select: { displayName: true } } } },
+        checkIns: { orderBy: { createdAt: "desc" }, take: 5 },
+      },
+    })
+
+    return NextResponse.json({ partnerships })
+
+  } catch (error) {
+    console.error("[API] GET /api/community/partners:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -59,13 +66,20 @@ export async function POST(req: NextRequest) {
   })
   if (existing) return NextResponse.json({ error: "You already have an active partnership with this person" }, { status: 400 })
 
-  const partnership = await prisma.accountabilityPartner.create({
-    data: {
-      userId: session.user.id,
-      partnerId: partner.id,
-      goal: sanitizeInput(goal),
-    },
-  })
+  try {
 
-  return NextResponse.json({ partnership })
+    const partnership = await prisma.accountabilityPartner.create({
+      data: {
+        userId: session.user.id,
+        partnerId: partner.id,
+        goal: sanitizeInput(goal),
+      },
+    })
+
+    return NextResponse.json({ partnership })
+
+  } catch (error) {
+    console.error("[API] POST /api/community/partners:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

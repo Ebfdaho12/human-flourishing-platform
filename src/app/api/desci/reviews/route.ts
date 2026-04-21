@@ -21,13 +21,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Cannot review your own study" }, { status: 400 })
   }
 
-  const review = await prisma.peerReview.upsert({
-    where: { studyId_userId: { studyId, userId: session.user.id } },
-    create: { studyId, userId: session.user.id, quality, rigor, comments },
-    update: { quality, rigor, comments },
-  })
+  try {
+    const review = await prisma.peerReview.upsert({
+      where: { studyId_userId: { studyId, userId: session.user.id } },
+      create: { studyId, userId: session.user.id, quality, rigor, comments },
+      update: { quality, rigor, comments },
+    })
 
-  await awardFound(session.user.id, `desci_review_${studyId}`, "DESCI", TOKEN_AWARDS.DESCI_PEER_REVIEW, "Peer review submitted")
+    await awardFound(session.user.id, `desci_review_${studyId}`, "DESCI", TOKEN_AWARDS.DESCI_PEER_REVIEW, "Peer review submitted")
 
-  return NextResponse.json({ review }, { status: 201 })
+    return NextResponse.json({ review }, { status: 201 })
+  } catch (error) {
+    console.error("[API] POST /api/desci/reviews:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

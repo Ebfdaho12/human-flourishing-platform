@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const EXERCISE_LIBRARY = [
   {
@@ -72,10 +73,7 @@ export default function ExerciseLibraryPage() {
   async function logExercise() {
     if (!selectedExercise || !duration) return
     setLogging(true)
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/health/entries", {
         entryType: "EXERCISE",
         data: {
           activity: selectedExercise.name,
@@ -83,8 +81,7 @@ export default function ExerciseLibraryPage() {
           intensity: intensity ? parseInt(intensity) : null,
         },
         notes: `${selectedExercise.name} — ${selectedExercise.muscles}`,
-      }),
-    })
+      })
     setLogging(false)
     setLogOpen(false)
     setDuration("")

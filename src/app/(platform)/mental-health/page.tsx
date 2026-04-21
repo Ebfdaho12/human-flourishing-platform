@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost, encryptedPatch, encryptedDelete } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const EMOTION_OPTIONS = [
   "Happy", "Grateful", "Calm", "Hopeful", "Energized",
@@ -66,15 +67,11 @@ function MoodCheckInDialog({ onSaved }: { onSaved: () => void }) {
 
   async function handleSubmit() {
     setLoading(true)
-    await fetch("/api/mental-health/mood", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/mental-health/mood", {
         score: score[0],
         emotions: selectedEmotions,
         triggers: selectedTriggers,
         notes: notes || null,
-      }),
     })
     setLoading(false)
     setOpen(false)
@@ -177,17 +174,9 @@ function NewJournalDialog({ onSaved, editEntry }: { onSaved: () => void; editEnt
     if (!content.trim()) return
     setLoading(true)
     if (editEntry) {
-      await fetch("/api/mental-health/journal", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entryId: editEntry.id, title, content }),
-      })
+      await encryptedPatch("/api/mental-health/journal", { entryId: editEntry.id, title, content })
     } else {
-      await fetch("/api/mental-health/journal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
-      })
+      await encryptedPost("/api/mental-health/journal", { title, content })
     }
     setLoading(false)
     setOpen(false)

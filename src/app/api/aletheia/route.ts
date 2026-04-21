@@ -28,48 +28,53 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "action required" }, { status: 400 })
   }
 
-  switch (action) {
-    case "search": {
-      if (!q) return NextResponse.json({ error: "q required" }, { status: 400 })
-      const figures = await searchFigures(q)
-      return NextResponse.json({ figures })
-    }
+  try {
+    switch (action) {
+      case "search": {
+        if (!q) return NextResponse.json({ error: "q required" }, { status: 400 })
+        const figures = await searchFigures(q)
+        return NextResponse.json({ figures })
+      }
 
-    case "credibility": {
-      if (!q) return NextResponse.json({ error: "name required" }, { status: 400 })
-      const figure = await getCredibility(q)
-      return NextResponse.json({ figure })
-    }
+      case "credibility": {
+        if (!q) return NextResponse.json({ error: "name required" }, { status: 400 })
+        const figure = await getCredibility(q)
+        return NextResponse.json({ figure })
+      }
 
-    case "narratives": {
-      if (!q) return NextResponse.json({ error: "topic required" }, { status: 400 })
-      const narratives = await getRelatedNarratives(q)
-      return NextResponse.json({ narratives })
-    }
+      case "narratives": {
+        if (!q) return NextResponse.json({ error: "topic required" }, { status: 400 })
+        const narratives = await getRelatedNarratives(q)
+        return NextResponse.json({ narratives })
+      }
 
-    case "funding": {
-      if (!q) return NextResponse.json({ error: "q required" }, { status: 400 })
-      const links = await getFundingLinks(q)
-      return NextResponse.json({ links })
-    }
+      case "funding": {
+        if (!q) return NextResponse.json({ error: "q required" }, { status: 400 })
+        const links = await getFundingLinks(q)
+        return NextResponse.json({ links })
+      }
 
-    case "universal": {
-      if (!q) return NextResponse.json({ error: "q required" }, { status: 400 })
-      const results = await universalSearch(q)
-      return NextResponse.json(results)
-    }
+      case "universal": {
+        if (!q) return NextResponse.json({ error: "q required" }, { status: 400 })
+        const results = await universalSearch(q)
+        return NextResponse.json(results)
+      }
 
-    case "stats": {
-      const stats = await getAletheiaStats()
-      return NextResponse.json({ stats })
-    }
+      case "stats": {
+        const stats = await getAletheiaStats()
+        return NextResponse.json({ stats })
+      }
 
-    case "status": {
-      const online = await isAletheiaOnline()
-      return NextResponse.json({ online })
-    }
+      case "status": {
+        const online = await isAletheiaOnline()
+        return NextResponse.json({ online })
+      }
 
-    default:
-      return NextResponse.json({ error: "Invalid action. Use: search, credibility, narratives, funding, universal, stats, status" }, { status: 400 })
+      default:
+        return NextResponse.json({ error: "Invalid action. Use: search, credibility, narratives, funding, universal, stats, status" }, { status: 400 })
+    }
+  } catch (error) {
+    console.error("[API] GET /api/aletheia:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

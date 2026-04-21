@@ -6,8 +6,9 @@ import { Droplets, Plus, Minus, Target, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const GLASS_SIZE = 0.25 // liters per glass
 
@@ -48,15 +49,11 @@ export default function WaterTrackerPage() {
 
   async function addWater(liters: number) {
     setLogging(true)
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/health/entries", {
         entryType: "NUTRITION",
         data: { waterL: liters },
         notes: `Water: ${liters}L`,
-      }),
-    })
+      })
     setLogging(false)
     mutate()
   }

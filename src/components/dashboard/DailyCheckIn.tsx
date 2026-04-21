@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { encryptedPost } from "@/lib/encrypted-fetch"
 
 interface CheckInData {
   date: string
@@ -78,11 +79,8 @@ export function DailyCheckIn() {
     setCompleted(true)
 
     // Also log mood to the server
-    fetch("/api/mental-health/mood", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ score: mood, emotions: [], triggers: [] }),
-    }).catch(() => {}) // Silent fail — the localStorage log is the primary
+    encryptedPost("/api/mental-health/mood", { score: mood, emotions: [], triggers: [] })
+      .catch(() => {}) // Silent fail — the localStorage log is the primary
   }
 
   if (completed) {

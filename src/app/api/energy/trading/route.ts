@@ -71,13 +71,18 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const logs = await prisma.energyLog.findMany({
-    where: { userId: session.user.id },
-    select: { logType: true, sourceType: true, amountKwh: true, pricePerKwh: true },
-  })
+  try {
+    const logs = await prisma.energyLog.findMany({
+      where: { userId: session.user.id },
+      select: { logType: true, sourceType: true, amountKwh: true, pricePerKwh: true },
+    })
 
-  const state = getMarketState(logs)
-  return NextResponse.json(state)
+    const state = getMarketState(logs)
+    return NextResponse.json(state)
+  } catch (error) {
+    console.error("[API] GET /api/energy/trading:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -94,20 +99,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "action must be BUY or SELL" }, { status: 400 })
   }
 
-  // In production: create order, match with counterparty, settle in FOUND tokens
-  // For now: simulate instant fill
-  const totalCost = Math.round(kwh * pricePerKwh * 100) / 100
-  const foundReward = Math.round(kwh * 2) // 2 FOUND per kWh traded
+  try {
+    // In production: create order, match with counterparty, settle in FOUND tokens
+    // For now: simulate instant fill
+    const totalCost = Math.round(kwh * pricePerKwh * 100) / 100
+    const foundReward = Math.round(kwh * 2) // 2 FOUND per kWh traded
 
-  return NextResponse.json({
-    order: {
-      action,
-      kwh,
-      pricePerKwh,
-      totalCost,
-      status: "FILLED",
-      foundReward,
-    },
-    message: `${action === "SELL" ? "Sold" : "Bought"} ${kwh} kWh at $${pricePerKwh}/kWh ($${totalCost} total). Earned ${foundReward} FOUND.`,
-  })
+    return NextResponse.json({
+      order: {
+        action,
+        kwh,
+        pricePerKwh,
+        totalCost,
+        status: "FILLED",
+        foundReward,
+      },
+      message: `${action === "SELL" ? "Sold" : "Bought"} ${kwh} kWh at $${pricePerKwh}/kWh ($${totalCost} total). Earned ${foundReward} FOUND.`,
+    })
+  } catch (error) {
+    console.error("[API] POST /api/energy/trading:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

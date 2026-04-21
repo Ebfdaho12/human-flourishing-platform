@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Mic, MicOff, Volume2, X, Sparkles, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
 /**
  * Aly — Voice Assistant for HFP
@@ -304,11 +305,7 @@ export function AlyVoice() {
 
     switch (command.action) {
       case "mood": {
-        await fetch("/api/mental-health/mood", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ score: command.data.score, emotions: [], triggers: [] }),
-        })
+        await encryptedPost("/api/mental-health/mood", { score: command.data.score, emotions: [], triggers: [] })
         const msg = `Got it! Logged your mood as ${command.data.score} out of 10. ${command.data.score >= 7 ? "Glad you're doing well!" : command.data.score >= 5 ? "Hanging in there." : "I'm here if you need anything."}`
         setResponse(msg)
         speak(msg)
@@ -316,11 +313,7 @@ export function AlyVoice() {
       }
 
       case "sleep": {
-        await fetch("/api/health/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entryType: "SLEEP", data: { hoursSlept: command.data.hours } }),
-        })
+        await encryptedPost("/api/health/entries", { entryType: "SLEEP", data: { hoursSlept: command.data.hours } })
         const msg = `Logged ${command.data.hours} hours of sleep. ${command.data.hours >= 7 ? "Nice, that's solid rest." : "Try to aim for 7 to 9 hours when you can."}`
         setResponse(msg)
         speak(msg)
@@ -328,11 +321,7 @@ export function AlyVoice() {
       }
 
       case "water": {
-        await fetch("/api/health/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entryType: "NUTRITION", data: { waterL: command.data.liters } }),
-        })
+        await encryptedPost("/api/health/entries", { entryType: "NUTRITION", data: { waterL: command.data.liters } })
         const msg = `Logged ${command.data.liters} liters of water. Stay hydrated!`
         setResponse(msg)
         speak(msg)
@@ -340,11 +329,7 @@ export function AlyVoice() {
       }
 
       case "weight": {
-        await fetch("/api/health/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entryType: "MEASUREMENT", data: { weight: command.data.weight } }),
-        })
+        await encryptedPost("/api/health/entries", { entryType: "MEASUREMENT", data: { weight: command.data.weight } })
         const msg = `Logged your weight at ${command.data.weight} pounds.`
         setResponse(msg)
         speak(msg)
@@ -352,11 +337,7 @@ export function AlyVoice() {
       }
 
       case "steps": {
-        await fetch("/api/health/entries", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entryType: "MEASUREMENT", data: { steps: command.data.steps } }),
-        })
+        await encryptedPost("/api/health/entries", { entryType: "MEASUREMENT", data: { steps: command.data.steps } })
         const msg = `Logged ${command.data.steps.toLocaleString()} steps. ${command.data.steps >= 10000 ? "Amazing, you hit 10K!" : "Keep moving!"}`
         setResponse(msg)
         speak(msg)
@@ -372,7 +353,7 @@ export function AlyVoice() {
       }
 
       case "query_balance": {
-        const res = await fetch("/api/wallet").then(r => r.json())
+        const res = await secureFetcher("/api/wallet")
         const found = res.foundBalance ? Number(BigInt(res.foundBalance) / 1000000n) : 0
         const msg = `You have ${found} FOUND tokens.`
         setResponse(msg)

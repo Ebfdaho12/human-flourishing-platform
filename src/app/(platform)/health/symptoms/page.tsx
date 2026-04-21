@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const COMMON_SYMPTOMS = [
   "Headache", "Fatigue", "Back pain", "Insomnia", "Anxiety",
@@ -62,10 +63,7 @@ export default function SymptomTrackerPage() {
     const symptom = name ?? symptomName
     if (!symptom) return
     setLogging(true)
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/health/entries", {
         entryType: "SYMPTOM",
         data: {
           symptom,
@@ -73,8 +71,7 @@ export default function SymptomTrackerPage() {
           duration: duration ? parseFloat(duration) : null,
         },
         notes: notes || null,
-      }),
-    })
+      })
     setLogging(false)
     setOpen(false)
     setSymptomName("")

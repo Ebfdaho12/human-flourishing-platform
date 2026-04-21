@@ -13,8 +13,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const ENTRY_TYPES = [
   { value: "VITALS", label: "Vitals", icon: Activity, color: "text-rose-400", fields: [
@@ -89,11 +90,7 @@ function LogEntryDialog({ onSaved }: { onSaved: () => void }) {
         numericData[f.name] = f.type === "number" ? parseFloat(val) : val
       }
     })
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ entryType, data: numericData, notes: notes || null }),
-    })
+    await encryptedPost("/api/health/entries", { entryType, data: numericData, notes: notes || null })
     setLoading(false)
     setOpen(false)
     setFields({})

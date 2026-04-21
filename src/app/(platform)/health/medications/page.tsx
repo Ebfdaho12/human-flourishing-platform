@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 export default function MedicationsPage() {
   const { data, mutate } = useSWR("/api/health/entries?limit=100", fetcher)
@@ -39,15 +40,11 @@ export default function MedicationsPage() {
   async function logMedication() {
     if (!name) return
     setLoading(true)
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/health/entries", {
         entryType: "MEDICATION",
         data: { name, dose, frequency, taken: "yes" },
         notes: notes || null,
-      }),
-    })
+      })
     setLoading(false)
     setOpen(false)
     setName(""); setDose(""); setFrequency(""); setNotes("")

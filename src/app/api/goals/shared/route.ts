@@ -16,61 +16,68 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const type = req.nextUrl.searchParams.get("type") // health or education
+  try {
 
-  // Get shared health goals
-  const healthGoals = !type || type === "health" ? await prisma.healthGoal.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    select: {
-      id: true,
-      goalType: true,
-      title: true,
-      target: true,
-      current: true,
-      deadline: true,
-      createdAt: true,
-      user: {
-        select: {
-          profile: { select: { displayName: true, profileVisibility: true } },
+    const type = req.nextUrl.searchParams.get("type") // health or education
+
+    // Get shared health goals
+    const healthGoals = !type || type === "health" ? await prisma.healthGoal.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        goalType: true,
+        title: true,
+        target: true,
+        current: true,
+        deadline: true,
+        createdAt: true,
+        user: {
+          select: {
+            profile: { select: { displayName: true, profileVisibility: true } },
+          },
         },
       },
-    },
-  }) : []
+    }) : []
 
-  // Get shared education goals
-  const educationGoals = !type || type === "education" ? await prisma.learningGoal.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-    select: {
-      id: true,
-      subject: true,
-      topic: true,
-      level: true,
-      createdAt: true,
-      user: {
-        select: {
-          profile: { select: { displayName: true, profileVisibility: true } },
+    // Get shared education goals
+    const educationGoals = !type || type === "education" ? await prisma.learningGoal.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        subject: true,
+        topic: true,
+        level: true,
+        createdAt: true,
+        user: {
+          select: {
+            profile: { select: { displayName: true, profileVisibility: true } },
+          },
         },
       },
-    },
-  }) : []
+    }) : []
 
-  // Anonymize — only show display name if user has public profile
-  const anonHealth = healthGoals.map((g) => ({
-    ...g,
-    user: g.user?.profile?.profileVisibility === "PUBLIC" ? g.user.profile.displayName : "Anonymous",
-  }))
+    // Anonymize — only show display name if user has public profile
+    const anonHealth = healthGoals.map((g) => ({
+      ...g,
+      user: g.user?.profile?.profileVisibility === "PUBLIC" ? g.user.profile.displayName : "Anonymous",
+    }))
 
-  const anonEducation = educationGoals.map((g) => ({
-    ...g,
-    user: g.user?.profile?.profileVisibility === "PUBLIC" ? g.user.profile.displayName : "Anonymous",
-  }))
+    const anonEducation = educationGoals.map((g) => ({
+      ...g,
+      user: g.user?.profile?.profileVisibility === "PUBLIC" ? g.user.profile.displayName : "Anonymous",
+    }))
 
-  return NextResponse.json({
-    healthGoals: anonHealth,
-    educationGoals: anonEducation,
-  })
+    return NextResponse.json({
+      healthGoals: anonHealth,
+      educationGoals: anonEducation,
+    })
+
+  } catch (error) {
+    console.error("[API] GET /api/goals/shared:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

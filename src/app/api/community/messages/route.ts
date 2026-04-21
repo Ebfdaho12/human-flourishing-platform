@@ -16,81 +16,86 @@ export async function GET(req: NextRequest) {
 
   const withUser = req.nextUrl.searchParams.get("with")
 
-  if (withUser) {
-    // Get messages with specific user
-    const messages = await prisma.directMessage.findMany({
-      where: {
-        OR: [
-          { senderId: session.user.id, receiverId: withUser },
-          { senderId: withUser, receiverId: session.user.id },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-      take: 100,
-      include: {
-        sender: { select: { profile: { select: { displayName: true } } } },
-      },
-    })
-
-    // Mark unread messages as read
-    await prisma.directMessage.updateMany({
-      where: { senderId: withUser, receiverId: session.user.id, read: false },
-      data: { read: true, readAt: new Date() },
-    })
-
-    return NextResponse.json({ messages })
-  }
-
-  // List all conversations (latest message per partner)
-  const sent = await prisma.directMessage.findMany({
-    where: { senderId: session.user.id },
-    select: { receiverId: true, createdAt: true, content: true },
-    orderBy: { createdAt: "desc" },
-  })
-
-  const received = await prisma.directMessage.findMany({
-    where: { receiverId: session.user.id },
-    select: { senderId: true, createdAt: true, content: true, read: true },
-    orderBy: { createdAt: "desc" },
-  })
-
-  // Build unique conversation list
-  const convos = new Map<string, { partnerId: string; lastMessage: string; lastAt: Date; unread: number }>()
-
-  for (const m of sent) {
-    if (!convos.has(m.receiverId)) {
-      convos.set(m.receiverId, { partnerId: m.receiverId, lastMessage: m.content.substring(0, 50), lastAt: m.createdAt, unread: 0 })
-    }
-  }
-  for (const m of received) {
-    const existing = convos.get(m.senderId)
-    if (!existing || m.createdAt > existing.lastAt) {
-      convos.set(m.senderId, {
-        partnerId: m.senderId,
-        lastMessage: m.content.substring(0, 50),
-        lastAt: m.createdAt,
-        unread: (existing?.unread || 0) + (!m.read ? 1 : 0),
+  try {
+    if (withUser) {
+      // Get messages with specific user
+      const messages = await prisma.directMessage.findMany({
+        where: {
+          OR: [
+            { senderId: session.user.id, receiverId: withUser },
+            { senderId: withUser, receiverId: session.user.id },
+          ],
+        },
+        orderBy: { createdAt: "asc" },
+        take: 100,
+        include: {
+          sender: { select: { profile: { select: { displayName: true } } } },
+        },
       })
-    } else if (!m.read) {
-      existing.unread++
+
+      // Mark unread messages as read
+      await prisma.directMessage.updateMany({
+        where: { senderId: withUser, receiverId: session.user.id, read: false },
+        data: { read: true, readAt: new Date() },
+      })
+
+      return NextResponse.json({ messages })
     }
+
+    // List all conversations (latest message per partner)
+    const sent = await prisma.directMessage.findMany({
+      where: { senderId: session.user.id },
+      select: { receiverId: true, createdAt: true, content: true },
+      orderBy: { createdAt: "desc" },
+    })
+
+    const received = await prisma.directMessage.findMany({
+      where: { receiverId: session.user.id },
+      select: { senderId: true, createdAt: true, content: true, read: true },
+      orderBy: { createdAt: "desc" },
+    })
+
+    // Build unique conversation list
+    const convos = new Map<string, { partnerId: string; lastMessage: string; lastAt: Date; unread: number }>()
+
+    for (const m of sent) {
+      if (!convos.has(m.receiverId)) {
+        convos.set(m.receiverId, { partnerId: m.receiverId, lastMessage: m.content.substring(0, 50), lastAt: m.createdAt, unread: 0 })
+      }
+    }
+    for (const m of received) {
+      const existing = convos.get(m.senderId)
+      if (!existing || m.createdAt > existing.lastAt) {
+        convos.set(m.senderId, {
+          partnerId: m.senderId,
+          lastMessage: m.content.substring(0, 50),
+          lastAt: m.createdAt,
+          unread: (existing?.unread || 0) + (!m.read ? 1 : 0),
+        })
+      } else if (!m.read) {
+        existing.unread++
+      }
+    }
+
+    // Get partner profiles
+    const partnerIds = [...convos.keys()]
+    const partners = await prisma.user.findMany({
+      where: { id: { in: partnerIds } },
+      select: { id: true, profile: { select: { displayName: true } } },
+    })
+
+    const conversations = [...convos.values()]
+      .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime())
+      .map(c => ({
+        ...c,
+        partnerName: partners.find(p => p.id === c.partnerId)?.profile?.displayName || "User",
+      }))
+
+    return NextResponse.json({ conversations })
+  } catch (error) {
+    console.error("[API] GET /api/community/messages:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  // Get partner profiles
-  const partnerIds = [...convos.keys()]
-  const partners = await prisma.user.findMany({
-    where: { id: { in: partnerIds } },
-    select: { id: true, profile: { select: { displayName: true } } },
-  })
-
-  const conversations = [...convos.values()]
-    .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime())
-    .map(c => ({
-      ...c,
-      partnerName: partners.find(p => p.id === c.partnerId)?.profile?.displayName || "User",
-    }))
-
-  return NextResponse.json({ conversations })
 }
 
 export async function POST(req: NextRequest) {
@@ -112,17 +117,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Message too long (max 2000)" }, { status: 400 })
   }
 
-  // Verify receiver exists
-  const receiver = await prisma.user.findUnique({ where: { id: receiverId } })
-  if (!receiver) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  try {
+    // Verify receiver exists
+    const receiver = await prisma.user.findUnique({ where: { id: receiverId } })
+    if (!receiver) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-  const message = await prisma.directMessage.create({
-    data: {
-      senderId: session.user.id,
-      receiverId,
-      content: sanitizeInput(content),
-    },
-  })
+    const message = await prisma.directMessage.create({
+      data: {
+        senderId: session.user.id,
+        receiverId,
+        content: sanitizeInput(content),
+      },
+    })
 
-  return NextResponse.json({ message })
+    return NextResponse.json({ message })
+  } catch (error) {
+    console.error("[API] POST /api/community/messages:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

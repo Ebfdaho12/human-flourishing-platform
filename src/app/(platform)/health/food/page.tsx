@@ -11,8 +11,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack", "Beverage", "Supplement"]
 
@@ -84,10 +85,7 @@ export default function FoodDiaryPage() {
   async function logFood() {
     if (!meal) return
     setLogging(true)
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/health/entries", {
         entryType: "NUTRITION",
         data: {
           meal: `[${mealType}] ${meal}`,
@@ -98,8 +96,7 @@ export default function FoodDiaryPage() {
           fat: FOOD_DATABASE[meal]?.fat ?? null,
         },
         notes: notes || null,
-      }),
-    })
+      })
     setLogging(false)
     setOpen(false)
     setMeal(""); setCalories(""); setWaterL(""); setNotes("")

@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then(r => r.json())
+const fetcher = secureFetcher
 
 export default function FamilyGroupPage() {
   const { data, mutate } = useSWR("/api/community/family", fetcher)
@@ -26,31 +27,19 @@ export default function FamilyGroupPage() {
 
   async function createGroup() {
     if (!newName.trim()) return
-    await fetch("/api/community/family", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create", name: newName }),
-    })
+    await encryptedPost("/api/community/family", { action: "create", name: newName })
     setNewName(""); setShowCreate(false); mutate()
   }
 
   async function joinGroup() {
     if (!joinCode.trim()) return
-    const res = await fetch("/api/community/family", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "join", inviteCode: joinCode }),
-    })
+    const res = await encryptedPost("/api/community/family", { action: "join", inviteCode: joinCode })
     if (res.ok) { setJoinCode(""); setShowJoin(false); mutate() }
   }
 
   async function sendMessage(groupId: string) {
     if (!newMessage.trim()) return
-    await fetch("/api/community/family", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "message", groupId, message: newMessage }),
-    })
+    await encryptedPost("/api/community/family", { action: "message", groupId, message: newMessage })
     setNewMessage(""); mutate()
   }
 

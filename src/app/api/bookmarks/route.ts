@@ -17,19 +17,26 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const bookmarks = await prisma.moduleActivity.findMany({
-    where: { userId: session.user.id, moduleId: "BOOKMARK" },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  })
+  try {
 
-  return NextResponse.json({
-    bookmarks: bookmarks.map(b => ({
-      id: b.id,
-      ...JSON.parse(b.metadata ?? "{}"),
-      createdAt: b.createdAt,
-    })),
-  })
+    const bookmarks = await prisma.moduleActivity.findMany({
+      where: { userId: session.user.id, moduleId: "BOOKMARK" },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    })
+
+    return NextResponse.json({
+      bookmarks: bookmarks.map(b => ({
+        id: b.id,
+        ...JSON.parse(b.metadata ?? "{}"),
+        createdAt: b.createdAt,
+      })),
+    })
+
+  } catch (error) {
+    console.error("[API] GET /api/bookmarks:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -39,16 +46,23 @@ export async function POST(req: NextRequest) {
   const { title, url, note, category } = await req.json()
   if (!title || !url) return NextResponse.json({ error: "title and url required" }, { status: 400 })
 
-  await prisma.moduleActivity.create({
-    data: {
-      userId: session.user.id,
-      moduleId: "BOOKMARK",
-      activityKey: `bookmark:${Date.now()}`,
-      metadata: JSON.stringify({ title, url, note, category: category ?? "general" }),
-    },
-  })
+  try {
 
-  return NextResponse.json({ success: true })
+    await prisma.moduleActivity.create({
+      data: {
+        userId: session.user.id,
+        moduleId: "BOOKMARK",
+        activityKey: `bookmark:${Date.now()}`,
+        metadata: JSON.stringify({ title, url, note, category: category ?? "general" }),
+      },
+    })
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error("[API] POST /api/bookmarks:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function DELETE(req: NextRequest) {
@@ -58,9 +72,16 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id")
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 })
 
-  const bookmark = await prisma.moduleActivity.findUnique({ where: { id } })
-  if (!bookmark || bookmark.userId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
 
-  await prisma.moduleActivity.delete({ where: { id } })
-  return NextResponse.json({ success: true })
+    const bookmark = await prisma.moduleActivity.findUnique({ where: { id } })
+    if (!bookmark || bookmark.userId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    await prisma.moduleActivity.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error("[API] DELETE /api/bookmarks:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

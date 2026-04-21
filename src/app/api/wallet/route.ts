@@ -8,12 +8,17 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const wallet = await getWalletBalance(session.user.id)
+  try {
+    const wallet = await getWalletBalance(session.user.id)
 
-  return NextResponse.json({
-    foundBalance: wallet.foundBalance.toString(),
-    voiceBalance: wallet.voiceBalance.toString(),
-    stakedFound: wallet.stakedFound.toString(),
-    stakeStartedAt: wallet.stakeStartedAt,
-  })
+    return NextResponse.json({
+      foundBalance: wallet.foundBalance.toString(),
+      voiceBalance: wallet.voiceBalance.toString(),
+      stakedFound: wallet.stakedFound.toString(),
+      stakeStartedAt: wallet.stakeStartedAt,
+    })
+  } catch (error) {
+    console.error("[API] GET /api/wallet:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

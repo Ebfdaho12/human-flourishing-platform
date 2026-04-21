@@ -12,14 +12,21 @@ export async function POST(req: NextRequest) {
   const { studyId, outcome, notes } = await req.json()
   if (!studyId || !outcome) return NextResponse.json({ error: "studyId and outcome required" }, { status: 400 })
 
-  const study = await prisma.researchStudy.findFirst({ where: { id: studyId } })
-  if (!study) return NextResponse.json({ error: "Study not found" }, { status: 404 })
+  try {
 
-  const replication = await prisma.replication.create({
-    data: { studyId, userId: session.user.id, outcome, notes: notes ?? null },
-  })
+    const study = await prisma.researchStudy.findFirst({ where: { id: studyId } })
+    if (!study) return NextResponse.json({ error: "Study not found" }, { status: 404 })
 
-  await awardFound(session.user.id, `desci_rep_${replication.id}`, "DESCI", TOKEN_AWARDS.DESCI_REPLICATION, "Replication submitted")
+    const replication = await prisma.replication.create({
+      data: { studyId, userId: session.user.id, outcome, notes: notes ?? null },
+    })
 
-  return NextResponse.json({ replication }, { status: 201 })
+    await awardFound(session.user.id, `desci_rep_${replication.id}`, "DESCI", TOKEN_AWARDS.DESCI_REPLICATION, "Replication submitted")
+
+    return NextResponse.json({ replication }, { status: 201 })
+
+  } catch (error) {
+    console.error("[API] POST /api/desci/replications:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

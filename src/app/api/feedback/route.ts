@@ -16,14 +16,19 @@ export async function GET() {
   const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map(e => e.trim().toLowerCase())
   const isAdmin = adminEmails.includes(session.user.email?.toLowerCase() ?? "")
 
-  const feedback = await prisma.moduleActivity.findMany({
-    where: isAdmin ? { moduleId: "FEEDBACK" } : { userId: session.user.id, moduleId: "FEEDBACK" },
-    orderBy: { createdAt: "desc" },
-    take: isAdmin ? 100 : 20,
-    include: isAdmin ? { user: { select: { email: true } } } : undefined,
-  })
+  try {
+    const feedback = await prisma.moduleActivity.findMany({
+      where: isAdmin ? { moduleId: "FEEDBACK" } : { userId: session.user.id, moduleId: "FEEDBACK" },
+      orderBy: { createdAt: "desc" },
+      take: isAdmin ? 100 : 20,
+      include: isAdmin ? { user: { select: { email: true } } } : undefined,
+    })
 
-  return NextResponse.json({ feedback, isAdmin })
+    return NextResponse.json({ feedback, isAdmin })
+  } catch (error) {
+    console.error("[API] GET /api/feedback:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -44,21 +49,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "type must be BUG, FEATURE, GENERAL, or ACCESSIBILITY" }, { status: 400 })
   }
 
-  await prisma.moduleActivity.create({
-    data: {
-      userId: session.user.id,
-      moduleId: "FEEDBACK",
-      activityKey: `feedback:${Date.now()}`,
-      metadata: JSON.stringify({
-        type,
-        title: sanitizeInput(title ?? ""),
-        description: sanitizeInput(description),
-        page: page ?? null,
-        userAgent: null, // Don't store user agent for privacy
-        timestamp: new Date().toISOString(),
-      }),
-    },
-  })
+  try {
+    await prisma.moduleActivity.create({
+      data: {
+        userId: session.user.id,
+        moduleId: "FEEDBACK",
+        activityKey: `feedback:${Date.now()}`,
+        metadata: JSON.stringify({
+          type,
+          title: sanitizeInput(title ?? ""),
+          description: sanitizeInput(description),
+          page: page ?? null,
+          userAgent: null, // Don't store user agent for privacy
+          timestamp: new Date().toISOString(),
+        }),
+      },
+    })
 
-  return NextResponse.json({ success: true, message: "Thank you for your feedback!" })
+    return NextResponse.json({ success: true, message: "Thank you for your feedback!" })
+  } catch (error) {
+    console.error("[API] POST /api/feedback:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

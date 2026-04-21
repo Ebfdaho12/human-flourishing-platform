@@ -10,11 +10,18 @@ export async function POST(req: NextRequest) {
   const { moduleId } = await req.json()
   if (!moduleId) return NextResponse.json({ error: "moduleId required" }, { status: 400 })
 
-  await prisma.moduleInterest.upsert({
-    where: { userId_moduleId: { userId: session.user.id, moduleId } },
-    update: {},
-    create: { userId: session.user.id, moduleId },
-  })
+  try {
 
-  return NextResponse.json({ success: true })
+    await prisma.moduleInterest.upsert({
+      where: { userId_moduleId: { userId: session.user.id, moduleId } },
+      update: {},
+      create: { userId: session.user.id, moduleId },
+    })
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error("[API] POST /api/modules/interest:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

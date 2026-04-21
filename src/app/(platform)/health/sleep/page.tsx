@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { secureFetcher, encryptedPost } from "@/lib/encrypted-fetch"
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json())
+const fetcher = secureFetcher
 
 export default function SleepPage() {
   const { data: entriesData, mutate } = useSWR("/api/health/entries?limit=100", fetcher)
@@ -33,10 +34,7 @@ export default function SleepPage() {
   async function logSleep() {
     if (!hours) return
     setLogging(true)
-    await fetch("/api/health/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    await encryptedPost("/api/health/entries", {
         entryType: "SLEEP",
         data: {
           hoursSlept: parseFloat(hours),
@@ -45,8 +43,7 @@ export default function SleepPage() {
           wakeTime: wakeTime || null,
         },
         notes: notes || null,
-      }),
-    })
+      })
     setLogging(false)
     setOpen(false)
     setHours(""); setQuality([7]); setBedtime(""); setWakeTime(""); setNotes("")

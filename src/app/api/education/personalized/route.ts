@@ -135,57 +135,62 @@ export async function GET(req: NextRequest) {
 
   const topic = req.nextUrl.searchParams.get("topic")
 
-  // Get user's interests from profile
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: session.user.id },
-    select: { bio: true },
-  })
-
-  // Parse interests from bio (stored as JSON in a special format)
-  let interests: string[] = []
   try {
-    const bioData = profile?.bio ?? ""
-    const match = bioData.match(/\[INTERESTS:(.*?)\]/)
-    if (match) interests = match[1].split(",").map(s => s.trim())
-  } catch {}
+    // Get user's interests from profile
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId: session.user.id },
+      select: { bio: true },
+    })
 
-  if (topic && interests.length > 0) {
-    // Generate personalized analogies for this topic
-    const analogies: { interest: string; analogies: string[] }[] = []
+    // Parse interests from bio (stored as JSON in a special format)
+    let interests: string[] = []
+    try {
+      const bioData = profile?.bio ?? ""
+      const match = bioData.match(/\[INTERESTS:(.*?)\]/)
+      if (match) interests = match[1].split(",").map(s => s.trim())
+    } catch {}
 
-    for (const interest of interests) {
-      const map = ANALOGY_MAPS[interest.toLowerCase()]
-      if (map) {
-        // Find matching subject area
-        for (const [subject, items] of Object.entries(map)) {
-          if (topic.toLowerCase().includes(subject) || subject.includes(topic.toLowerCase())) {
-            analogies.push({ interest, analogies: items })
+    if (topic && interests.length > 0) {
+      // Generate personalized analogies for this topic
+      const analogies: { interest: string; analogies: string[] }[] = []
+
+      for (const interest of interests) {
+        const map = ANALOGY_MAPS[interest.toLowerCase()]
+        if (map) {
+          // Find matching subject area
+          for (const [subject, items] of Object.entries(map)) {
+            if (topic.toLowerCase().includes(subject) || subject.includes(topic.toLowerCase())) {
+              analogies.push({ interest, analogies: items })
+            }
           }
-        }
-        // If no exact match, try broader matching
-        if (analogies.length === 0) {
-          const allAnalogies = Object.values(map).flat()
-          if (allAnalogies.length > 0) {
-            analogies.push({ interest, analogies: allAnalogies.slice(0, 3) })
+          // If no exact match, try broader matching
+          if (analogies.length === 0) {
+            const allAnalogies = Object.values(map).flat()
+            if (allAnalogies.length > 0) {
+              analogies.push({ interest, analogies: allAnalogies.slice(0, 3) })
+            }
           }
         }
       }
+
+      return NextResponse.json({
+        topic,
+        interests,
+        analogies,
+        tip: "These analogies connect new material to things you already understand deeply. Your brain builds new knowledge faster when it can attach it to existing mental models.",
+      })
     }
 
     return NextResponse.json({
-      topic,
       interests,
-      analogies,
-      tip: "These analogies connect new material to things you already understand deeply. Your brain builds new knowledge faster when it can attach it to existing mental models.",
+      availableInterests: INTEREST_OPTIONS,
+      hasProfile: interests.length > 0,
+      analogyTopics: Object.keys(ANALOGY_MAPS),
     })
+  } catch (error) {
+    console.error("[API] GET /api/education/personalized:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  return NextResponse.json({
-    interests,
-    availableInterests: INTEREST_OPTIONS,
-    hasProfile: interests.length > 0,
-    analogyTopics: Object.keys(ANALOGY_MAPS),
-  })
 }
 
 export async function POST(req: NextRequest) {
@@ -198,15 +203,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "interests array required" }, { status: 400 })
   }
 
-  // Store interests in profile bio (appended as tag)
-  const profile = await prisma.userProfile.findUnique({ where: { userId: session.user.id } })
-  const existingBio = profile?.bio?.replace(/\s*\[INTERESTS:.*?\]/, "") ?? ""
-  const newBio = `${existingBio} [INTERESTS:${interests.join(",")}]`.trim()
+  try {
+    // Store interests in profile bio (appended as tag)
+    const profile = await prisma.userProfile.findUnique({ where: { userId: session.user.id } })
+    const existingBio = profile?.bio?.replace(/\s*\[INTERESTS:.*?\]/, "") ?? ""
+    const newBio = `${existingBio} [INTERESTS:${interests.join(",")}]`.trim()
 
-  await prisma.userProfile.update({
-    where: { userId: session.user.id },
-    data: { bio: newBio },
-  })
+    await prisma.userProfile.update({
+      where: { userId: session.user.id },
+      data: { bio: newBio },
+    })
 
-  return NextResponse.json({ success: true, interests, message: "Learning profile updated! Your education experience is now personalized." })
+    return NextResponse.json({ success: true, interests, message: "Learning profile updated! Your education experience is now personalized." })
+  } catch (error) {
+    console.error("[API] POST /api/education/personalized:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

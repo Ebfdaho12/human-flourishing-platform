@@ -24,63 +24,68 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "subject, topic, and messages are required" }, { status: 400 })
   }
 
-  const history: ChatMessage[] = messages.map((m: { role: string; content: string }) => ({
-    role: m.role as "user" | "assistant",
-    content: m.content,
-  }))
+  try {
+    const history: ChatMessage[] = messages.map((m: { role: string; content: string }) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }))
 
-  const reply = await tutor(subject, topic, level ?? "BEGINNER", history)
+    const reply = await tutor(subject, topic, level ?? "BEGINNER", history)
 
-  const updatedMessages = [...messages, { role: "assistant", content: reply }]
+    const updatedMessages = [...messages, { role: "assistant", content: reply }]
 
-  // Upsert session
-  let session_record
-  if (sessionId) {
-    session_record = await prisma.lessonSession.update({
-      where: { id: sessionId },
-      data: {
-        messages: JSON.stringify(updatedMessages),
-        durationS: { increment: 30 },
-      },
+    // Upsert session
+    let session_record
+    if (sessionId) {
+      session_record = await prisma.lessonSession.update({
+        where: { id: sessionId },
+        data: {
+          messages: JSON.stringify(updatedMessages),
+          durationS: { increment: 30 },
+        },
+      })
+    } else {
+      session_record = await prisma.lessonSession.create({
+        data: {
+          userId: session.user.id,
+          goalId: goalId ?? null,
+          subject,
+          topic,
+          level: level ?? "BEGINNER",
+          messages: JSON.stringify(updatedMessages),
+        },
+      })
+
+      // Award for first session
+      await awardFound(
+        session.user.id,
+        "edu_first_session",
+        "EDUCATION",
+        TOKEN_AWARDS.EDU_FIRST_SESSION,
+        "First tutoring session"
+      )
+    }
+
+    // Award per lesson (per session, once per session)
+    if (!sessionId) {
+      await awardFound(
+        session.user.id,
+        `edu_lesson_${session_record.id}`,
+        "EDUCATION",
+        TOKEN_AWARDS.EDU_LESSON_COMPLETE,
+        `Lesson: ${subject} — ${topic}`
+      )
+    }
+
+    return NextResponse.json({
+      reply,
+      sessionId: session_record.id,
+      hasApiKey,
     })
-  } else {
-    session_record = await prisma.lessonSession.create({
-      data: {
-        userId: session.user.id,
-        goalId: goalId ?? null,
-        subject,
-        topic,
-        level: level ?? "BEGINNER",
-        messages: JSON.stringify(updatedMessages),
-      },
-    })
-
-    // Award for first session
-    await awardFound(
-      session.user.id,
-      "edu_first_session",
-      "EDUCATION",
-      TOKEN_AWARDS.EDU_FIRST_SESSION,
-      "First tutoring session"
-    )
+  } catch (error) {
+    console.error("[API] POST /api/education/tutor:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  // Award per lesson (per session, once per session)
-  if (!sessionId) {
-    await awardFound(
-      session.user.id,
-      `edu_lesson_${session_record.id}`,
-      "EDUCATION",
-      TOKEN_AWARDS.EDU_LESSON_COMPLETE,
-      `Lesson: ${subject} — ${topic}`
-    )
-  }
-
-  return NextResponse.json({
-    reply,
-    sessionId: session_record.id,
-    hasApiKey,
-  })
 }
 
 export async function GET(req: NextRequest) {
@@ -90,21 +95,26 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "10"), 50)
 
-  const sessions = await prisma.lessonSession.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      subject: true,
-      topic: true,
-      level: true,
-      durationS: true,
-      score: true,
-      createdAt: true,
-      goalId: true,
-    },
-  })
+  try {
+    const sessions = await prisma.lessonSession.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        subject: true,
+        topic: true,
+        level: true,
+        durationS: true,
+        score: true,
+        createdAt: true,
+        goalId: true,
+      },
+    })
 
-  return NextResponse.json({ sessions, hasApiKey })
+    return NextResponse.json({ sessions, hasApiKey })
+  } catch (error) {
+    console.error("[API] GET /api/education/tutor:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

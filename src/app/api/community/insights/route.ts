@@ -16,20 +16,25 @@ export async function GET(req: NextRequest) {
   const topic = req.nextUrl.searchParams.get("topic")
   const page = parseInt(req.nextUrl.searchParams.get("page") ?? "1")
 
-  const where = topic ? { topicTag: topic } : {}
+  try {
+    const where = topic ? { topicTag: topic } : {}
 
-  const insights = await prisma.insight.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    skip: (page - 1) * 20,
-    take: 20,
-    include: {
-      author: { select: { id: true, profile: { select: { displayName: true } } } },
-      votes: { where: { userId: session.user.id }, select: { value: true } },
-    },
-  })
+    const insights = await prisma.insight.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * 20,
+      take: 20,
+      include: {
+        author: { select: { id: true, profile: { select: { displayName: true } } } },
+        votes: { where: { userId: session.user.id }, select: { value: true } },
+      },
+    })
 
-  return NextResponse.json({ insights })
+    return NextResponse.json({ insights })
+  } catch (error) {
+    console.error("[API] GET /api/community/insights:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -53,16 +58,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Topic tag required" }, { status: 400 })
   }
 
-  const insight = await prisma.insight.create({
-    data: {
-      authorId: session.user.id,
-      content: sanitizeInput(content),
-      topicTag,
-      toolLink: toolLink || null,
-      sourceUrl: sourceUrl || null,
-      isAnonymous: !!isAnonymous,
-    },
-  })
+  try {
+    const insight = await prisma.insight.create({
+      data: {
+        authorId: session.user.id,
+        content: sanitizeInput(content),
+        topicTag,
+        toolLink: toolLink || null,
+        sourceUrl: sourceUrl || null,
+        isAnonymous: !!isAnonymous,
+      },
+    })
 
-  return NextResponse.json({ insight })
+    return NextResponse.json({ insight })
+  } catch (error) {
+    console.error("[API] POST /api/community/insights:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

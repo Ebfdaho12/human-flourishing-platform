@@ -13,20 +13,27 @@ export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const memberships = await prisma.familyMember.findMany({
-    where: { userId: session.user.id },
-    include: {
-      group: {
-        include: {
-          members: { include: { user: { select: { id: true, profile: { select: { displayName: true } } } } } },
-          messages: { orderBy: { createdAt: "desc" }, take: 10, include: { sender: { select: { profile: { select: { displayName: true } } } } } },
-          _count: { select: { members: true, messages: true } },
+  try {
+
+    const memberships = await prisma.familyMember.findMany({
+      where: { userId: session.user.id },
+      include: {
+        group: {
+          include: {
+            members: { include: { user: { select: { id: true, profile: { select: { displayName: true } } } } } },
+            messages: { orderBy: { createdAt: "desc" }, take: 10, include: { sender: { select: { profile: { select: { displayName: true } } } } } },
+            _count: { select: { members: true, messages: true } },
+          },
         },
       },
-    },
-  })
+    })
 
-  return NextResponse.json({ groups: memberships.map(m => ({ ...m.group, role: m.role })) })
+    return NextResponse.json({ groups: memberships.map(m => ({ ...m.group, role: m.role })) })
+
+  } catch (error) {
+    console.error("[API] GET /api/community/family:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -37,6 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(rateLimitResponse(), { status: 429 })
   }
 
+  try {
   const body = await req.json()
   const { action, name, inviteCode, message, groupId, type } = body
 
@@ -89,4 +97,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 })
+  } catch (error) {
+    console.error("[API] POST /api/community/family:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

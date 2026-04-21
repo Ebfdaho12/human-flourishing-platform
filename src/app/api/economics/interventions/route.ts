@@ -10,12 +10,19 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const interventions = await prisma.econIntervention.findMany({
-    where: { userId: session.user.id },
-    orderBy: [{ roiScore: "desc" }, { createdAt: "desc" }],
-  })
+  try {
 
-  return NextResponse.json({ interventions, hasApiKey })
+    const interventions = await prisma.econIntervention.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ roiScore: "desc" }, { createdAt: "desc" }],
+    })
+
+    return NextResponse.json({ interventions, hasApiKey })
+
+  } catch (error) {
+    console.error("[API] GET /api/economics/interventions:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -92,9 +99,16 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get("id")
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 })
 
-  const existing = await prisma.econIntervention.findFirst({ where: { id, userId: session.user.id } })
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
 
-  await prisma.econIntervention.delete({ where: { id } })
-  return NextResponse.json({ ok: true })
+    const existing = await prisma.econIntervention.findFirst({ where: { id, userId: session.user.id } })
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+    await prisma.econIntervention.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+
+  } catch (error) {
+    console.error("[API] DELETE /api/economics/interventions:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

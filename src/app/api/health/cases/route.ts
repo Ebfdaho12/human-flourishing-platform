@@ -19,106 +19,121 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const view = req.nextUrl.searchParams.get("view") ?? "browse"
-  const specialty = req.nextUrl.searchParams.get("specialty")
+  try {
+    const view = req.nextUrl.searchParams.get("view") ?? "browse"
+    const specialty = req.nextUrl.searchParams.get("specialty")
 
-  if (view === "mine") {
-    // Patient viewing their own cases
-    const cases = await prisma.healthCase.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-      include: {
-        proposals: {
-          select: {
-            id: true,
-            credentials: true,
-            analysis: true,
-            proposedTreatment: true,
-            rootCauseTheory: true,
-            evidence: true,
-            status: true,
-            createdAt: true,
+    if (view === "mine") {
+      // Patient viewing their own cases
+      const cases = await prisma.healthCase.findMany({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: "desc" },
+        include: {
+          proposals: {
+            select: {
+              id: true,
+              credentials: true,
+              analysis: true,
+              proposedTreatment: true,
+              rootCauseTheory: true,
+              evidence: true,
+              status: true,
+              createdAt: true,
+            },
           },
         },
+      })
+      return NextResponse.json({ cases })
+    }
+
+    // Practitioner browsing open cases (anonymized — no userId exposed)
+    const where: any = { status: "OPEN" }
+    if (specialty && SPECIALTIES.includes(specialty)) {
+      where.specialty = specialty
+    }
+
+    const cases = await prisma.healthCase.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        anonId: true,
+        title: true,
+        specialty: true,
+        symptoms: true,
+        timeline: true,
+        sharedData: true,
+        priorTreatment: true,
+        seekingHelp: true,
+        demographics: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { proposals: true } },
+        // Deliberately NOT selecting userId — practitioner never sees who posted
       },
     })
+
     return NextResponse.json({ cases })
+  } catch (error) {
+    console.error("[API] GET /api/health/cases:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  // Practitioner browsing open cases (anonymized — no userId exposed)
-  const where: any = { status: "OPEN" }
-  if (specialty && SPECIALTIES.includes(specialty)) {
-    where.specialty = specialty
-  }
-
-  const cases = await prisma.healthCase.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      anonId: true,
-      title: true,
-      specialty: true,
-      symptoms: true,
-      timeline: true,
-      sharedData: true,
-      priorTreatment: true,
-      seekingHelp: true,
-      demographics: true,
-      status: true,
-      createdAt: true,
-      _count: { select: { proposals: true } },
-      // Deliberately NOT selecting userId — practitioner never sees who posted
-    },
-  })
-
-  return NextResponse.json({ cases })
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const body = await req.json()
-  const { title, specialty, symptoms, timeline, sharedData, priorTreatment, seekingHelp, demographics } = body
+  try {
+    const body = await req.json()
+    const { title, specialty, symptoms, timeline, sharedData, priorTreatment, seekingHelp, demographics } = body
 
-  if (!title || !specialty || !symptoms) {
-    return NextResponse.json({ error: "Title, specialty, and symptoms are required" }, { status: 400 })
+    if (!title || !specialty || !symptoms) {
+      return NextResponse.json({ error: "Title, specialty, and symptoms are required" }, { status: 400 })
+    }
+
+    if (!SPECIALTIES.includes(specialty)) {
+      return NextResponse.json({ error: "Invalid specialty" }, { status: 400 })
+    }
+
+    const healthCase = await prisma.healthCase.create({
+      data: {
+        userId: session.user.id,
+        title,
+        specialty,
+        symptoms,
+        timeline: timeline || null,
+        sharedData: sharedData ? JSON.stringify(sharedData) : null,
+        priorTreatment: priorTreatment || null,
+        seekingHelp: seekingHelp || null,
+        demographics: demographics ? JSON.stringify(demographics) : null,
+      },
+    })
+
+    return NextResponse.json({ case: healthCase })
+  } catch (error) {
+    console.error("[API] POST /api/health/cases:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  if (!SPECIALTIES.includes(specialty)) {
-    return NextResponse.json({ error: "Invalid specialty" }, { status: 400 })
-  }
-
-  const healthCase = await prisma.healthCase.create({
-    data: {
-      userId: session.user.id,
-      title,
-      specialty,
-      symptoms,
-      timeline: timeline || null,
-      sharedData: sharedData ? JSON.stringify(sharedData) : null,
-      priorTreatment: priorTreatment || null,
-      seekingHelp: seekingHelp || null,
-      demographics: demographics ? JSON.stringify(demographics) : null,
-    },
-  })
-
-  return NextResponse.json({ case: healthCase })
 }
 
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const id = req.nextUrl.searchParams.get("id")
-  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 })
+  try {
+    const id = req.nextUrl.searchParams.get("id")
+    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 })
 
-  const existing = await prisma.healthCase.findUnique({ where: { id } })
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  if (existing.userId !== session.user.id) return NextResponse.json({ error: "Not yours" }, { status: 403 })
+    const existing = await prisma.healthCase.findUnique({ where: { id } })
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    if (existing.userId !== session.user.id) return NextResponse.json({ error: "Not yours" }, { status: 403 })
 
-  await prisma.healthCase.delete({ where: { id } })
-  return NextResponse.json({ ok: true })
+    await prisma.healthCase.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("[API] DELETE /api/health/cases:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
