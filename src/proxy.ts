@@ -201,6 +201,13 @@ export const config = {
     "/scientific-literacy/:path*",
     "/future-self/:path*",
     "/supplements/:path*",
+    "/mental-models/:path*",
+    "/cognitive-biases/:path*",
+    "/anxiety-toolkit/:path*",
+    "/30-day-challenges/:path*",
+    "/strength-training/:path*",
+    "/hive-mind/:path*",
+    "/character-sheet/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
