@@ -185,6 +185,12 @@ export const config = {
     "/gratitude/:path*",
     "/evening-review/:path*",
     "/trends/:path*",
+    "/cold-exposure/:path*",
+    "/sleep-optimization/:path*",
+    "/nutrition/:path*",
+    "/posture/:path*",
+    "/financial-independence/:path*",
+    "/dopamine/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
