@@ -67,6 +67,15 @@ export default function BreathworkPage() {
   function stop() {
     setRunning(false)
     if (intervalRef.current) clearInterval(intervalRef.current)
+
+    // Save completed session if >30 seconds
+    if (totalSeconds > 30) {
+      try {
+        const sessions = JSON.parse(localStorage.getItem("hfp-breathwork-sessions") || "[]")
+        sessions.unshift({ date: new Date().toISOString().split("T")[0], pattern: pattern.name, duration: totalSeconds })
+        localStorage.setItem("hfp-breathwork-sessions", JSON.stringify(sessions.slice(0, 100)))
+      } catch {}
+    }
   }
 
   function reset() {
@@ -224,6 +233,36 @@ export default function BreathworkPage() {
           </div>
         ))}
       </div>
+
+      {/* Session history */}
+      {(() => {
+        let sessions: { date: string; pattern: string; duration: number }[] = []
+        try { sessions = JSON.parse(localStorage.getItem("hfp-breathwork-sessions") || "[]") } catch {}
+        if (sessions.length === 0) return null
+        const totalMinutes = Math.round(sessions.reduce((s, ss) => s + ss.duration, 0) / 60)
+        const streak = (() => { let s = 0; const today = new Date().toISOString().split("T")[0]; for (let i = 0; i < 365; i++) { const d = new Date(Date.now() - i * 86400000).toISOString().split("T")[0]; if (sessions.some(ss => ss.date === d)) s++; else if (i > 0) break; } return s })()
+        return (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Session History</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-center"><p className="text-lg font-bold text-cyan-600">{sessions.length}</p><p className="text-[9px] text-muted-foreground">Sessions</p></div>
+                <div className="text-center"><p className="text-lg font-bold text-cyan-600">{totalMinutes}</p><p className="text-[9px] text-muted-foreground">Total minutes</p></div>
+                <div className="text-center"><p className="text-lg font-bold text-orange-500">{streak}</p><p className="text-[9px] text-muted-foreground">Day streak</p></div>
+              </div>
+              <div className="space-y-1">
+                {sessions.slice(0, 7).map((s, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs rounded border p-2">
+                    <span className="text-muted-foreground">{s.date}</span>
+                    <span>{s.pattern}</span>
+                    <span className="text-muted-foreground">{Math.round(s.duration / 60)}min</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Quick reference */}
       <Card className="border-emerald-200 bg-emerald-50/20">

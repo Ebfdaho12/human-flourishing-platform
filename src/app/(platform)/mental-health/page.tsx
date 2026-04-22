@@ -404,26 +404,96 @@ export default function MentalHealthPage() {
             </CardContent></Card>
           </div>
 
-          {/* Mood trend — simple visual */}
+          {/* Mood trend — SVG line chart */}
           {moodEntries.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Recent Mood Trend</CardTitle>
+                <CardTitle className="text-base">Mood Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end gap-1 h-16">
-                  {moodEntries.slice(0, 14).reverse().map((entry: any, i: number) => (
-                    <div key={entry.id} className="flex-1 flex flex-col items-center gap-1">
-                      <div
-                        className={cn("w-full rounded-sm transition-all", moodColor(entry.score).replace("text-", "bg-"))}
-                        style={{ height: `${(entry.score / 10) * 100}%`, minHeight: "4px", opacity: 0.8 }}
-                      />
-                      <span className="text-[9px] text-muted-foreground">
-                        {new Date(entry.recordedAt).toLocaleDateString(undefined, { month: "numeric", day: "numeric" })}
-                      </span>
-                    </div>
-                  ))}
+                {/* Line chart */}
+                <div className="relative">
+                  <svg width="100%" viewBox="0 0 400 100" preserveAspectRatio="none" className="h-24">
+                    {/* Grid lines */}
+                    {[2, 4, 6, 8].map(v => (
+                      <line key={v} x1="0" y1={100 - v * 10} x2="400" y2={100 - v * 10} stroke="#e2e8f0" strokeWidth="0.5" strokeDasharray="4 4" />
+                    ))}
+                    {/* Line */}
+                    <polyline
+                      fill="none"
+                      stroke="#8b5cf6"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      points={moodEntries.slice(0, 14).reverse().map((e: any, i: number) => {
+                        const x = (i / Math.max(1, Math.min(13, moodEntries.length - 1))) * 400
+                        const y = 100 - (e.score / 10) * 100
+                        return `${x},${y}`
+                      }).join(" ")}
+                    />
+                    {/* Fill area */}
+                    <polygon
+                      fill="url(#moodGradient)"
+                      opacity="0.15"
+                      points={`0,100 ${moodEntries.slice(0, 14).reverse().map((e: any, i: number) => {
+                        const x = (i / Math.max(1, Math.min(13, moodEntries.length - 1))) * 400
+                        const y = 100 - (e.score / 10) * 100
+                        return `${x},${y}`
+                      }).join(" ")} 400,100`}
+                    />
+                    {/* Dots */}
+                    {moodEntries.slice(0, 14).reverse().map((e: any, i: number) => {
+                      const x = (i / Math.max(1, Math.min(13, moodEntries.length - 1))) * 400
+                      const y = 100 - (e.score / 10) * 100
+                      return <circle key={i} cx={x} cy={y} r="3" fill="#8b5cf6" stroke="white" strokeWidth="1.5" />
+                    })}
+                    <defs>
+                      <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  {/* Y-axis labels */}
+                  <div className="absolute top-0 left-0 h-full flex flex-col justify-between text-[8px] text-muted-foreground -ml-4">
+                    <span>10</span><span>5</span><span>0</span>
+                  </div>
                 </div>
+                {/* Date labels */}
+                <div className="flex justify-between text-[8px] text-muted-foreground mt-1">
+                  {moodEntries.length >= 2 && <>
+                    <span>{new Date(moodEntries[moodEntries.length - 1]?.recordedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    <span>Today</span>
+                  </>}
+                </div>
+
+                {/* Emotion patterns */}
+                {(() => {
+                  const emotionCounts: Record<string, number> = {}
+                  moodEntries.forEach((e: any) => {
+                    const emotions = typeof e.emotions === "string" ? JSON.parse(e.emotions || "[]") : (e.emotions || [])
+                    emotions.forEach((em: string) => { emotionCounts[em] = (emotionCounts[em] || 0) + 1 })
+                  })
+                  const sorted = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
+                  if (sorted.length === 0) return null
+                  const max = sorted[0][1]
+                  return (
+                    <div className="mt-4">
+                      <p className="text-[10px] font-semibold mb-1.5">Most Felt Emotions</p>
+                      <div className="space-y-1">
+                        {sorted.map(([emotion, count]) => (
+                          <div key={emotion} className="flex items-center gap-2">
+                            <span className="text-[10px] w-20 truncate">{emotion}</span>
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-violet-400 rounded-full" style={{ width: `${(count / max) * 100}%` }} />
+                            </div>
+                            <span className="text-[9px] text-muted-foreground w-4">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
               </CardContent>
             </Card>
           )}
