@@ -228,6 +228,7 @@ export const config = {
     "/research-compiler/:path*",
     "/connections/:path*",
     "/contribute/:path*",
+    "/earn/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
