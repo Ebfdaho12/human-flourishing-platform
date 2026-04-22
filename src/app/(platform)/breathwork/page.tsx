@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Explain } from "@/components/ui/explain"
 
 interface BreathPattern {
   name: string
@@ -125,7 +126,7 @@ export default function BreathworkPage() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>Breathing is the only autonomic function you can consciously control.</strong> This means
             it is a direct lever into your nervous system. A 5-minute breathing session can measurably reduce
-            cortisol, lower blood pressure, increase HRV, and shift your brain state. It costs nothing, requires
+            cortisol, lower blood pressure, increase <Explain tip="Heart Rate Variability — the variation in time between heartbeats. Higher HRV means your nervous system is more resilient and adaptable">HRV</Explain>, and shift your brain state. It costs nothing, requires
             no equipment, and works immediately. Every protocol below is research-backed.
           </p>
         </CardContent>
@@ -232,10 +233,10 @@ export default function BreathworkPage() {
             <p><strong>Stressed right now:</strong> Physiological Sigh (1-3 breaths, instant effect)</p>
             <p><strong>Can't fall asleep:</strong> 4-7-8 Breathing (4 rounds in bed)</p>
             <p><strong>Need to focus:</strong> Box Breathing (4 rounds before deep work)</p>
-            <p><strong>General wellness:</strong> Coherent Breathing (5 min daily, maximizes HRV)</p>
+            <p><strong>General wellness:</strong> Coherent Breathing (5 min daily, maximizes HRV and builds <Explain tip="Vagal tone measures how strong your vagus nerve's calming influence is — higher vagal tone means you recover from stress faster">vagal tone</Explain>)</p>
             <p><strong>Energy boost:</strong> Wim Hof Method (3 rounds in the morning, pair with cold shower)</p>
             <p><strong>Before a hard conversation:</strong> Box Breathing or Physiological Sigh</p>
-            <p><strong>After exercise:</strong> Coherent Breathing (accelerates recovery via parasympathetic activation)</p>
+            <p><strong>After exercise:</strong> Coherent Breathing (shifts you out of the <Explain tip="The sympathetic nervous system is your body's 'fight or flight' mode — it speeds up your heart and primes you for action">sympathetic nervous system</Explain> to accelerate recovery)</p>
           </div>
         </CardContent>
       </Card>

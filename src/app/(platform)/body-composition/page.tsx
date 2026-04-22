@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Explain } from "@/components/ui/explain"
 
 interface Entry {
   date: string
@@ -143,8 +144,8 @@ export default function BodyCompositionPage() {
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>The scale lies.</strong> A person who weighs 180 lbs at 15% body fat looks and feels completely
-            different from someone at 180 lbs and 30% body fat. BMI doesn't distinguish between muscle and fat.
-            What matters is <strong>body composition</strong>: how much of your weight is lean mass vs. fat mass.
+            different from someone at 180 lbs and 30% body fat. <Explain tip="Body Mass Index — a simple ratio of weight to height. It doesn't distinguish muscle from fat, so fit, muscular people often score as 'overweight'">BMI</Explain> doesn't distinguish between muscle and fat.
+            What matters is <strong>body composition</strong>: how much of your weight is lean mass vs. fat mass (<Explain tip="The percentage of your total weight that is fat tissue — a much better health indicator than weight alone">body fat percentage</Explain>).
             Track waist circumference, body fat %, and measurements — not just weight.
           </p>
         </CardContent>
@@ -229,7 +230,7 @@ export default function BodyCompositionPage() {
               <CardContent className="p-3 text-center">
                 <Target className="h-4 w-4 mx-auto mb-1 text-rose-500" />
                 <p className="text-xl font-bold">{latest.bodyFat || navyBF}%</p>
-                <p className="text-[10px] text-muted-foreground">{latest.bodyFat ? "Body Fat" : "Body Fat (Navy est.)"}</p>
+                <p className="text-[10px] text-muted-foreground">{latest.bodyFat ? "Body Fat" : <><Explain tip="The Navy method estimates body fat using just your neck, waist, and height measurements — no calipers or special equipment needed">Navy method</Explain> est.</>}</p>
               </CardContent>
             </Card>
           )}
@@ -333,7 +334,7 @@ export default function BodyCompositionPage() {
             <p><strong>Muscle gain:</strong> 1-2 lbs/month for beginners, 0.5-1 lb/month for intermediates. This is SLOW.</p>
             <p><strong>Body recomposition:</strong> Losing fat while gaining muscle simultaneously is possible but slower than doing each separately. Best for beginners and people returning after a break.</p>
             <p><strong>Waist circumference</strong> is the single best predictor of metabolic health. More important than weight or BMI. Track it weekly.</p>
-            <p><strong>FFMI above 25</strong> for men or 21 for women is extremely difficult to achieve naturally. Don't compare yourself to enhanced athletes.</p>
+            <p><strong><Explain tip="Fat-Free Mass Index — like BMI but only counts your lean tissue. It shows how muscular you are relative to your height">FFMI</Explain> above 25</strong> for men or 21 for women is extremely difficult to achieve naturally. Don't compare yourself to enhanced athletes.</p>
           </div>
         </CardContent>
       </Card>

@@ -61,7 +61,7 @@ export default function CommunicationPage() {
         <CardHeader className="pb-2">
           <button onClick={() => toggle("nvc")} className="flex items-center gap-2 w-full text-left">
             <Heart className="h-4 w-4 text-rose-500" />
-            <CardTitle className="text-sm flex-1">Nonviolent Communication (NVC) — Marshall Rosenberg</CardTitle>
+            <CardTitle className="text-sm flex-1"><Explain tip="A communication framework that replaces blame and judgment with observations, feelings, needs, and requests">NVC</Explain> (Nonviolent Communication) — Marshall Rosenberg</CardTitle>
             <Badge variant="outline" className="text-[8px] border-rose-300 text-rose-700 mr-2">Foundation</Badge>
             {expanded === "nvc" ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </button>
@@ -95,7 +95,7 @@ export default function CommunicationPage() {
         <CardHeader className="pb-2">
           <button onClick={() => toggle("attachment")} className="flex items-center gap-2 w-full text-left">
             <Shield className="h-4 w-4 text-blue-500" />
-            <CardTitle className="text-sm flex-1">Attachment Styles — Levine & Heller</CardTitle>
+            <CardTitle className="text-sm flex-1"><Explain tip="Your attachment style is the pattern of how you connect in close relationships — formed in childhood, it shapes how you handle intimacy and conflict">Attachment Styles</Explain> — Levine & Heller</CardTitle>
             <Badge variant="outline" className="text-[8px] border-blue-300 text-blue-700 mr-2">Self-Awareness</Badge>
             {expanded === "attachment" ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </button>
@@ -155,7 +155,7 @@ export default function CommunicationPage() {
         </CardHeader>
         {expanded === "horsemen" && (
           <CardContent className="p-4 pt-0 space-y-2">
-            <p className="text-[10px] text-muted-foreground mb-1">Gottman can predict divorce with 93% accuracy by watching for these four patterns:</p>
+            <p className="text-[10px] text-muted-foreground mb-1">Gottman can predict divorce with 93% accuracy by watching for these four patterns — including <Explain tip="Stonewalling means completely shutting down and withdrawing from a conversation — going silent, turning away, or refusing to engage">stonewalling</Explain>, where one partner emotionally shuts down:</p>
             {FOUR_HORSEMEN.map((h, i) => (
               <div key={i} className="rounded-lg border p-2.5">
                 <div className="flex items-center gap-2 mb-1">

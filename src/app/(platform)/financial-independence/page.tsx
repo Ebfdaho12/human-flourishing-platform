@@ -65,7 +65,7 @@ export default function FinancialIndependencePage() {
         <CardContent className="p-4">
           <p className="text-sm font-semibold text-emerald-900 mb-2">The Core Math</p>
           <div className="space-y-1.5 text-xs text-muted-foreground">
-            <p><strong><Explain tip="If you withdraw 4% of your portfolio each year, historically it lasts 30+ years. Based on the Trinity Study (1998) analyzing market data from 1926-1995.">The 4% Rule</Explain>:</strong> You can safely withdraw 4% of your portfolio per year without running out of money (historically, over 30-year periods).</p>
+            <p><strong><Explain tip="If you withdraw 4% of your portfolio each year, historically it lasts 30+ years. Based on the Trinity Study (1998) analyzing market data from 1926-1995.">The 4% Rule</Explain>:</strong> You can safely withdraw 4% of your portfolio per year without running out of money (historically, over 30-year periods). This is your <Explain tip="The maximum percentage you can pull from your investments each year and still expect them to last your lifetime">safe withdrawal rate</Explain>.</p>
             <p><strong><Explain tip="If you need $40K/year, you need $40K x 25 = $1M invested. Because 4% of $1M is $40K.">The 25x Rule</Explain>:</strong> Your FI number = annual expenses x 25. That's the inverse of 4%.</p>
             <p><strong>Your FI number: <span className="text-emerald-700 font-bold">{fmt(fiNumber)}</span></strong> ({fmt(annualExpenses)}/yr x 25)</p>
           </div>
@@ -100,7 +100,7 @@ export default function FinancialIndependencePage() {
         <CardContent className="p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Years to Financial Independence</p>
           <p className="text-4xl font-bold text-emerald-700">{yearsToFI < 50 ? `${yearsToFI.toFixed(1)}` : "50+"}</p>
-          <p className="text-xs text-muted-foreground mt-1">Target: {fmt(fiNumber)} at {returnRate}% avg return</p>
+          <p className="text-xs text-muted-foreground mt-1">Target: {fmt(fiNumber)} at {returnRate}% avg return (<Explain tip="Your investments grow not just on the original amount, but on all the gains too — so growth accelerates over time">compound interest</Explain>)</p>
         </CardContent>
       </Card>
 

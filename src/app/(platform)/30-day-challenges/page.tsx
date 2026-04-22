@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Explain } from "@/components/ui/explain"
 
 interface ChallengeData { id: string; name: string; emoji: string; description: string; color: string }
 interface ActiveChallenge { challengeId: string; startDate: string; completedDays: string[] }
@@ -136,7 +137,7 @@ export default function ThirtyDayChallengesPage() {
           </div>
           <h1 className="text-2xl font-bold">30-Day Challenges</h1>
         </div>
-        <p className="text-sm text-muted-foreground italic">21 days builds a habit. 30 days transforms an identity.</p>
+        <p className="text-sm text-muted-foreground italic">21 days builds a <Explain tip="Habit formation is the process where repeated actions become automatic — your brain builds neural shortcuts so the behavior requires less effort over time">habit</Explain>. 30 days transforms an identity through <Explain tip="Neuroplasticity is your brain's ability to physically rewire itself by forming new connections — every repeated action strengthens the wiring for that behavior">neuroplasticity</Explain>.</p>
       </div>
 
       {actives.length > 0 && (

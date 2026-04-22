@@ -56,7 +56,7 @@ export default function AnxietyToolkitPage() {
           <h1 className="text-2xl font-bold">Anxiety & Stress Toolkit</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          This is not therapy. This is a toolkit of research-backed techniques you can use RIGHT NOW.
+          This is not therapy. This is a toolkit of research-backed techniques to activate your <Explain tip="The part of your nervous system responsible for calming you down — it slows heart rate and triggers the 'rest and digest' state">parasympathetic</Explain> nervous system and lower <Explain tip="Your body's main stress hormone — useful in short bursts, but harmful when it stays elevated for days or weeks">cortisol</Explain>. Use them RIGHT NOW.
         </p>
       </div>
 

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { Explain } from "@/components/ui/explain"
 
 const SAMPLE = <Badge variant="outline" className="text-[8px] border-amber-300 text-amber-700 ml-1">Sample data</Badge>
 
@@ -46,7 +47,7 @@ export default function HiveMindPage() {
           <h1 className="text-2xl font-bold">The Hive Mind</h1>
           <Badge className="bg-violet-100 text-violet-700 text-[9px]">Collective Intelligence</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">Anonymous, aggregate insights from everyone on the platform. Your data stays yours. The patterns belong to all.</p>
+        <p className="text-sm text-muted-foreground"><Explain tip="Aggregate data combines everyone's information into group-level patterns — no individual can be identified, only trends across many people">Anonymous, aggregate</Explain> insights from everyone on the platform. Your data stays yours. The patterns belong to all.</p>
       </div>
 
       <Card className="border-2 border-violet-200 bg-violet-50/20">
@@ -96,7 +97,7 @@ export default function HiveMindPage() {
       {tab === "correlations" && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-semibold">Correlation Discoveries</h2>
+            <h2 className="text-sm font-semibold"><Explain tip="A correlation means two things tend to move together — but it does not prove one causes the other">Correlation</Explain> Discoveries</h2>
             <Badge variant="outline" className="text-[8px] border-amber-300 text-amber-700">Sample data</Badge>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -171,7 +172,7 @@ export default function HiveMindPage() {
           <div>
             <p className="text-xs font-semibold mb-1">How Contributing Works</p>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Every mood log, health entry, habit check-in, and supplement record you create feeds the collective intelligence automatically. Your individual entries are encrypted — no one (not even us) can tie a data point back to you. Only aggregate patterns across many users are surfaced here. More users = better science.
+              Every mood log, health entry, habit check-in, and supplement record you create feeds the collective intelligence automatically. Your individual entries are encrypted — no one (not even us) can tie a data point back to you. Only <Explain tip="Anonymous analytics means we analyze patterns across all users without ever knowing who contributed which data point">aggregate patterns</Explain> across many users are surfaced here. More users = better science.
             </p>
           </div>
         </CardContent>

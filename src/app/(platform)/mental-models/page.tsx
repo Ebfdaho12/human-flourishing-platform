@@ -151,10 +151,10 @@ export default function MentalModelsPage() {
             <strong>2. Practice applying them.</strong> When you face a decision, explicitly ask: "Which <Explain tip="A mental model is a thinking tool — a reliable pattern or framework you can apply to understand situations and make better decisions">mental model</Explain> applies here?" Name it. Use it.
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>3. Combine multiple models on the same problem.</strong> The real power comes from looking at one situation through multiple lenses. A business decision viewed through incentives + second-order thinking + inversion yields far better results than gut feeling alone.
+            <strong>3. Combine multiple models on the same problem.</strong> The real power comes from looking at one situation through multiple lenses. A business decision viewed through incentives + <Explain tip="Thinking past the immediate consequence to ask 'and then what happens after that?' — anticipating chain reactions">second-order thinking</Explain> + inversion yields far better results than gut feeling alone.
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>The goal:</strong> develop a reflexive habit of reaching for the right model at the right time — until better thinking becomes automatic.
+            <strong>The goal:</strong> develop a reflexive habit of reaching for the right model at the right time — like <Explain tip="Reasoning from the ground up using only facts you know to be true, instead of accepting assumptions or conventional wisdom">first principles</Explain> for novel problems or <Explain tip="Updating your beliefs based on new evidence — named after mathematician Thomas Bayes">Bayesian</Explain> updating when new data arrives — until better thinking becomes automatic.
           </p>
         </CardContent>
       </Card>
