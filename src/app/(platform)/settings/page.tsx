@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { CheckCircle, User, Download, Database } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -138,6 +139,9 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Platform Experience Toggles */}
+      <ExperienceToggles />
+
       {/* Notifications */}
       <Card className="card-hover">
         <a href="/settings/notifications">
@@ -213,6 +217,90 @@ export default function SettingsPage() {
           <p>• ZK proof upgrade path planned for v0.2</p>
         </CardContent>
       </Card>
+
+      {/* Data management */}
+      <Card className="card-hover">
+        <a href="/settings/data">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Database className="h-4 w-4 text-red-500" />
+              <div>
+                <p className="text-sm font-medium">Data & Account</p>
+                <p className="text-xs text-muted-foreground">Export all data or delete your account</p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground">→</span>
+          </CardContent>
+        </a>
+      </Card>
     </div>
+  )
+}
+
+// ─── Experience Toggles Component ─────────────────────────────────
+
+function ExperienceToggles() {
+  const TOGGLES = [
+    { key: "gamification", label: "Gamification", description: "XP, levels, character sheet, achievements, combo multipliers", default: true },
+    { key: "dailyQuests", label: "Daily Quests", description: "Quest system with variable rewards and bonus XP", default: true },
+    { key: "hiveActivity", label: "Hive Activity", description: "Social proof showing what the community is doing", default: true },
+    { key: "milestones", label: "Milestone Celebrations", description: "Confetti and celebrations when you hit milestones", default: true },
+    { key: "smartSuggestions", label: "Smart Suggestions", description: "AI-powered recommendations based on your data", default: true },
+    { key: "levelUnlocks", label: "Level Unlock Teasers", description: "Show upcoming level rewards on dashboard", default: true },
+    { key: "streakWarnings", label: "Streak Warnings", description: "Notifications when streaks are at risk", default: true },
+    { key: "lunarTracking", label: "Lunar Cycle Tracking", description: "Moon phase correlations with your data", default: true },
+    { key: "zodiacFeatures", label: "Chinese Zodiac", description: "Zodiac compatibility and archetype features", default: true },
+    { key: "soundEffects", label: "Sound Effects", description: "Satisfying sounds on completions (coming soon)", default: false },
+  ]
+
+  const [settings, setSettings] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("hfp-experience-settings")
+      if (saved) setSettings(JSON.parse(saved))
+      else {
+        const defaults: Record<string, boolean> = {}
+        TOGGLES.forEach(t => { defaults[t.key] = t.default })
+        setSettings(defaults)
+      }
+    } catch {}
+  }, [])
+
+  function toggle(key: string) {
+    const updated = { ...settings, [key]: !settings[key] }
+    setSettings(updated)
+    localStorage.setItem("hfp-experience-settings", JSON.stringify(updated))
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Platform Experience</CardTitle>
+        <CardDescription>Toggle features on or off. The platform adapts to how YOU want to use it. No judgment — your way.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        {TOGGLES.map(t => (
+          <div key={t.key} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+            <div className="flex-1 min-w-0 mr-4">
+              <p className="text-sm font-medium">{t.label}</p>
+              <p className="text-[10px] text-muted-foreground">{t.description}</p>
+            </div>
+            <button
+              onClick={() => toggle(t.key)}
+              className={cn(
+                "relative h-6 w-11 rounded-full transition-colors shrink-0",
+                settings[t.key] ? "bg-violet-500" : "bg-muted"
+              )}
+            >
+              <span className={cn(
+                "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                settings[t.key] ? "translate-x-5" : "translate-x-0"
+              )} />
+            </button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   )
 }
