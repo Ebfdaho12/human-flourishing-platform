@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Sparkles, Plus, ChevronUp, ChevronDown, Trash2, Trophy, Filter, Eye, Brain, Link } from "lucide-react"
+import { Sparkles, Plus, ChevronUp, ChevronDown, Trash2, Trophy, Filter, Eye, Brain, Link, BarChart3, Target, CheckCircle } from "lucide-react"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-interface Vision { id: string; title: string; category: string; description: string; targetDate: string; status: string }
+interface Milestone { id: string; text: string; done: boolean }
+interface Vision { id: string; title: string; category: string; description: string; targetDate: string; status: string; progress: number; milestones: Milestone[]; achievedDate?: string }
 const CATEGORIES = ["Health", "Wealth", "Relationships", "Career", "Personal Growth", "Adventure", "Family", "Contribution"] as const
 const STATUSES = ["dream", "planning", "in progress", "achieved"] as const
 const CAT_COLORS: Record<string, string> = {
@@ -28,16 +29,40 @@ export default function VisionBoardPage() {
   const [title, setTitle] = useState(""); const [category, setCategory] = useState(CATEGORIES[0])
   const [description, setDescription] = useState(""); const [targetDate, setTargetDate] = useState("")
   const [filterCat, setFilterCat] = useState("All"); const [filterStatus, setFilterStatus] = useState("All")
+  const [milestoneText, setMilestoneText] = useState<Record<string, string>>({})
 
   useEffect(() => { setMounted(true) }, [])
 
   function addVision() {
     if (!title.trim()) return
-    const v: Vision = { id: crypto.randomUUID(), title: title.trim(), category, description: description.trim(), targetDate, status: "dream" }
+    const v: Vision = { id: crypto.randomUUID(), title: title.trim(), category, description: description.trim(), targetDate, status: "dream", progress: 0, milestones: [] }
     update([v, ...visions]); setTitle(""); setDescription(""); setTargetDate(""); setShowForm(false)
   }
   function remove(id: string) { update(visions.filter(v => v.id !== id)) }
-  function cycle(id: string) { update(visions.map(v => v.id === id ? { ...v, status: STATUSES[(STATUSES.indexOf(v.status as typeof STATUSES[number]) + 1) % STATUSES.length] } : v)) }
+  function cycle(id: string) {
+    update(visions.map(v => {
+      if (v.id !== id) return v
+      const nextIdx = (STATUSES.indexOf(v.status as typeof STATUSES[number]) + 1) % STATUSES.length
+      const nextStatus = STATUSES[nextIdx]
+      return { ...v, status: nextStatus, achievedDate: nextStatus === "achieved" ? new Date().toISOString().split("T")[0] : v.achievedDate }
+    }))
+  }
+  function updateProgress(id: string, progress: number) {
+    update(visions.map(v => v.id === id ? { ...v, progress: Math.max(0, Math.min(100, progress)) } : v))
+  }
+  function addMilestone(id: string) {
+    const text = milestoneText[id]?.trim()
+    if (!text) return
+    const ms: Milestone = { id: crypto.randomUUID(), text, done: false }
+    update(visions.map(v => v.id === id ? { ...v, milestones: [...(v.milestones || []), ms] } : v))
+    setMilestoneText(prev => ({ ...prev, [id]: "" }))
+  }
+  function toggleMilestone(visionId: string, msId: string) {
+    update(visions.map(v => v.id === visionId ? { ...v, milestones: (v.milestones || []).map(m => m.id === msId ? { ...m, done: !m.done } : m) } : v))
+  }
+  function removeMilestone(visionId: string, msId: string) {
+    update(visions.map(v => v.id === visionId ? { ...v, milestones: (v.milestones || []).filter(m => m.id !== msId) } : v))
+  }
   function move(id: string, dir: -1 | 1) {
     const i = visions.findIndex(v => v.id === id); if (i < 0) return
     const j = i + dir; if (j < 0 || j >= visions.length) return
@@ -66,6 +91,58 @@ export default function VisionBoardPage() {
           <p className="flex items-start gap-2"><Eye className="h-4 w-4 mt-0.5 text-violet-500 shrink-0" />Research from Dominican University shows people who write goals are 42% more likely to achieve them. Visualizing them adds emotional weight. This board is your North Star.</p>
         </CardContent>
       </Card>
+
+      {/* Vision Board Stats */}
+      {visions.length > 0 && (() => {
+        const achievementRate = visions.length > 0 ? Math.round((achieved / visions.length) * 100) : 0
+        const achievedVisions = visions.filter(v => v.status === "achieved" && v.achievedDate && v.targetDate)
+        let avgDays: number | null = null
+        if (achievedVisions.length > 0) {
+          const totalDays = achievedVisions.reduce((sum, v) => {
+            const created = new Date(v.targetDate).getTime()
+            const done = new Date(v.achievedDate!).getTime()
+            return sum + Math.max(0, Math.abs(done - created)) / 86400000
+          }, 0)
+          avgDays = Math.round(totalDays / achievedVisions.length)
+        }
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <Sparkles className="h-4 w-4 mx-auto mb-1 text-violet-500" />
+                <p className="text-xl font-bold">{visions.length}</p>
+                <p className="text-[10px] text-muted-foreground">Total visions</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <Trophy className="h-4 w-4 mx-auto mb-1 text-amber-500" />
+                <p className="text-xl font-bold text-emerald-600">{achieved}</p>
+                <p className="text-[10px] text-muted-foreground">Achieved</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <Target className="h-4 w-4 mx-auto mb-1 text-amber-500" />
+                <p className="text-xl font-bold text-amber-600">{inProgress}</p>
+                <p className="text-[10px] text-muted-foreground">In progress</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <BarChart3 className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+                <p className="text-xl font-bold text-blue-600">{achievementRate}%</p>
+                <p className="text-[10px] text-muted-foreground">Achievement rate</p>
+              </CardContent>
+            </Card>
+            {avgDays !== null && (
+              <div className="col-span-2 md:col-span-4 text-center">
+                <p className="text-xs text-muted-foreground">Average time from dream to achieved: <strong className="text-foreground">{avgDays} days</strong></p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       <div className="flex flex-wrap items-center gap-3">
         <Badge variant="secondary">{visions.length} visions</Badge>
@@ -117,6 +194,47 @@ export default function VisionBoardPage() {
                 {v.targetDate && <Badge variant="outline" className="text-xs">Target: {new Date(v.targetDate).toLocaleDateString()}</Badge>}
               </div>
               {v.description && <p className="text-sm text-muted-foreground">{v.description}</p>}
+
+              {/* Progress tracking for in-progress visions */}
+              {v.status === "in progress" && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-20">Progress</span>
+                    <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all" style={{ width: `${v.progress || 0}%` }} />
+                    </div>
+                    <span className="text-xs font-mono font-bold w-10 text-right">{v.progress || 0}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[0, 25, 50, 75, 100].map(p => (
+                      <Button key={p} variant="outline" size="sm" className={cn("h-6 px-2 text-[10px]", (v.progress || 0) === p && "bg-amber-100 border-amber-300")} onClick={() => updateProgress(v.id, p)}>{p}%</Button>
+                    ))}
+                  </div>
+
+                  {/* Milestones */}
+                  <div className="pt-1">
+                    <p className="text-[10px] font-medium text-muted-foreground mb-1">Milestones</p>
+                    {(v.milestones || []).length > 0 && (
+                      <div className="space-y-1 mb-1.5">
+                        {(v.milestones || []).map(ms => (
+                          <div key={ms.id} className="flex items-center gap-1.5 text-xs">
+                            <button onClick={() => toggleMilestone(v.id, ms.id)} className={cn("h-4 w-4 rounded border flex items-center justify-center shrink-0", ms.done ? "bg-emerald-500 border-emerald-500 text-white" : "border-muted-foreground/30")}>
+                              {ms.done && <CheckCircle className="h-3 w-3" />}
+                            </button>
+                            <span className={cn("flex-1", ms.done && "line-through text-muted-foreground")}>{ms.text}</span>
+                            <button onClick={() => removeMilestone(v.id, ms.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-1">
+                      <Input className="h-7 text-xs" placeholder="Add milestone..." value={milestoneText[v.id] || ""} onChange={e => setMilestoneText(prev => ({ ...prev, [v.id]: e.target.value }))} onKeyDown={e => e.key === "Enter" && addMilestone(v.id)} />
+                      <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => addMilestone(v.id)}><Plus className="h-3 w-3" /></Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-1 pt-1">
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => move(v.id, -1)}><ChevronUp className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => move(v.id, 1)}><ChevronDown className="h-4 w-4" /></Button>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Scale, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Clock, Brain, Target, AlertTriangle, Trash2 } from "lucide-react"
+import { Scale, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Clock, Brain, Target, AlertTriangle, Trash2, BarChart3, TrendingUp } from "lucide-react"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -247,6 +247,168 @@ export default function DecisionJournalPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Calibration Visualization */}
+      {(() => {
+        if (reviewed.length < 5) return null
+
+        const buckets = [
+          { label: "0-30%", min: 0, max: 30 },
+          { label: "30-50%", min: 30, max: 50 },
+          { label: "50-70%", min: 50, max: 70 },
+          { label: "70-90%", min: 70, max: 90 },
+          { label: "90-100%", min: 90, max: 100 },
+        ]
+
+        const bucketData = buckets.map(bucket => {
+          const inBucket = reviewed.filter(d => d.confidence >= bucket.min && d.confidence < (bucket.max === 100 ? 101 : bucket.max))
+          const total = inBucket.length
+          const correct = inBucket.filter(d => d.wasRight).length
+          const actualAccuracy = total > 0 ? Math.round((correct / total) * 100) : null
+          const midpoint = (bucket.min + bucket.max) / 2
+          return { ...bucket, total, correct, actualAccuracy, midpoint }
+        })
+
+        const filledBuckets = bucketData.filter(b => b.total > 0)
+        const overallGap = filledBuckets.length > 0
+          ? Math.round(filledBuckets.reduce((sum, b) => sum + Math.abs((b.actualAccuracy ?? 0) - b.midpoint), 0) / filledBuckets.length)
+          : null
+
+        const gapInterpretation = overallGap === null ? "" :
+          overallGap <= 5 ? "Exceptional calibration — near professional forecaster level." :
+          overallGap <= 10 ? "Good calibration — your confidence closely tracks reality." :
+          overallGap <= 20 ? "Moderate calibration — room for improvement, keep tracking." :
+          "Significant gap — pay close attention to where confidence diverges from outcomes."
+
+        return (
+          <Card className="border-2 border-blue-200 bg-blue-50/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-blue-500" /> Calibration Visualization
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-[10px] text-muted-foreground">Confidence vs actual accuracy. Perfect calibration = bars match the diagonal.</p>
+              <div className="space-y-1.5">
+                {bucketData.map(b => (
+                  <div key={b.label} className="flex items-center gap-2">
+                    <span className="text-[9px] text-muted-foreground w-14 text-right shrink-0">{b.label}</span>
+                    <div className="flex-1 relative h-5 bg-muted rounded-md overflow-hidden">
+                      {/* Perfect calibration reference line */}
+                      <div className="absolute top-0 bottom-0 border-r-2 border-dashed border-violet-300 z-10" style={{ left: `${b.midpoint}%` }} />
+                      {/* Actual accuracy bar */}
+                      {b.actualAccuracy !== null ? (
+                        <div
+                          className={cn("h-full rounded-md transition-all duration-500", b.actualAccuracy > b.midpoint ? "bg-emerald-400" : b.actualAccuracy < b.midpoint ? "bg-amber-400" : "bg-blue-400")}
+                          style={{ width: `${b.actualAccuracy}%` }}
+                        />
+                      ) : (
+                        <div className="h-full flex items-center justify-center">
+                          <span className="text-[8px] text-muted-foreground">No data</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[9px] font-mono w-10 shrink-0">
+                      {b.actualAccuracy !== null ? `${b.actualAccuracy}%` : "—"}
+                    </span>
+                    <span className="text-[8px] text-muted-foreground w-6 shrink-0">n={b.total}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Under-confident</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400" /> Calibrated</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Over-confident</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 border-r-2 border-dashed border-violet-300" /> Perfect line</span>
+              </div>
+              {overallGap !== null && (
+                <p className="text-xs text-muted-foreground">
+                  Your calibration gap is <strong className="text-foreground">{overallGap}%</strong> — {gapInterpretation}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Decision Patterns */}
+      {(() => {
+        if (reviewed.length < 3) return null
+
+        // Confidence bias direction
+        const avgReviewedConfidence = Math.round(reviewed.reduce((s, d) => s + d.confidence, 0) / reviewed.length)
+        const reviewedAccuracy = Math.round((reviewed.filter(d => d.wasRight).length / reviewed.length) * 100)
+        const confDiff = avgReviewedConfidence - reviewedAccuracy
+        const biasDirection = confDiff > 3 ? "over" : confDiff < -3 ? "under" : "well"
+        const biasMagnitude = Math.abs(confDiff)
+
+        // Average time between decision and review
+        const reviewDelays = reviewed.map(d => {
+          const decisionDate = new Date(d.date).getTime()
+          const reviewDateVal = new Date(d.reviewDate).getTime()
+          return (reviewDateVal - decisionDate) / (1000 * 60 * 60 * 24)
+        }).filter(d => d > 0)
+        const avgDelay = reviewDelays.length > 0 ? Math.round(reviewDelays.reduce((s, d) => s + d, 0) / reviewDelays.length) : null
+
+        // Check if longer decisions correlate with better accuracy
+        const medianDelay = reviewDelays.length > 0 ? [...reviewDelays].sort((a, b) => a - b)[Math.floor(reviewDelays.length / 2)] : 0
+        const longerDecisions = reviewed.filter(d => {
+          const delay = (new Date(d.reviewDate).getTime() - new Date(d.date).getTime()) / (1000 * 60 * 60 * 24)
+          return delay > medianDelay
+        })
+        const shorterDecisions = reviewed.filter(d => {
+          const delay = (new Date(d.reviewDate).getTime() - new Date(d.date).getTime()) / (1000 * 60 * 60 * 24)
+          return delay <= medianDelay
+        })
+        const longerAccuracy = longerDecisions.length > 0 ? longerDecisions.filter(d => d.wasRight).length / longerDecisions.length : 0
+        const shorterAccuracy = shorterDecisions.length > 0 ? shorterDecisions.filter(d => d.wasRight).length / shorterDecisions.length : 0
+        const longerIsBetter = longerAccuracy > shorterAccuracy + 0.05
+
+        // Most common keywords in titles (simple heuristic)
+        const titleWords = reviewed.flatMap(d => d.title.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !["this", "that", "with", "from", "about", "should", "would", "could", "have", "been", "will", "what", "when", "where", "which", "their", "there", "than", "then"].includes(w)))
+        const wordCounts: Record<string, number> = {}
+        titleWords.forEach(w => { wordCounts[w] = (wordCounts[w] || 0) + 1 })
+        const topTopic = Object.entries(wordCounts).sort((a, b) => b[1] - a[1])[0]
+
+        return (
+          <Card className="border-2 border-indigo-200 bg-indigo-50/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-indigo-500" /> Decision Patterns
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg border p-2">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Confidence Bias</p>
+                  <p className={cn("text-sm font-bold", biasDirection === "over" ? "text-amber-600" : biasDirection === "under" ? "text-blue-600" : "text-emerald-600")}>
+                    {biasDirection === "well" ? "Well Calibrated" : `${biasDirection === "over" ? "Over" : "Under"}-confident by ${biasMagnitude}%`}
+                  </p>
+                </div>
+                <div className="rounded-lg border p-2">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Avg Review Time</p>
+                  <p className="text-sm font-bold">{avgDelay !== null ? `${avgDelay} days` : "—"}</p>
+                </div>
+              </div>
+              {topTopic && topTopic[1] >= 2 && (
+                <p className="text-xs text-muted-foreground">
+                  Most common decision topic: <strong className="text-foreground">{topTopic[0]}</strong> ({topTopic[1]} decisions)
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                You tend to be <strong className={cn(biasDirection === "over" ? "text-amber-600" : biasDirection === "under" ? "text-blue-600" : "text-emerald-600")}>
+                  {biasDirection === "well" ? "well-calibrated" : `${biasDirection}-confident by ${biasMagnitude}%`}
+                </strong>.
+              </p>
+              {longerIsBetter && reviewed.length >= 5 && (
+                <p className="text-xs text-muted-foreground">
+                  Your accuracy improves when you take longer to decide — consider giving important decisions more time.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       <Card className="border-violet-200 bg-violet-50/20">
         <CardContent className="p-4">

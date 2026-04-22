@@ -183,6 +183,83 @@ export default function GratitudePage() {
         </Card>
       )}
 
+      {/* Gratitude Categories Analysis */}
+      {entries.length >= 3 && (() => {
+        const categoryDefs: Record<string, string[]> = {
+          People: ["family", "friend", "partner", "mom", "dad", "wife", "husband", "son", "daughter", "brother", "sister", "kids", "children", "parents", "people", "love"],
+          Health: ["body", "sleep", "exercise", "energy", "health", "healthy", "rest", "workout", "gym", "alive", "breath", "breathing"],
+          Work: ["job", "project", "achievement", "career", "work", "team", "promotion", "boss", "meeting", "client", "success", "accomplished"],
+          Nature: ["sun", "weather", "walk", "outside", "nature", "trees", "sky", "rain", "ocean", "beach", "flowers", "garden", "sunset", "morning"],
+          Simple: ["coffee", "food", "home", "comfort", "warm", "cozy", "meal", "tea", "bed", "music", "quiet", "peace", "lunch", "dinner", "breakfast"],
+          Growth: ["learn", "improve", "book", "skill", "growth", "reading", "knowledge", "practice", "progress", "better", "new", "course", "study"],
+        }
+        const catCounts: Record<string, number> = {}
+        Object.keys(categoryDefs).forEach(c => catCounts[c] = 0)
+        entries.forEach(e => e.items.forEach(item => {
+          const lower = item.toLowerCase()
+          Object.entries(categoryDefs).forEach(([cat, keywords]) => {
+            if (keywords.some(kw => lower.includes(kw))) catCounts[cat]++
+          })
+        }))
+        const maxCount = Math.max(...Object.values(catCounts), 1)
+        const sortedCats = Object.entries(catCounts).sort((a, b) => b[1] - a[1])
+        const topCategory = sortedCats[0][1] > 0 ? sortedCats[0][0] : null
+        const catColors: Record<string, string> = {
+          People: "bg-pink-500", Health: "bg-emerald-500", Work: "bg-blue-500",
+          Nature: "bg-green-500", Simple: "bg-amber-500", Growth: "bg-violet-500",
+        }
+        return (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Gratitude Categories</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {sortedCats.map(([cat, count]) => (
+                <div key={cat} className="flex items-center gap-2">
+                  <span className="text-xs w-16 text-right text-muted-foreground">{cat}</span>
+                  <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all", catColors[cat])} style={{ width: `${maxCount > 0 ? (count / maxCount) * 100 : 0}%` }} />
+                  </div>
+                  <span className="text-xs font-mono w-6 text-muted-foreground">{count}</span>
+                </div>
+              ))}
+              {topCategory && (
+                <p className="text-xs text-muted-foreground pt-2 border-t mt-3">
+                  Your gratitude tends toward <strong className="text-foreground">{topCategory}</strong> — this tells you what you value most.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Gratitude Streak Milestones */}
+      {streak >= 7 && (
+        <Card className="border-amber-200 bg-amber-50/20">
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <Flame className="h-4 w-4 text-amber-500" /> Streak Milestone: {streak} Days
+            </p>
+            <div className="space-y-1.5">
+              <div className={cn("flex items-start gap-2 text-xs", streak >= 7 ? "text-amber-800" : "text-muted-foreground")}>
+                <span className="font-bold w-10 shrink-0">7d</span>
+                <span>Your reticular activating system is beginning to scan for positives{streak >= 7 && streak < 14 ? " — you are here" : ""}</span>
+              </div>
+              <div className={cn("flex items-start gap-2 text-xs", streak >= 14 ? "text-amber-800" : "text-muted-foreground")}>
+                <span className="font-bold w-10 shrink-0">14d</span>
+                <span>Neural pathways for gratitude are strengthening{streak >= 14 && streak < 21 ? " — you are here" : ""}</span>
+              </div>
+              <div className={cn("flex items-start gap-2 text-xs", streak >= 21 ? "text-amber-800" : "text-muted-foreground")}>
+                <span className="font-bold w-10 shrink-0">21d</span>
+                <span>Research shows measurable brain changes at this point (UC Davis){streak >= 21 && streak < 30 ? " — you are here" : ""}</span>
+              </div>
+              <div className={cn("flex items-start gap-2 text-xs", streak >= 30 ? "text-amber-800 font-medium" : "text-muted-foreground")}>
+                <span className="font-bold w-10 shrink-0">30d+</span>
+                <span>This is now part of who you are{streak >= 30 ? " — you are here" : ""}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* History */}
       {entries.length > 0 && (
         <Card>

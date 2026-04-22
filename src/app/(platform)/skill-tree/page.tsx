@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { TrendingUp, Zap, Star, Plus, X, Target } from "lucide-react"
+import { TrendingUp, Zap, Star, Plus, X, Target, Lightbulb, Compass } from "lucide-react"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -153,6 +153,105 @@ export default function SkillTreePage() {
           </CardContent>
         </Card>
       ))}
+
+      {/* Skill Insights */}
+      {(() => {
+        const intermediateSkills = allSkills.filter(s => s.level >= 5)
+        if (intermediateSkills.length === 0) return null
+
+        const catAverages = cats.map(c => {
+          const avg = c.skills.length > 0 ? c.skills.reduce((sum, s) => sum + s.level, 0) / c.skills.length : 0
+          return { name: c.name, avg, color: c.color }
+        }).filter(c => c.avg > 0)
+
+        const strongest = catAverages.reduce((a, b) => a.avg >= b.avg ? a : b)
+        const weakest = catAverages.reduce((a, b) => a.avg <= b.avg ? a : b)
+
+        return (
+          <Card className="border-2 border-amber-200 bg-amber-50/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Lightbulb className="h-4 w-4 text-amber-500" /> Skill Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                You have <strong className="text-foreground">{intermediateSkills.length} skill{intermediateSkills.length !== 1 ? "s" : ""}</strong> at Intermediate or above — you are building real competence.
+              </p>
+              <div className="flex gap-3">
+                <div className="flex-1 rounded-lg border border-emerald-200 bg-emerald-50/30 p-2">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Strongest</p>
+                  <p className={cn("text-xs font-bold", TEXT_COLORS[strongest.color])}>{strongest.name}</p>
+                  <p className="text-[10px] text-muted-foreground">Avg level {strongest.avg.toFixed(1)}</p>
+                </div>
+                <div className="flex-1 rounded-lg border border-orange-200 bg-orange-50/30 p-2">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Weakest</p>
+                  <p className={cn("text-xs font-bold", TEXT_COLORS[weakest.color])}>{weakest.name}</p>
+                  <p className="text-[10px] text-muted-foreground">Avg level {weakest.avg.toFixed(1)}</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong>Recommended focus: {weakest.name}</strong> — balanced growth across all categories accelerates overall capability.
+              </p>
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Learning Path Suggestions */}
+      {(() => {
+        const catAverages = cats.map(c => ({
+          id: c.id,
+          name: c.name,
+          avg: c.skills.length > 0 ? c.skills.reduce((sum, s) => sum + s.level, 0) / c.skills.length : 0,
+          color: c.color,
+          gradient: c.gradient,
+        }))
+        const lowCats = catAverages.filter(c => c.avg < 4)
+        if (lowCats.length === 0) return null
+
+        const suggestions: Record<string, { text: string; links: { label: string; href: string }[] }> = {
+          physical: { text: "Start with", links: [{ label: "Strength Training", href: "/strength-training" }, { label: "Nutrition", href: "/nutrition" }] },
+          mental: { text: "Try", links: [{ label: "Mental Models", href: "/mental-models" }, { label: "Breathwork", href: "/breathwork" }] },
+          financial: { text: "Begin with", links: [{ label: "Budget", href: "/budget" }, { label: "Financial Independence", href: "/financial-independence" }] },
+          social: { text: "Explore", links: [{ label: "Communication", href: "/communication" }, { label: "Negotiation Guide", href: "/negotiation-guide" }] },
+          creative: { text: "Read", links: [{ label: "Book Library", href: "/book-library" }] },
+          technical: { text: "Use", links: [{ label: "Focus Timer", href: "/focus-timer" }] },
+        }
+
+        return (
+          <Card className="border-2 border-indigo-200 bg-indigo-50/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Compass className="h-4 w-4 text-indigo-500" /> Learning Path Suggestions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-[10px] text-muted-foreground">Based on your current skill levels, here are some starting points:</p>
+              {lowCats.map(cat => {
+                const s = suggestions[cat.id]
+                if (!s) return null
+                return (
+                  <div key={cat.id} className="flex items-center gap-2 rounded-lg border p-2">
+                    <div className={cn("h-5 w-5 rounded-md bg-gradient-to-br flex items-center justify-center shrink-0", cat.gradient)}>
+                      <TrendingUp className="h-2.5 w-2.5 text-white" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      <strong className={cn(TEXT_COLORS[cat.color])}>{cat.name}</strong> — {s.text}{" "}
+                      {s.links.map((link, i) => (
+                        <span key={link.href}>
+                          {i > 0 && " and "}
+                          <a href={link.href} className="text-blue-600 hover:underline font-medium">{link.label}</a>
+                        </span>
+                      ))}
+                    </p>
+                  </div>
+                )
+              })}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       <div className="flex gap-3 flex-wrap">
         <a href="/character-sheet" className="text-sm text-amber-600 hover:underline">Character Sheet</a>

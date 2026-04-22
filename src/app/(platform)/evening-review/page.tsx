@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Moon, Star, AlertTriangle, Target, Heart, Brain, Zap, CheckCircle, Sparkles } from "lucide-react"
+import { Moon, Star, AlertTriangle, Target, Heart, Brain, Zap, CheckCircle, Sparkles, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -197,6 +197,121 @@ export default function EveningReviewPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Weekly Trends Analysis */}
+      {entries.length >= 5 && (() => {
+        const recent = entries.slice(0, 7)
+        const chartW = 280; const chartH = 80; const padX = 10; const padY = 5
+        const stepX = recent.length > 1 ? (chartW - padX * 2) / (recent.length - 1) : 0
+        const reversed = [...recent].reverse()
+
+        function toPath(data: number[], color: string) {
+          return data.map((v, i) => {
+            const x = padX + i * stepX
+            const y = chartH - padY - ((v - 1) / 9) * (chartH - padY * 2)
+            return `${i === 0 ? "M" : "L"} ${x} ${y}`
+          }).join(" ")
+        }
+        const ratingPath = toPath(reversed.map(e => e.dayRating), "")
+        const energyPath = toPath(reversed.map(e => e.energyLevel), "")
+        const stressPath = toPath(reversed.map(e => e.stressLevel), "")
+
+        // Win theme analysis
+        const winThemes: Record<string, number> = { work: 0, family: 0, health: 0, personal: 0, creative: 0 }
+        const winKeywords: Record<string, string[]> = {
+          work: ["work", "job", "project", "meeting", "client", "team", "deadline", "shipped", "launched", "promotion", "career"],
+          family: ["family", "kids", "wife", "husband", "partner", "son", "daughter", "mom", "dad", "parents", "friend"],
+          health: ["exercise", "gym", "run", "walk", "sleep", "health", "workout", "yoga", "meditat", "energy"],
+          personal: ["learn", "read", "book", "course", "skill", "habit", "goal", "progress", "improve"],
+          creative: ["create", "write", "design", "build", "art", "music", "code", "idea", "paint", "photo"],
+        }
+        entries.forEach(e => {
+          if (!e.win) return
+          const lower = e.win.toLowerCase()
+          Object.entries(winKeywords).forEach(([theme, keywords]) => {
+            if (keywords.some(kw => lower.includes(kw))) winThemes[theme]++
+          })
+        })
+        const topWinThemes = Object.entries(winThemes).filter(([, c]) => c > 0).sort((a, b) => b[1] - a[1])
+
+        // Day-of-week analysis
+        const dayStats: Record<string, { energy: number[]; stress: number[]; rating: number[] }> = {}
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        entries.forEach(e => {
+          const d = dayNames[new Date(e.date + "T12:00:00").getDay()]
+          if (!dayStats[d]) dayStats[d] = { energy: [], stress: [], rating: [] }
+          dayStats[d].energy.push(e.energyLevel)
+          dayStats[d].stress.push(e.stressLevel)
+          dayStats[d].rating.push(e.dayRating)
+        })
+        const dayAvgs = Object.entries(dayStats).map(([day, s]) => ({
+          day, avgEnergy: s.energy.reduce((a, b) => a + b, 0) / s.energy.length,
+          avgStress: s.stress.reduce((a, b) => a + b, 0) / s.stress.length,
+        })).filter(d => d.avgEnergy > 0)
+        const peakEnergy = dayAvgs.length > 0 ? dayAvgs.reduce((a, b) => a.avgEnergy > b.avgEnergy ? a : b).day : null
+        const dipEnergy = dayAvgs.length > 0 ? dayAvgs.reduce((a, b) => a.avgEnergy < b.avgEnergy ? a : b).day : null
+        const peakStress = dayAvgs.length > 0 ? dayAvgs.reduce((a, b) => a.avgStress > b.avgStress ? a : b).day : null
+
+        return (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-indigo-500" /> Weekly Trends</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {/* Sparkline charts */}
+              <div>
+                <p className="text-xs font-medium mb-1">Day Rating Trend (last {recent.length} entries)</p>
+                <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-20 bg-muted/30 rounded-lg">
+                  <path d={ratingPath} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  {reversed.map((e, i) => (
+                    <circle key={i} cx={padX + i * stepX} cy={chartH - padY - ((e.dayRating - 1) / 9) * (chartH - padY * 2)} r="3" fill="#6366f1" />
+                  ))}
+                </svg>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium mb-1">Energy vs Stress</p>
+                <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full h-20 bg-muted/30 rounded-lg">
+                  <path d={energyPath} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={stressPath} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 2" />
+                  {reversed.map((e, i) => (
+                    <g key={i}>
+                      <circle cx={padX + i * stepX} cy={chartH - padY - ((e.energyLevel - 1) / 9) * (chartH - padY * 2)} r="2.5" fill="#3b82f6" />
+                      <circle cx={padX + i * stepX} cy={chartH - padY - ((e.stressLevel - 1) / 9) * (chartH - padY * 2)} r="2.5" fill="#ef4444" />
+                    </g>
+                  ))}
+                </svg>
+                <div className="flex gap-4 mt-1">
+                  <span className="text-[10px] text-blue-600 flex items-center gap-1"><span className="w-3 h-0.5 bg-blue-500 inline-block" /> Energy</span>
+                  <span className="text-[10px] text-red-500 flex items-center gap-1"><span className="w-3 h-0.5 bg-red-500 inline-block border-dashed" /> Stress</span>
+                </div>
+              </div>
+
+              {/* Win themes */}
+              {topWinThemes.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium mb-1">Most Common Win Themes</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {topWinThemes.map(([theme, count]) => (
+                      <Badge key={theme} variant="outline" className="text-xs capitalize">{theme} <span className="text-muted-foreground ml-1">({count})</span></Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Day-of-week insights */}
+              {dayAvgs.length >= 3 && (
+                <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
+                  {peakEnergy && dipEnergy && peakEnergy !== dipEnergy && (
+                    <p>Your energy peaks on <strong className="text-foreground">{peakEnergy}</strong> and dips on <strong className="text-foreground">{dipEnergy}</strong>.</p>
+                  )}
+                  {peakStress && (
+                    <p>Your stress is highest on <strong className="text-foreground">{peakStress}</strong>.</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* The daily rhythm */}
       <Card className="border-violet-200 bg-violet-50/20">
