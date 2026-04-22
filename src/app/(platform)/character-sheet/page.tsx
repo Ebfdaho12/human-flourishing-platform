@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import useSWR from "swr"
-import { Swords, Heart, Brain, Shield, Zap, BookOpen, Users, Flame, Star, Trophy, Target, Crown, TrendingUp, Dumbbell, Moon, DollarSign } from "lucide-react"
+import { Swords, Heart, Brain, Shield, Zap, BookOpen, Users, Flame, Star, Trophy, Target, Crown, TrendingUp, Dumbbell, Moon, DollarSign, Activity } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -76,6 +76,68 @@ function AchievementBadge({ name, description, earned, icon }: {
   )
 }
 
+// ─── Sparkline Component ─────────────────────────────────────────
+function Sparkline({ data, color, width = 120, height = 28 }: { data: number[]; color: string; width?: number; height?: number }) {
+  if (data.length < 2) return <span className="text-[9px] text-muted-foreground italic">Not enough data</span>
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width
+    const y = height - ((v - min) / range) * (height - 4) - 2
+    return `${x},${y}`
+  }).join(" ")
+  const lastVal = data[data.length - 1]
+  const firstVal = data[0]
+  const trend = lastVal - firstVal
+  return (
+    <div className="flex items-center gap-1.5">
+      <svg width={width} height={height} className="shrink-0">
+        <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Dot on latest value */}
+        <circle cx={(data.length - 1) / (data.length - 1) * width} cy={height - ((lastVal - min) / range) * (height - 4) - 2} r="2.5" fill={color} />
+      </svg>
+      <span className={cn("text-[9px] font-semibold", trend > 0 ? "text-emerald-600" : trend < 0 ? "text-red-500" : "text-muted-foreground")}>
+        {trend > 0 ? "+" : ""}{trend}
+      </span>
+    </div>
+  )
+}
+
+// ─── Power Score Chart ─────────────────────────────────────────
+function PowerScoreChart({ data, width = "100%", height = 80 }: { data: { date: string; score: number }[]; width?: string | number; height?: number }) {
+  if (data.length < 2) return <p className="text-xs text-muted-foreground italic text-center py-4">Need 2+ days of data to show chart</p>
+  const scores = data.map(d => d.score)
+  const min = Math.min(...scores) - 2
+  const max = Math.max(...scores) + 2
+  const range = max - min || 1
+  const svgW = 400
+  const points = scores.map((v, i) => {
+    const x = (i / (scores.length - 1)) * svgW
+    const y = height - ((v - min) / range) * (height - 12) - 6
+    return `${x},${y}`
+  })
+  const fillPoints = [...points, `${svgW},${height}`, `0,${height}`].join(" ")
+  const linePoints = points.join(" ")
+  return (
+    <svg viewBox={`0 0 ${svgW} ${height}`} style={{ width }} className="overflow-visible">
+      <defs>
+        <linearGradient id="powerGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
+          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <polygon points={fillPoints} fill="url(#powerGrad)" />
+      <polyline points={linePoints} fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {scores.map((v, i) => {
+        const x = (i / (scores.length - 1)) * svgW
+        const y = height - ((v - min) / range) * (height - 12) - 6
+        return <circle key={i} cx={x} cy={y} r={i === scores.length - 1 ? 3.5 : 1.5} fill="#f59e0b" />
+      })}
+    </svg>
+  )
+}
+
 export default function CharacterSheetPage() {
   const { data: moodData } = useSWR("/api/mental-health/mood?limit=30", secureFetcher)
   const { data: healthData } = useSWR("/api/health/entries?limit=200", secureFetcher)
@@ -85,6 +147,7 @@ export default function CharacterSheetPage() {
   const [pagesVisited, setPagesVisited] = useState(0)
   const [habitsData, setHabitsData] = useState<any[]>([])
   const [gratitudeCount, setGratitudeCount] = useState(0)
+  const [statHistory, setStatHistory] = useState<any[]>([])
 
   useEffect(() => {
     try { setPagesVisited(JSON.parse(localStorage.getItem("hfp-pages-visited") || "[]").length) } catch {}
@@ -159,6 +222,20 @@ export default function CharacterSheetPage() {
 
     return { vitality, resilience, wisdom, awareness, wealth, social }
   }, [entries, streaks, pagesVisited, gratitudeCount, goals, wallet, habitsData, moods])
+
+  // ─── Stat History (save daily snapshot) ─────────────────────────────────
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0]
+    const snapshot = { date: today, vitality: stats.vitality, resilience: stats.resilience, wisdom: stats.wisdom, awareness: stats.awareness, wealth: stats.wealth, social: stats.social }
+    try {
+      const existing = JSON.parse(localStorage.getItem("hfp-stat-history") || "[]")
+      const updated = [snapshot, ...existing.filter((h: any) => h.date !== today)].slice(0, 30)
+      localStorage.setItem("hfp-stat-history", JSON.stringify(updated))
+      setStatHistory(updated)
+    } catch {
+      setStatHistory([snapshot])
+    }
+  }, [stats])
 
   // ─── Achievements ─────────────────────────────────
   const achievements = [
@@ -271,6 +348,81 @@ export default function CharacterSheetPage() {
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {achievements.map((a, i) => <AchievementBadge key={i} {...a} />)}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Stat Progression */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Activity className="h-4 w-4 text-indigo-500" /> Stat Progression
+            <Badge variant="outline" className="text-[9px] ml-auto">Last 30 days</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2.5">
+          {(() => {
+            const reversed = [...statHistory].reverse()
+            const statDefs = [
+              { key: "vitality", label: "VIT", color: "#ef4444", icon: Heart },
+              { key: "resilience", label: "RES", color: "#3b82f6", icon: Shield },
+              { key: "wisdom", label: "WIS", color: "#8b5cf6", icon: BookOpen },
+              { key: "awareness", label: "AWR", color: "#ec4899", icon: Brain },
+              { key: "wealth", label: "WLT", color: "#10b981", icon: DollarSign },
+              { key: "social", label: "SOC", color: "#06b6d4", icon: Users },
+            ]
+            return statDefs.map(sd => {
+              const values = reversed.map((s: any) => s[sd.key] || 0)
+              const current = values.length > 0 ? values[values.length - 1] : 0
+              return (
+                <div key={sd.key} className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 w-12 shrink-0">
+                    <sd.icon className="h-3.5 w-3.5" style={{ color: sd.color }} />
+                    <span className="text-[10px] font-bold" style={{ color: sd.color }}>{sd.label}</span>
+                  </div>
+                  <span className="text-xs font-semibold w-6 text-right">{current}</span>
+                  <div className="flex-1">
+                    <Sparkline data={values} color={sd.color} />
+                  </div>
+                </div>
+              )
+            })
+          })()}
+          {statHistory.length < 2 && (
+            <p className="text-[9px] text-muted-foreground italic text-center">Sparklines appear after 2+ days of data. Come back tomorrow to see your trends.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Power Score History */}
+      <Card className="border-amber-200 bg-amber-50/10">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-amber-500" /> Power Score History
+            <Badge variant="outline" className="text-[9px] ml-auto">{powerScore} current</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(() => {
+            const reversed = [...statHistory].reverse()
+            const chartData = reversed.map((s: any) => ({
+              date: s.date,
+              score: Math.round(((s.vitality || 0) + (s.resilience || 0) + (s.wisdom || 0) + (s.awareness || 0) + (s.wealth || 0) + (s.social || 0)) / 6)
+            }))
+            return (
+              <div>
+                <PowerScoreChart data={chartData} />
+                {chartData.length >= 2 && (
+                  <div className="flex justify-between mt-2 text-[9px] text-muted-foreground">
+                    <span>{chartData[0]?.date}</span>
+                    <span>{chartData[chartData.length - 1]?.date}</span>
+                  </div>
+                )}
+                {chartData.length < 2 && (
+                  <p className="text-[9px] text-muted-foreground italic text-center">Power score chart appears after 2+ days of data.</p>
+                )}
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 

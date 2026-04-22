@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Timer, Play, Pause, RotateCcw, Coffee, Brain, Zap, BarChart3, Settings2 } from "lucide-react"
+import { Timer, Play, Pause, RotateCcw, Coffee, Brain, Zap, BarChart3, Settings2, TrendingUp, Lightbulb, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -228,6 +228,124 @@ export default function FocusTimerPage() {
             and permission to ignore everything else. Cal Newport's Deep Work research confirms: 3-4 hours of
             truly focused work per day is more productive than 8 hours of scattered attention.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Productivity Insights — shown when 7+ sessions exist */}
+      {(() => {
+        const totalSessions = history.reduce((s, h) => s + h.sessions, 0)
+        if (totalSessions < 7) return null
+
+        const now = new Date()
+        const startOfThisWeek = new Date(now)
+        startOfThisWeek.setDate(now.getDate() - now.getDay())
+        startOfThisWeek.setHours(0, 0, 0, 0)
+        const startOfLastWeek = new Date(startOfThisWeek)
+        startOfLastWeek.setDate(startOfLastWeek.getDate() - 7)
+
+        const thisWeekLogs = history.filter(h => {
+          const d = new Date(h.date)
+          return d >= startOfThisWeek
+        })
+        const lastWeekLogs = history.filter(h => {
+          const d = new Date(h.date)
+          return d >= startOfLastWeek && d < startOfThisWeek
+        })
+
+        const thisWeekMin = thisWeekLogs.reduce((s, h) => s + h.focusMinutes, 0)
+        const lastWeekMin = lastWeekLogs.reduce((s, h) => s + h.focusMinutes, 0)
+        const improvement = lastWeekMin > 0 ? Math.round(((thisWeekMin - lastWeekMin) / lastWeekMin) * 100) : null
+
+        // Most productive day of the week
+        const dayTotals: Record<number, number> = {}
+        history.forEach(h => {
+          const dayIdx = new Date(h.date).getDay()
+          dayTotals[dayIdx] = (dayTotals[dayIdx] || 0) + h.focusMinutes
+        })
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        const bestDay = Object.entries(dayTotals).sort(([,a], [,b]) => b - a)[0]
+        const bestDayName = bestDay ? dayNames[Number(bestDay[0])] : "N/A"
+
+        // Average session length
+        const totalMin = history.reduce((s, h) => s + h.focusMinutes, 0)
+        const avgSessionLen = totalSessions > 0 ? Math.round(totalMin / totalSessions) : 0
+
+        // Sessions per day average
+        const daysTracked = history.length
+        const sessionsPerDay = daysTracked > 0 ? (totalSessions / daysTracked).toFixed(1) : "0"
+
+        // Deep work capacity: average daily focus
+        const deepWorkCapacity = daysTracked > 0 ? Math.round(totalMin / daysTracked) : 0
+
+        return (
+          <Card className="border-indigo-200 bg-indigo-50/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-indigo-500" /> Productivity Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-indigo-100 bg-white/60 p-2.5 text-center">
+                  <p className="text-lg font-bold text-indigo-600">{thisWeekMin}<span className="text-xs text-muted-foreground">min</span></p>
+                  <p className="text-[9px] text-muted-foreground">This week</p>
+                  {improvement !== null && (
+                    <p className={cn("text-[10px] font-semibold", improvement >= 0 ? "text-emerald-600" : "text-red-500")}>
+                      {improvement >= 0 ? "+" : ""}{improvement}% vs last week
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg border border-indigo-100 bg-white/60 p-2.5 text-center">
+                  <p className="text-lg font-bold text-indigo-600">{bestDayName}</p>
+                  <p className="text-[9px] text-muted-foreground">Most productive day</p>
+                </div>
+                <div className="rounded-lg border border-indigo-100 bg-white/60 p-2.5 text-center">
+                  <p className="text-lg font-bold text-indigo-600">{avgSessionLen}<span className="text-xs text-muted-foreground">min</span></p>
+                  <p className="text-[9px] text-muted-foreground">Avg session length</p>
+                </div>
+                <div className="rounded-lg border border-indigo-100 bg-white/60 p-2.5 text-center">
+                  <p className="text-lg font-bold text-indigo-600">{sessionsPerDay}</p>
+                  <p className="text-[9px] text-muted-foreground">Sessions/day avg</p>
+                </div>
+                <div className="rounded-lg border border-indigo-100 bg-white/60 p-2.5 text-center col-span-2 sm:col-span-2">
+                  <p className="text-lg font-bold text-indigo-600">{deepWorkCapacity}<span className="text-xs text-muted-foreground">min/day</span></p>
+                  <p className="text-[9px] text-muted-foreground">Deep work capacity</p>
+                  <p className="text-[8px] text-indigo-400 italic">Average daily focus output</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Distraction Awareness */}
+      <Card className="border-amber-200 bg-amber-50/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-amber-500" /> Distraction Awareness
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2.5">
+            <div className="flex gap-2.5 items-start">
+              <Brain className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">Cal Newport's Deep Work:</strong> Research shows 3-4 hours of truly focused work consistently outproduces 8 hours of scattered attention. Elite performers don't work more — they focus more intensely.
+              </p>
+            </div>
+            <div className="flex gap-2.5 items-start">
+              <Timer className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">The 25-Minute Window:</strong> The Pomodoro technique's 25-minute interval was specifically designed around human attention span limits. Your brain naturally fatigues — working with that rhythm instead of against it multiplies output.
+              </p>
+            </div>
+            <div className="flex gap-2.5 items-start">
+              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">The 23-Minute Tax:</strong> UC Irvine research found it takes an average of 23 minutes and 15 seconds to regain full focus after a context switch. Every "quick check" of email or social media costs almost half a Pomodoro session.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
