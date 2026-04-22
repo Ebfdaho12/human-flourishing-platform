@@ -67,11 +67,11 @@ export function useSyncedStorage<T>(localKey: string, defaultValue: T): [T, (val
           try {
             const apiData = typeof res.data === "string" ? JSON.parse(res.data) : res.data
             const localStr = localStorage.getItem(fullKey)
-            const localUpdated = localStr ? new Date(0) : new Date(0) // localStorage has no timestamp
-            const apiUpdated = new Date(res.updatedAt || 0)
+            const apiUpdated = res.updatedAt ? new Date(res.updatedAt).getTime() : 0
+            const lastSync = lastSyncRef.current ? new Date(lastSyncRef.current).getTime() : 0
 
-            // If API has data and it's newer (or local is empty), use API data
-            if (!localStr || apiUpdated > new Date(lastSyncRef.current || 0)) {
+            // Use API data if: no local data exists, OR API is newer than last sync
+            if (!localStr || apiUpdated > lastSync) {
               localStorage.setItem(fullKey, JSON.stringify(apiData))
               setValue(apiData)
               lastSyncRef.current = res.updatedAt

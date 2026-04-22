@@ -23,15 +23,18 @@ interface UnlockTier {
   color: string
 }
 
+// NOTE: Currently all features are accessible at all levels.
+// Level "unlocks" are recognition badges, not feature gates.
+// True gating will be implemented with blockchain launch.
 const UNLOCK_TIERS: UnlockTier[] = [
-  { level: 1, title: "Novice", rewards: ["Basic tracking tools", "Daily habits", "Mood logging"], icon: Star, color: "text-slate-400 border-slate-200 bg-slate-50" },
-  { level: 3, title: "Apprentice", rewards: ["30-Day Challenges", "Gratitude journal", "Breathwork timer"], icon: Star, color: "text-blue-400 border-blue-200 bg-blue-50" },
-  { level: 5, title: "Adventurer", rewards: ["Character Sheet stats visible", "Combo system active", "Skill tree unlocked"], icon: Star, color: "text-emerald-500 border-emerald-200 bg-emerald-50" },
-  { level: 10, title: "Warrior", rewards: ["Correlations engine full access", "Hive Mind analytics", "Custom challenge creation"], icon: Trophy, color: "text-violet-500 border-violet-200 bg-violet-50" },
-  { level: 15, title: "Veteran", rewards: ["Advanced peptide protocols", "Sleep architecture deep-dive", "Community leadership badge"], icon: Trophy, color: "text-blue-500 border-blue-200 bg-blue-50" },
-  { level: 20, title: "Champion", rewards: ["Beta features early access", "Doubled XP weekends", "Exclusive book summaries"], icon: Crown, color: "text-amber-500 border-amber-200 bg-amber-50" },
-  { level: 30, title: "Master", rewards: ["Founding member badge", "Governance participation", "Direct feedback channel"], icon: Crown, color: "text-violet-500 border-violet-200 bg-violet-50" },
-  { level: 50, title: "Transcendent", rewards: ["Legendary badge", "Platform co-creation input", "Name in credits forever"], icon: Sparkles, color: "text-amber-400 border-amber-300 bg-amber-50" },
+  { level: 1, title: "Novice", rewards: ["Novice badge earned", "Access to all basic tools"], icon: Star, color: "text-slate-400 border-slate-200 bg-slate-50" },
+  { level: 3, title: "Apprentice", rewards: ["Apprentice badge earned", "Recognition in community"], icon: Star, color: "text-blue-400 border-blue-200 bg-blue-50" },
+  { level: 5, title: "Adventurer", rewards: ["Adventurer badge on profile", "Higher FOUND earning rate"], icon: Star, color: "text-emerald-500 border-emerald-200 bg-emerald-50" },
+  { level: 10, title: "Warrior", rewards: ["Warrior badge", "Priority feedback channel", "Community leadership eligible"], icon: Trophy, color: "text-violet-500 border-violet-200 bg-violet-50" },
+  { level: 15, title: "Veteran", rewards: ["Veteran badge", "Beta features early access"], icon: Trophy, color: "text-blue-500 border-blue-200 bg-blue-50" },
+  { level: 20, title: "Champion", rewards: ["Champion badge", "Doubled XP events", "Governance participation"], icon: Crown, color: "text-amber-500 border-amber-200 bg-amber-50" },
+  { level: 30, title: "Master", rewards: ["Founding member recognition", "Direct platform input"], icon: Crown, color: "text-violet-500 border-violet-200 bg-violet-50" },
+  { level: 50, title: "Transcendent", rewards: ["Legendary badge", "Name in platform credits forever"], icon: Sparkles, color: "text-amber-400 border-amber-300 bg-amber-50" },
 ]
 
 function getPlayerLevel(): number {

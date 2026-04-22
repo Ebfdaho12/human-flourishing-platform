@@ -114,9 +114,11 @@ export function MilestoneCelebration() {
           fetch("/api/wallet").then((r) => r.ok ? r.json() : null),
         ])
 
-        const streak = streakRes?.streaks?.overall?.current ?? 0
-        const tokens = walletRes?.balance ?? 0
-        const healthLogs = walletRes?.totalHealthLogs ?? 0
+        const streak = streakRes?.health ?? streakRes?.mood ?? streakRes?.platform ?? 0
+        const tokens = Number(walletRes?.wallet?.foundBalance ?? walletRes?.foundBalance ?? 0)
+        // Count health logs from localStorage since API doesn't return count
+        let healthLogs = 0
+        try { const v = JSON.parse(localStorage.getItem("hfp-pages-visited") || "[]"); healthLogs = v.length } catch {}
         const pageVisits = getPageVisitCount()
 
         const pending = buildMilestones(streak, tokens, healthLogs, pageVisits)

@@ -84,7 +84,7 @@ export function HiveActivity() {
         <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
           <Icon className={cn("h-3.5 w-3.5 shrink-0", current.color)} />
           <p className="text-xs text-muted-foreground truncate">
-            <span className="font-bold text-foreground">{current.count}</span> {current.text}
+            <span className="font-bold text-foreground">~{current.count}</span> {current.text} <span className="text-[8px] opacity-50">(projected)</span>
           </p>
         </div>
         <div className="flex gap-1 shrink-0">
