@@ -220,6 +220,88 @@ export default function DailyHabitsPage() {
         </CardContent>
       </Card>
 
+      {/* Analytics — only show when there's enough data */}
+      {habits.some(h => h.completedDates.length >= 7) && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base">Habit Analytics</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {/* Consistency ranking */}
+            <div>
+              <p className="text-xs font-semibold mb-2">Consistency Ranking</p>
+              <div className="space-y-1.5">
+                {[...habits]
+                  .map(h => ({ ...h, consistency: h.completedDates.length > 0 ? Math.round((h.completedDates.length / Math.max(1, Math.ceil((Date.now() - new Date(h.completedDates[h.completedDates.length - 1] || today).getTime()) / 86400000 + h.completedDates.length))) * 100) : 0 }))
+                  .sort((a, b) => b.consistency - a.consistency)
+                  .map((h, i) => (
+                    <div key={h.id} className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-4 text-right">{i + 1}.</span>
+                      <span className="text-sm shrink-0">{h.icon}</span>
+                      <span className="text-xs flex-1 truncate">{h.name}</span>
+                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                        <div className={cn("h-full rounded-full", h.consistency >= 80 ? "bg-emerald-400" : h.consistency >= 50 ? "bg-amber-400" : "bg-red-400")} style={{ width: `${h.consistency}%` }} />
+                      </div>
+                      <span className={cn("text-[10px] font-bold w-10 text-right", h.consistency >= 80 ? "text-emerald-600" : h.consistency >= 50 ? "text-amber-600" : "text-red-500")}>{h.consistency}%</span>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+
+            {/* 30-day heat map */}
+            <div>
+              <p className="text-xs font-semibold mb-2">30-Day Activity (all habits combined)</p>
+              <div className="flex flex-wrap gap-[3px]">
+                {Array.from({ length: 30 }, (_, i) => {
+                  const d = new Date(Date.now() - (29 - i) * 86400000).toISOString().split("T")[0]
+                  const completed = habits.filter(h => h.completedDates.includes(d)).length
+                  const pctDay = totalHabits > 0 ? completed / totalHabits : 0
+                  const isToday = d === today
+                  return (
+                    <div
+                      key={d}
+                      className={cn("h-4 w-4 rounded-sm transition-colors", isToday ? "ring-1 ring-violet-400" : "")}
+                      style={{ backgroundColor: pctDay === 0 ? "#f1f5f9" : pctDay < 0.33 ? "#fde68a" : pctDay < 0.66 ? "#86efac" : pctDay < 1 ? "#34d399" : "#059669" }}
+                      title={`${d}: ${completed}/${totalHabits} habits (${Math.round(pctDay * 100)}%)`}
+                    />
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 mt-1.5 text-[9px] text-muted-foreground">
+                <span>Less</span>
+                {["#f1f5f9", "#fde68a", "#86efac", "#34d399", "#059669"].map((c, i) => (
+                  <div key={i} className="h-3 w-3 rounded-sm" style={{ backgroundColor: c }} />
+                ))}
+                <span>More</span>
+              </div>
+            </div>
+
+            {/* Insights */}
+            <div className="rounded-lg bg-violet-50 border border-violet-200 p-3">
+              <p className="text-[10px] font-semibold text-violet-700 mb-1">Insights</p>
+              <div className="space-y-1 text-[10px] text-muted-foreground">
+                {(() => {
+                  const insights: string[] = []
+                  const mostConsistent = [...habits].sort((a, b) => b.completedDates.length - a.completedDates.length)[0]
+                  const leastConsistent = [...habits].filter(h => h.completedDates.length > 0).sort((a, b) => a.completedDates.length - b.completedDates.length)[0]
+                  if (mostConsistent?.completedDates.length > 5) insights.push(`${mostConsistent.icon} ${mostConsistent.name} is your strongest habit (${mostConsistent.completedDates.length} completions).`)
+                  if (leastConsistent && leastConsistent.id !== mostConsistent?.id) insights.push(`${leastConsistent.icon} ${leastConsistent.name} needs the most attention (${leastConsistent.completedDates.length} completions).`)
+                  // Day of week analysis
+                  const dayCount: Record<number, number> = {}
+                  habits.forEach(h => h.completedDates.forEach(d => { const day = new Date(d + "T12:00:00").getDay(); dayCount[day] = (dayCount[day] || 0) + 1 }))
+                  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+                  const bestDay = Object.entries(dayCount).sort((a, b) => Number(b[1]) - Number(a[1]))[0]
+                  const worstDay = Object.entries(dayCount).sort((a, b) => Number(a[1]) - Number(b[1]))[0]
+                  if (bestDay && worstDay && bestDay[0] !== worstDay[0]) insights.push(`You're most consistent on ${days[Number(bestDay[0])]}s and least on ${days[Number(worstDay[0])]}s.`)
+                  if (longestStreak >= 14) insights.push(`Your ${longestStreak}-day best streak shows real commitment. Research says 66 days creates automatic behavior.`)
+                  if (pct === 100) insights.push("Today is 100% complete. Every perfect day compounds.")
+                  return insights.map((insight, i) => <p key={i}>• {insight}</p>)
+                })()}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Philosophy */}
       <Card className="border-violet-200 bg-violet-50/20">
         <CardContent className="p-4">

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { secureFetcher } from "@/lib/encrypted-fetch"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
   if (data.length < 2) return null
@@ -33,9 +34,40 @@ function TrendBadge({ current, previous }: { current: number; previous: number }
   return <Badge variant="outline" className="text-[8px] gap-0.5 border-red-300 text-red-600"><TrendingDown className="h-2.5 w-2.5" /> {diff}</Badge>
 }
 
+function HealthSnapshotSkeleton() {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded-full" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          <Skeleton className="h-3 w-16" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border p-2.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Skeleton className="h-3 w-3 rounded-full" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-6 w-full" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function HealthSnapshot() {
   const { data: moodData } = useSWR("/api/mental-health/mood?limit=14", secureFetcher)
   const { data: healthData } = useSWR("/api/health/entries?limit=100", secureFetcher)
+
+  const isLoading = moodData === undefined && healthData === undefined
+  if (isLoading) return <HealthSnapshotSkeleton />
 
   const moods = (moodData?.entries || []).reverse()
   const entries = (healthData?.entries || []).reverse()
