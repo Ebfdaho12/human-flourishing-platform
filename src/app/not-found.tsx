@@ -9,10 +9,10 @@ export default function NotFound() {
         <ShieldCheck className="h-8 w-8 text-white" />
       </div>
       <h1 className="text-4xl font-bold mb-2">404</h1>
-      <p className="text-lg text-muted-foreground mb-6">This page doesn't exist yet.</p>
+      <p className="text-lg text-muted-foreground mb-6">This page doesn't exist — but 330+ others do.</p>
       <p className="text-sm text-muted-foreground max-w-md mb-8">
-        The Human Flourishing Platform is growing. This page may be coming soon,
-        or you might have followed an outdated link.
+        Try pressing <kbd className="bg-muted px-1.5 py-0.5 rounded border text-[10px] font-mono">⌘K</kbd> to search,
+        or browse the tools directory to find what you're looking for.
       </p>
       <div className="flex gap-3">
         <Button asChild>
