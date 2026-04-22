@@ -11,6 +11,8 @@ import { WhatsNew } from "@/components/dashboard/WhatsNew"
 import { DailyRhythm } from "@/components/dashboard/DailyRhythm"
 import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions"
 import { HealthSnapshot } from "@/components/dashboard/HealthSnapshot"
+import { HiveActivity } from "@/components/dashboard/HiveActivity"
+import { LevelUnlocks } from "@/components/dashboard/LevelUnlocks"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -55,6 +57,12 @@ export default async function DashboardPage() {
         <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-500" />
         <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" />
       </div>
+
+      {/* Hive activity — social proof */}
+      <HiveActivity />
+
+      {/* Level unlock teaser */}
+      <LevelUnlocks />
 
       {/* Health snapshot with sparklines */}
       <HealthSnapshot />

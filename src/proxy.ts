@@ -220,6 +220,7 @@ export const config = {
     "/life-os/:path*",
     "/people/:path*",
     "/skill-tree/:path*",
+    "/daily-quests/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
