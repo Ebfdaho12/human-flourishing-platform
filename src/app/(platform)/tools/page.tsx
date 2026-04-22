@@ -6,7 +6,14 @@ import {
   Home, Apple, Shield, Globe2, BookOpen, Target, Calculator, Briefcase,
   Baby, Clock, Flame, Star, PenLine, Scale, Layers, Moon, MessageCircle,
   Trophy, CreditCard, Utensils, Radio, Monitor, Coins, ChevronRight,
-  Zap, MapPin, TrendingUp, Landmark, Sparkles
+  Zap, MapPin, TrendingUp, Landmark, Sparkles, Dumbbell, Thermometer,
+  Droplets, Eye, Pill, Leaf, Wind, Activity, Compass, Lightbulb,
+  FileText, Library, Mic, Sword, Gamepad2, BarChart3, Sunrise, Sunset,
+  CalendarCheck, Orbit, Network, Map, Database, ScrollText, Gift,
+  Megaphone, Route, MoonStar, Telescope, LineChart, Handshake, Award,
+  Hammer, ShoppingCart, Gem, Lock, Bug, Wallet, Receipt, PiggyBank,
+  HeartPulse, Salad, Timer, Puzzle, Waypoints, Crown, Crosshair,
+  Newspaper, FolderSearch, Beaker, Cable, CircleDot
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -159,6 +166,128 @@ const TOOLS: Tool[] = [
   { name: "Data Backup", href: "/data-backup", desc: "Export and import all your local data", icon: Shield, category: "Discovery", tags: ["backup", "export", "data", "security"] },
   { name: "Favorites", href: "/favorites", desc: "Pin your most-used tools for quick access", icon: Star, category: "Discovery", tags: ["favorites", "pin", "quick access"] },
   { name: "Promise Tracker", href: "/promise-tracker", desc: "What politicians promised vs what they did", icon: Landmark, category: "Canada", tags: ["promises", "politicians", "accountability"] },
+
+  // ─── BODY OPTIMIZATION ──────────────────────────────────────────────────────
+  { name: "Fascia & Mobility", href: "/fascia", desc: "Myofascial release, stretching protocols, pain-free movement", icon: Activity, category: "Body Optimization", tags: ["fascia", "mobility", "stretching", "myofascial"] },
+  { name: "Cold Exposure", href: "/cold-exposure", desc: "Cold plunge protocols, hormesis, dopamine and norepinephrine boost", icon: Thermometer, category: "Body Optimization", tags: ["cold", "plunge", "ice bath", "hormesis"] },
+  { name: "Sauna Protocols", href: "/sauna", desc: "Heat therapy, cardiovascular benefits, longevity protocols", icon: Flame, category: "Body Optimization", tags: ["sauna", "heat", "longevity", "cardiovascular"] },
+  { name: "Sleep Optimization", href: "/sleep-optimization", desc: "Advanced sleep protocols beyond basic sleep hygiene", icon: Moon, category: "Body Optimization", tags: ["sleep", "circadian", "melatonin", "deep sleep"] },
+  { name: "Nutrition Science", href: "/nutrition", desc: "Macro/micronutrients, meal timing, metabolic health", icon: Salad, category: "Body Optimization", tags: ["nutrition", "macros", "diet", "metabolic"] },
+  { name: "Posture Correction", href: "/posture", desc: "Desk posture, exercises, anterior pelvic tilt fixes", icon: Activity, category: "Body Optimization", tags: ["posture", "spine", "ergonomics", "desk"] },
+  { name: "Strength Training", href: "/strength-training", desc: "Progressive overload, compound lifts, periodization", icon: Dumbbell, category: "Body Optimization", tags: ["strength", "lifting", "muscle", "gym"] },
+  { name: "Peptides Guide", href: "/peptides", desc: "BPC-157, TB-500, and research-backed peptide protocols", icon: Beaker, category: "Body Optimization", tags: ["peptides", "BPC-157", "recovery", "healing"] },
+  { name: "Testosterone Optimization", href: "/testosterone", desc: "Natural and clinical approaches to hormonal optimization", icon: HeartPulse, category: "Body Optimization", tags: ["testosterone", "hormones", "TRT", "optimization"] },
+  { name: "Supplements Guide", href: "/supplements", desc: "Evidence-based supplements with dosing and timing", icon: Pill, category: "Body Optimization", tags: ["supplements", "vitamins", "minerals", "stack"] },
+  { name: "Fasting Protocols", href: "/fasting", desc: "Intermittent, extended, and therapeutic fasting guides", icon: Timer, category: "Body Optimization", tags: ["fasting", "intermittent", "autophagy", "metabolic"] },
+  { name: "Body Composition", href: "/body-composition", desc: "Track body fat, lean mass, and recomposition progress", icon: Activity, category: "Body Optimization", tags: ["body fat", "lean mass", "composition", "tracking"] },
+  { name: "Breathwork", href: "/breathwork", desc: "Wim Hof, box breathing, pranayama, and performance breathing", icon: Wind, category: "Body Optimization", tags: ["breathwork", "wim hof", "breathing", "pranayama"] },
+  { name: "Health Protocols", href: "/health-protocols", desc: "Stacked protocols for longevity, recovery, and performance", icon: HeartPulse, category: "Body Optimization", tags: ["protocols", "longevity", "biohacking", "stacking"] },
+
+  // ─── NEUROSCIENCE & MINDSET ─────────────────────────────────────────────────
+  { name: "Dopamine Management", href: "/dopamine", desc: "Dopamine baseline, reward systems, addiction recovery", icon: Brain, category: "Neuroscience", tags: ["dopamine", "reward", "addiction", "motivation"] },
+  { name: "Anxiety Toolkit", href: "/anxiety-toolkit", desc: "CBT tools, exposure ladders, panic protocol, grounding", icon: Brain, category: "Neuroscience", tags: ["anxiety", "CBT", "panic", "grounding"] },
+  { name: "Cognitive Biases", href: "/cognitive-biases", desc: "50+ biases that distort thinking — with real examples", icon: Eye, category: "Neuroscience", tags: ["biases", "cognitive", "thinking", "psychology"] },
+  { name: "Mental Models", href: "/mental-models", desc: "First principles, inversion, second-order thinking", icon: Lightbulb, category: "Neuroscience", tags: ["mental models", "thinking", "frameworks", "decision"] },
+  { name: "Stoicism", href: "/stoicism", desc: "Marcus Aurelius, Epictetus, Seneca — applied to modern life", icon: Crown, category: "Neuroscience", tags: ["stoicism", "philosophy", "resilience", "virtue"] },
+
+  // ─── KNOWLEDGE & LEARNING ───────────────────────────────────────────────────
+  { name: "Scientific Literacy", href: "/scientific-literacy", desc: "Read papers, spot bad studies, understand p-values", icon: Beaker, category: "Education", tags: ["science", "literacy", "papers", "research"] },
+  { name: "Book Library", href: "/book-library", desc: "Curated library with summaries, notes, and recommendations", icon: Library, category: "Education", tags: ["books", "library", "reading", "summaries"] },
+  { name: "Negotiation Guide", href: "/negotiation-guide", desc: "Advanced negotiation frameworks — BATNA, anchoring, mirroring", icon: Handshake, category: "Education", tags: ["negotiation", "BATNA", "influence", "deals"] },
+  { name: "Communication Skills", href: "/communication", desc: "Active listening, assertiveness, nonviolent communication", icon: MessageCircle, category: "Education", tags: ["communication", "listening", "assertive", "NVC"] },
+  { name: "Decision Journal", href: "/decision-journal", desc: "Advanced decision logging with pre-mortem and review cycles", icon: Scale, category: "Education", tags: ["decisions", "journal", "thinking", "review"] },
+
+  // ─── DAILY SYSTEMS ──────────────────────────────────────────────────────────
+  { name: "Morning Briefing", href: "/morning-briefing", desc: "Your personalized daily launch — priorities, weather, habits", icon: Sunrise, category: "Daily Systems", tags: ["morning", "briefing", "daily", "routine"] },
+  { name: "Evening Review", href: "/evening-review", desc: "Reflect on wins, lessons, and set up tomorrow", icon: Sunset, category: "Daily Systems", tags: ["evening", "review", "reflection", "wind down"] },
+  { name: "Daily Habits", href: "/daily-habits", desc: "Track daily habits with streaks and completion rates", icon: CalendarCheck, category: "Daily Systems", tags: ["habits", "daily", "streaks", "tracking"] },
+  { name: "Gratitude Practice", href: "/gratitude", desc: "Structured gratitude with prompts and streak tracking", icon: Heart, category: "Daily Systems", tags: ["gratitude", "thankful", "positivity", "daily"] },
+  { name: "Daily Quests", href: "/daily-quests", desc: "Gamified daily tasks — earn XP, level up your real life", icon: Sword, category: "Daily Systems", tags: ["quests", "gamification", "XP", "daily"] },
+  { name: "Life OS", href: "/life-os", desc: "Central command for your entire life system", icon: Compass, category: "Daily Systems", tags: ["life OS", "dashboard", "system", "command"] },
+  { name: "Energy Management", href: "/energy-management", desc: "Track energy levels, find peak hours, optimize output", icon: Zap, category: "Daily Systems", tags: ["energy", "productivity", "peak", "circadian"] },
+  { name: "Water Tracker", href: "/water-tracker", desc: "Advanced hydration tracking with reminders and goals", icon: Droplets, category: "Daily Systems", tags: ["water", "hydration", "tracking", "health"] },
+  { name: "Focus Timer", href: "/focus-timer", desc: "Advanced Pomodoro with deep work modes and session stats", icon: Timer, category: "Daily Systems", tags: ["focus", "timer", "pomodoro", "deep work"] },
+  { name: "Weekly Reflection", href: "/weekly-reflection", desc: "Review your week, celebrate wins, plan the next one", icon: PenLine, category: "Daily Systems", tags: ["weekly", "reflection", "review", "planning"] },
+
+  // ─── GAMIFICATION & GROWTH ──────────────────────────────────────────────────
+  { name: "Character Sheet", href: "/character-sheet", desc: "RPG-style stats for your real life — STR, INT, WIS, CHA", icon: Gamepad2, category: "Gamification", tags: ["character", "RPG", "stats", "gamification"] },
+  { name: "Flourishing Score", href: "/flourishing-score", desc: "Composite score across all life domains — your single number", icon: Award, category: "Gamification", tags: ["flourishing", "score", "assessment", "progress"] },
+  { name: "Skill Tree", href: "/skill-tree", desc: "Visual progression tree — unlock skills, track mastery", icon: Network, category: "Gamification", tags: ["skills", "tree", "progression", "mastery"] },
+  { name: "Future Self", href: "/future-self", desc: "Write letters to your future self, set long-term intentions", icon: Telescope, category: "Gamification", tags: ["future", "goals", "letters", "intentions"] },
+  { name: "30-Day Challenges", href: "/30-day-challenges", desc: "Curated 30-day transformation challenges with daily tasks", icon: Flame, category: "Gamification", tags: ["challenges", "30 days", "transformation", "habit"] },
+  { name: "Vision Board", href: "/vision-board", desc: "Digital vision board — images, goals, and affirmations", icon: Sparkles, category: "Gamification", tags: ["vision", "board", "goals", "visualization"] },
+  { name: "Trajectory", href: "/trajectory", desc: "Where you are heading based on current habits and trends", icon: Route, category: "Gamification", tags: ["trajectory", "trends", "prediction", "direction"] },
+  { name: "My Path", href: "/my-path", desc: "Personalized roadmap based on your goals and assessments", icon: Waypoints, category: "Gamification", tags: ["path", "personalized", "roadmap", "journey"] },
+
+  // ─── ANALYTICS & DATA ───────────────────────────────────────────────────────
+  { name: "Trends", href: "/trends", desc: "Personal trends across health, wealth, and habits over time", icon: LineChart, category: "Analytics", tags: ["trends", "analytics", "graphs", "progress"] },
+  { name: "Correlations", href: "/correlations", desc: "Discover hidden correlations between your tracked metrics", icon: CircleDot, category: "Analytics", tags: ["correlations", "data", "patterns", "insights"] },
+  { name: "Climate Data", href: "/climate-data", desc: "Real climate data, trends, and actionable insights", icon: Globe2, category: "Analytics", tags: ["climate", "data", "environment", "trends"] },
+  { name: "World Data", href: "/world-data", desc: "Global metrics — population, GDP, health, education by country", icon: Globe2, category: "Analytics", tags: ["world", "data", "global", "countries"] },
+  { name: "Platform Stats", href: "/platform-stats", desc: "Usage statistics and community metrics for the platform", icon: BarChart3, category: "Analytics", tags: ["stats", "platform", "usage", "metrics"] },
+
+  // ─── RESEARCH & INVESTIGATION ───────────────────────────────────────────────
+  { name: "Investigate", href: "/investigate", desc: "Deep-dive research tool for any topic or claim", icon: FolderSearch, category: "Research", tags: ["investigate", "research", "deep dive", "verify"] },
+  { name: "Research Compiler", href: "/research-compiler", desc: "Compile and organize research from multiple sources", icon: FileText, category: "Research", tags: ["research", "compile", "sources", "organize"] },
+
+  // ─── COMMUNITY & SOCIAL ─────────────────────────────────────────────────────
+  { name: "Connections", href: "/connections", desc: "Find and connect with like-minded community members", icon: Network, category: "Community", tags: ["connections", "networking", "community", "people"] },
+  { name: "People Directory", href: "/people", desc: "Browse community members, their skills, and interests", icon: Users, category: "Community", tags: ["people", "directory", "community", "profiles"] },
+  { name: "Hive Mind", href: "/hive-mind", desc: "Collective intelligence — ask the community, get answers", icon: Network, category: "Community", tags: ["hive mind", "collective", "questions", "wisdom"] },
+  { name: "Contribute", href: "/contribute", desc: "Help build the platform — code, content, translations", icon: Handshake, category: "Community", tags: ["contribute", "open source", "help", "build"] },
+  { name: "Community Resources", href: "/community-resources", desc: "Shared resources, templates, and tools from the community", icon: Gift, category: "Community", tags: ["resources", "shared", "templates", "community"] },
+  { name: "Invite Friends", href: "/invite", desc: "Invite friends and family to join the platform", icon: Gift, category: "Community", tags: ["invite", "referral", "friends", "share"] },
+
+  // ─── PLATFORM & WEB3 ───────────────────────────────────────────────────────
+  { name: "Earn Rewards", href: "/earn", desc: "Earn FOUND tokens through contributions and engagement", icon: Coins, category: "Platform", tags: ["earn", "tokens", "rewards", "FOUND"] },
+  { name: "DePIN", href: "/depin", desc: "Decentralized physical infrastructure network participation", icon: Cable, category: "Platform", tags: ["DePIN", "decentralized", "infrastructure", "nodes"] },
+  { name: "Staking Guide", href: "/staking-guide", desc: "Stake tokens for governance power and rewards", icon: Coins, category: "Platform", tags: ["staking", "tokens", "governance", "yield"] },
+  { name: "Node Operator", href: "/node-operator", desc: "Run a node, earn rewards, strengthen the network", icon: Cable, category: "Platform", tags: ["node", "operator", "decentralized", "network"] },
+  { name: "Glossary", href: "/glossary", desc: "Every term on the platform explained in plain language", icon: ScrollText, category: "Platform", tags: ["glossary", "terms", "definitions", "learn"] },
+  { name: "What's New", href: "/whats-new", desc: "Latest features, updates, and platform changes", icon: Newspaper, category: "Platform", tags: ["updates", "changelog", "new", "features"] },
+  { name: "Roadmap", href: "/roadmap", desc: "Where the platform is going — vote on priorities", icon: Map, category: "Platform", tags: ["roadmap", "features", "voting", "future"] },
+  { name: "Tokens", href: "/tokens", desc: "FOUND and VOICE token overview, utility, and economics", icon: Gem, category: "Platform", tags: ["tokens", "FOUND", "VOICE", "tokenomics"] },
+  { name: "Privacy Architecture", href: "/privacy-architecture", desc: "How your data is protected — zero-knowledge, local-first", icon: Lock, category: "Platform", tags: ["privacy", "encryption", "zero knowledge", "security"] },
+
+  // ─── ASTROLOGY & CYCLES ─────────────────────────────────────────────────────
+  { name: "Chinese Zodiac", href: "/chinese-zodiac", desc: "Your Chinese zodiac sign, element, and compatibility", icon: MoonStar, category: "Cycles & Seasons", tags: ["zodiac", "chinese", "astrology", "element"] },
+  { name: "Lunar Cycles", href: "/lunar-cycles", desc: "Moon phases, planting calendars, and natural rhythms", icon: MoonStar, category: "Cycles & Seasons", tags: ["lunar", "moon", "phases", "cycles"] },
+
+  // ─── ADDITIONAL FINANCIAL ────────────────────────────────────────────────────
+  { name: "Financial Independence", href: "/financial-independence", desc: "FIRE calculator — coast, lean, fat — with Canadian specifics", icon: DollarSign, category: "Financial", tags: ["FIRE", "independence", "retirement", "freedom"] },
+  { name: "Investing Guide", href: "/investing", desc: "Index funds, ETFs, TFSA/RRSP strategy, portfolio allocation", icon: TrendingUp, category: "Financial", tags: ["investing", "ETFs", "TFSA", "portfolio"] },
+  { name: "Mortgage Calculator", href: "/mortgage", desc: "Payment calculator, amortization schedule, prepayment impact", icon: Home, category: "Financial", tags: ["mortgage", "payment", "amortization", "house"] },
+  { name: "Retirement Planning", href: "/retirement", desc: "CPP, OAS, RRSP drawdown — when can you actually retire?", icon: PiggyBank, category: "Financial", tags: ["retirement", "CPP", "OAS", "RRSP"] },
+  { name: "Inflation Calculator", href: "/inflation", desc: "See how inflation erodes purchasing power over time", icon: TrendingUp, category: "Financial", tags: ["inflation", "purchasing power", "CPI", "money"] },
+  { name: "Savings Finder", href: "/savings-finder", desc: "Find hidden savings in your spending with smart analysis", icon: DollarSign, category: "Financial", tags: ["savings", "spending", "analysis", "cut"] },
+  { name: "Real Hourly Rate", href: "/real-hourly-rate", desc: "Your true hourly rate after commute, prep, and stress", icon: Clock, category: "Financial", tags: ["hourly rate", "salary", "real cost", "commute"] },
+  { name: "Car Buying Guide", href: "/car-buying", desc: "New vs used, total cost of ownership, negotiation tips", icon: Receipt, category: "Financial", tags: ["car", "buying", "auto", "vehicle"] },
+  { name: "Home Buying Guide", href: "/home-buying", desc: "Step-by-step from pre-approval to closing day", icon: Home, category: "Financial", tags: ["home", "buying", "real estate", "closing"] },
+  { name: "Birth Fund", href: "/birth-fund", desc: "Plan financially for a new baby — costs, benefits, timeline", icon: Baby, category: "Financial", tags: ["baby", "birth", "costs", "planning"] },
+  { name: "Money & Relationship", href: "/money-relationship", desc: "Heal your relationship with money — scarcity vs abundance", icon: Heart, category: "Financial", tags: ["money", "mindset", "relationship", "scarcity"] },
+  { name: "Financial Dashboard", href: "/financial-dashboard", desc: "All your financial metrics in one unified view", icon: BarChart3, category: "Financial", tags: ["dashboard", "financial", "overview", "metrics"] },
+
+  // ─── ADDITIONAL FAMILY ──────────────────────────────────────────────────────
+  { name: "Family Constitution", href: "/family-constitution", desc: "Define your family values, rules, and mission together", icon: FileText, category: "Family", tags: ["family", "constitution", "values", "mission"] },
+  { name: "Parenting Toolkit", href: "/parenting", desc: "Age-by-age parenting strategies and developmental milestones", icon: Baby, category: "Family", tags: ["parenting", "kids", "development", "milestones"] },
+  { name: "Marriage Health", href: "/marriage-health", desc: "Gottman-based relationship assessment and strengthening", icon: Heart, category: "Family", tags: ["marriage", "relationship", "gottman", "couples"] },
+  { name: "Cooking Guide", href: "/cooking", desc: "Essential cooking skills, techniques, and recipes", icon: Utensils, category: "Family", tags: ["cooking", "recipes", "kitchen", "skills"] },
+
+  // ─── ADDITIONAL PRODUCTIVITY ─────────────────────────────────────────────────
+  { name: "Habits Dashboard", href: "/habits", desc: "Master habit dashboard with trends and streaks", icon: Layers, category: "Productivity", tags: ["habits", "dashboard", "streaks", "tracking"] },
+  { name: "Bookmarks", href: "/bookmarks", desc: "Save and organize links, articles, and resources", icon: BookOpen, category: "Productivity", tags: ["bookmarks", "save", "links", "articles"] },
+
+  // ─── ADDITIONAL HOME ────────────────────────────────────────────────────────
+  { name: "Emergency Kit", href: "/emergency", desc: "Emergency supply kit builder and readiness tracker", icon: Shield, category: "Home", tags: ["emergency", "kit", "supplies", "readiness"] },
+  { name: "Emergency Prep", href: "/emergency-prep", desc: "Advanced emergency preparedness — plans, routes, contacts", icon: Shield, category: "Home", tags: ["emergency", "prep", "survival", "plan"] },
+
+  // ─── ADDITIONAL DISCOVERY ────────────────────────────────────────────────────
+  { name: "Digest", href: "/digest", desc: "Weekly digest of your progress and platform highlights", icon: Newspaper, category: "Discovery", tags: ["digest", "weekly", "summary", "highlights"] },
+  { name: "Explore", href: "/explore", desc: "Discover new tools, trending content, and community picks", icon: Compass, category: "Discovery", tags: ["explore", "discover", "trending", "new"] },
+  { name: "Resources", href: "/resources", desc: "Curated external resources, links, and further reading", icon: BookOpen, category: "Discovery", tags: ["resources", "links", "external", "reading"] },
+  { name: "Timeline", href: "/timeline", desc: "Your personal timeline of milestones and achievements", icon: Clock, category: "Discovery", tags: ["timeline", "milestones", "history", "achievements"] },
+  { name: "Knowledge Hub", href: "/knowledge", desc: "Curated knowledge base across all platform topics", icon: Library, category: "Discovery", tags: ["knowledge", "hub", "base", "learning"] },
+  { name: "Why This Platform", href: "/why", desc: "The mission, the problem, and why this matters", icon: Sparkles, category: "Discovery", tags: ["why", "mission", "purpose", "about"] },
 ]
 
 const CATEGORIES = [...new Set(TOOLS.map(t => t.category))]
@@ -177,6 +306,14 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Life Situations": "text-slate-600 border-slate-300 bg-slate-50",
   "Discovery": "text-purple-600 border-purple-300 bg-purple-50",
   "Canada": "text-red-600 border-red-300 bg-red-50",
+  "Body Optimization": "text-orange-600 border-orange-300 bg-orange-50",
+  "Neuroscience": "text-pink-600 border-pink-300 bg-pink-50",
+  "Daily Systems": "text-sky-600 border-sky-300 bg-sky-50",
+  "Gamification": "text-yellow-600 border-yellow-300 bg-yellow-50",
+  "Analytics": "text-teal-600 border-teal-300 bg-teal-50",
+  "Research": "text-emerald-600 border-emerald-300 bg-emerald-50",
+  "Platform": "text-violet-600 border-violet-300 bg-violet-50",
+  "Cycles & Seasons": "text-indigo-600 border-indigo-300 bg-indigo-50",
 }
 
 export default function ToolsPage() {
