@@ -5,6 +5,7 @@ import { Moon, Brain, Sun, Thermometer, Eye, Clock, Apple, Bed, Pill, Dumbbell, 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 import { cn } from "@/lib/utils"
 
 function Collapsible({ title, icon: Icon, iconColor, children }: { title: string; icon: any; iconColor: string; children: React.ReactNode }) {
@@ -239,6 +240,16 @@ export default function SleepOptimizationPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "Why We Sleep: Unlocking the Power of Sleep and Dreams", authors: "Walker M", journal: "Scribner", year: 2017, type: "book", notes: "Foundational text on sleep science. Covers architecture, cognitive effects, disease links." },
+        { id: 2, title: "Evidence for the circadian regulation of human sleep", authors: "Dijk DJ, Czeisler CA", journal: "Journal of Physiology", year: 1995, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/7738250/", notes: "Core circadian rhythm research — melatonin, cortisol timing." },
+        { id: 3, title: "The effects of magnesium supplementation on subjective sleep quality", authors: "Abbasi B, Kimiagar M, et al.", journal: "Journal of Research in Medical Sciences", year: 2012, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/23853635/", notes: "Magnesium supplementation improved sleep quality in elderly." },
+        { id: 4, title: "Short sleep duration and health outcomes: a systematic review", authors: "Itani O, Jike M, Watanabe N, Kaneita Y", journal: "Sleep Medicine", year: 2017, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/27568340/", notes: "<6hrs sleep: +13% mortality, +48% heart disease, +15% stroke risk." },
+        { id: 5, title: "Evening use of light-emitting eReaders negatively affects sleep", authors: "Chang AM, Aeschbach D, Duffy JF, Czeisler CA", journal: "PNAS", year: 2014, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/25535358/", notes: "Blue light delays melatonin onset by 90 minutes." },
+        { id: 6, title: "Effects of alcohol on sleep physiology", authors: "Ebrahim IO, Shapiro CM, Williams AJ, Fenwick PB", journal: "Alcoholism: Clinical and Experimental Research", year: 2013, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/23347102/", notes: "Alcohol disrupts REM sleep, fragments sleep architecture." },
+      ]} />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/sleep-calculator" className="text-sm text-indigo-600 hover:underline">Sleep Calculator</a>

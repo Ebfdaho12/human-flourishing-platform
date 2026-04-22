@@ -222,6 +222,8 @@ export const config = {
     "/skill-tree/:path*",
     "/daily-quests/:path*",
     "/climate-data/:path*",
+    "/world-data/:path*",
+    "/glossary/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 const PROTOCOLS = [
   { level: "Traditional Finnish", color: "border-red-300 text-red-700", temp: "175-195\u00b0F (80-90\u00b0C)", duration: "15-20 min", detail: "Dry sauna with periodic water on rocks for steam bursts. 2-3 rounds with cold shower or outdoor cool-down between rounds.", tip: "Sit on the upper bench for maximum heat. Breathe through your nose to protect airways." },
@@ -138,6 +139,15 @@ export default function SaunaPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "Association between sauna bathing and fatal cardiovascular and all-cause mortality events", authors: "Laukkanen T, Khan H, Zaccardi F, Laukkanen JA", journal: "JAMA Internal Medicine", year: 2015, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/25705824/", notes: "2,315 men, 20.7yr follow-up. 4-7x/week = 63% reduced sudden cardiac death (HR 0.37)." },
+        { id: 2, title: "Sauna bathing is associated with reduced cardiovascular mortality in men and women", authors: "Laukkanen T, Kunutsor S, Kauhanen J, Laukkanen JA", journal: "BMC Medicine", year: 2018, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/30486813/", notes: "Expanded to both genders. Dose-response relationship confirmed." },
+        { id: 3, title: "Heat acclimation increases heat shock protein 72 in humans", authors: "Kuennen M, Gillum T, Dokladny K, et al.", journal: "Journal of Applied Physiology", year: 2011, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/21474695/", notes: "HSP70/90 activation with repeated heat exposure." },
+        { id: 4, title: "Endocrine effects of repeated sauna bathing", authors: "Leppäluoto J, Huttunen P, Hirvonen J, et al.", journal: "Acta Physiologica Scandinavica", year: 1986, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/3788567/", notes: "Growth hormone increases 2-5x single session, up to 16x with repeated sessions." },
+        { id: 5, title: "Found My Fitness — Sauna Benefits Deep Dive", authors: "Patrick R", journal: "Found My Fitness", year: 2023, type: "article", url: "https://www.foundmyfitness.com/topics/sauna", notes: "Comprehensive review of sauna research and longevity connections." },
+      ]} />
 
       {/* Navigation Links */}
       <div className="flex gap-3 flex-wrap">
