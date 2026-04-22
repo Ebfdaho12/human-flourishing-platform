@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
+import { useToast } from "@/components/ui/toast-notification"
 
 interface GratitudeEntry {
   date: string
@@ -25,6 +26,8 @@ export default function GratitudePage() {
   const [item3, setItem3] = useState("")
   const today = getToday()
 
+  const { toast } = useToast()
+
   function submit() {
     const items = [item1, item2, item3].filter(i => i.trim())
     if (items.length === 0) return
@@ -32,6 +35,14 @@ export default function GratitudePage() {
     const updated = [entry, ...entries.filter(e => e.date !== today)]
     save(updated)
     setItem1(""); setItem2(""); setItem3("")
+
+    // Check streak
+    const consecutive = updated.length
+    if (consecutive >= 21 && consecutive % 7 === 0) {
+      toast({ message: `${consecutive}-day gratitude streak! Your brain is rewiring 🧠`, type: "milestone", xp: 25 })
+    } else {
+      toast({ message: `${items.length} gratitude${items.length > 1 ? "s" : ""} saved 🙏`, type: "success", xp: 10, duration: 2500 })
+    }
   }
 
   const todayEntry = entries.find(e => e.date === today)

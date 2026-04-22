@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
+import { useToast } from "@/components/ui/toast-notification"
 
 interface EveningEntry {
   date: string
@@ -41,6 +42,8 @@ export default function EveningReviewPage() {
 
   const todayEntry = entries.find(e => e.date === today)
 
+  const { toast } = useToast()
+
   function submit() {
     const entry: EveningEntry = {
       date: today, dayRating: dayRating[0], win, lesson,
@@ -48,6 +51,7 @@ export default function EveningReviewPage() {
       stressLevel: stressLevel[0], gratefulFor, wouldChange,
     }
     setEntries([entry, ...entries.filter(e => e.date !== today)])
+    toast({ message: "Day closed with intention 🌙", type: "success", xp: 15, duration: 3000 })
   }
 
   // Weekly averages

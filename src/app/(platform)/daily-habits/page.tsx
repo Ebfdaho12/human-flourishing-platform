@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
+import { useToast } from "@/components/ui/toast-notification"
 
 interface Habit {
   id: string
@@ -69,7 +70,11 @@ export default function DailyHabitsPage() {
   const today = getToday()
   const last7 = getLast7Days()
 
+  const { toast } = useToast()
+
   function toggleToday(habitId: string) {
+    const habit = habits.find(h => h.id === habitId)
+    const wasCompleted = habit?.completedDates.includes(today)
     const updated = habits.map(h => {
       if (h.id !== habitId) return h
       const completed = h.completedDates.includes(today)
@@ -77,6 +82,20 @@ export default function DailyHabitsPage() {
       return { ...h, completedDates: newDates, streak: getStreak(newDates) }
     })
     save(updated)
+
+    if (!wasCompleted && habit) {
+      const newStreak = getStreak([...habit.completedDates, today])
+      if (newStreak >= 7 && (newStreak % 7 === 0)) {
+        toast({ message: `${habit.name}: ${newStreak}-day streak! 🔥`, type: "streak", xp: 20 })
+      } else {
+        toast({ message: `${habit.name} ✓`, type: "success", xp: 5, duration: 2000 })
+      }
+      // Check if all habits complete
+      const nowDone = updated.filter(h => h.completedDates.includes(today)).length
+      if (nowDone === updated.length && updated.length > 0) {
+        setTimeout(() => toast({ message: "All habits complete! 💯", type: "milestone", xp: 30 }), 500)
+      }
+    }
   }
 
   function addHabit() {
