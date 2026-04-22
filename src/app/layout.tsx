@@ -4,15 +4,15 @@ import { Providers } from "./providers"
 
 export const metadata: Metadata = {
   title: {
-    default: "Human Flourishing Platform",
+    default: "Human Flourishing Platform — Free Tools for Health, Wealth, and Truth",
     template: "%s | Human Flourishing Platform",
   },
-  description: "Nine interconnected systems for health, education, governance, and human flourishing — unified under a sovereignty-first identity layer.",
-  keywords: ["human flourishing", "health tracking", "education", "governance", "DeSci", "decentralized", "privacy", "ZK proofs"],
+  description: "330+ free tools for health optimization, financial independence, mental models, daily habits, and civic accountability. Zero-knowledge encrypted. No ads. No tracking. Your data is yours. Earn tokens by contributing. Thrive with the Hive.",
+  keywords: ["human flourishing", "health tracking", "daily habits", "financial independence", "mental models", "cognitive biases", "cold exposure", "fasting", "peptides", "supplements", "breathwork", "RPG life", "gamification", "truth protocol", "accountability", "privacy", "encrypted", "free"],
   authors: [{ name: "Human Flourishing Platform" }],
   openGraph: {
     title: "Human Flourishing Platform",
-    description: "Nine systems. One identity. Your data. Health intelligence, Socratic education, governance transparency, and more.",
+    description: "330+ free tools for health, wealth, mind, and truth. RPG gamification. AI-powered insights. Military-grade encryption. No ads. No tracking. Earn tokens by contributing.",
     type: "website",
     locale: "en_US",
     siteName: "Human Flourishing Platform",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Human Flourishing Platform",
-    description: "Nine interconnected systems for health, education, and human flourishing.",
+    description: "330+ free tools for health, wealth, and truth. RPG stats. Daily quests. Encrypted. No ads. Earn by contributing.",
   },
   robots: { index: true, follow: true },
   manifest: "/manifest.json",

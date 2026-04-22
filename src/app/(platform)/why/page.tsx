@@ -170,6 +170,30 @@ export default function WhyPage() {
           </CardContent>
         </Card>
 
+        <Card className="border-orange-200 bg-orange-50/10">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="h-5 w-5 text-orange-500" />
+              <h2 className="text-base font-bold text-foreground">Thrive with the Hive.</h2>
+            </div>
+            <p>
+              You already pay for AI — Claude, ChatGPT, Perplexity. Most of that compute sits idle. What if your AI
+              could work for you even when you're not using it? Point it at the truth database. It researches public
+              records, structures the data, submits it. You earn tokens. The database fills. Everyone benefits.
+            </p>
+            <p className="mt-2">
+              One person's AI finds one piece of data. A million people's AIs find everything.
+              Your subscription stops being an idle cost and becomes a productive asset. The platform doesn't need
+              venture capital or advertising because <strong>the users ARE the infrastructure</strong>.
+            </p>
+            <p className="mt-2">
+              Old phones become network nodes. Raspberry Pis become truth infrastructure. Teslas in parking lots
+              contribute compute while they charge. The truth protocol doesn't run on corporate servers — it runs
+              on the devices of the people who use it. <strong>Distributed. Incentivized. Unstoppable.</strong>
+            </p>
+          </CardContent>
+        </Card>
+
       </div>
 
       <div className="text-center pb-8">
@@ -178,6 +202,11 @@ export default function WhyPage() {
           economics are transparent. The governance will be democratic. We build in the open because we have
           nothing to hide. Treat every line as if existence depends on it.
         </p>
+        <div className="flex gap-3 justify-center mt-4">
+          <a href="/earn" className="text-sm text-emerald-600 hover:underline">Earn with your AI →</a>
+          <a href="/depin" className="text-sm text-cyan-600 hover:underline">Power the network →</a>
+          <a href="/contribute" className="text-sm text-amber-600 hover:underline">Contribute to Aletheia →</a>
+        </div>
       </div>
     </div>
   )
