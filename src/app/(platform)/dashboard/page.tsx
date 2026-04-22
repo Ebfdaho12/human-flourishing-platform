@@ -14,6 +14,7 @@ import { HealthSnapshot } from "@/components/dashboard/HealthSnapshot"
 import { HiveActivity } from "@/components/dashboard/HiveActivity"
 import { LevelUnlocks } from "@/components/dashboard/LevelUnlocks"
 import { WelcomeFlow } from "@/components/dashboard/WelcomeFlow"
+import { StreakRecovery } from "@/components/dashboard/StreakRecovery"
 import { HelpTip } from "@/components/ui/help-tip"
 import { formatFound, formatVoice } from "@/lib/utils"
 
@@ -45,6 +46,9 @@ export default async function DashboardPage() {
 
       {/* Welcome flow for new users — hides after completion */}
       <WelcomeFlow />
+
+      {/* Streak recovery — shows when streaks are at risk */}
+      <StreakRecovery />
 
       {/* Daily rhythm — the core engagement loop */}
       <DailyRhythm />
