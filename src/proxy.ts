@@ -231,6 +231,7 @@ export const config = {
     "/earn/:path*",
     "/depin/:path*",
     "/staking-guide/:path*",
+    "/invite/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",

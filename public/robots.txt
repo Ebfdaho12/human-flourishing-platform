@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /settings
+Disallow: /wallet
+
+Sitemap: https://human-flourishing-platform.vercel.app/sitemap.xml
