@@ -27,7 +27,6 @@ export const authOptions: NextAuthOptions = {
 
           // Rate limit login attempts: 5 per 5 minutes per email
           if (!rateLimit(`login:${credentials.email.toLowerCase()}`, 5, 300000)) {
-            console.log("AUTH: rate limited for", credentials.email)
             return null
           }
 
@@ -36,14 +35,9 @@ export const authOptions: NextAuthOptions = {
             include: { profile: true },
           })
 
-          if (!user) {
-            console.log("AUTH: no user found for", credentials.email)
-            return null
-          }
+          if (!user) return null
 
-          console.log("AUTH: user found, verifying password...")
           const valid = await argon2.verify(user.passwordHash, credentials.password)
-          console.log("AUTH: password valid:", valid)
           if (!valid) return null
 
           return {

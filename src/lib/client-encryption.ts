@@ -124,14 +124,25 @@ export async function decryptJSON<T = any>(encrypted: string, password: string):
 const SESSION_KEY = "hfp-encryption-key"
 
 /**
- * Store the encryption key in sessionStorage (cleared when tab closes)
+ * Store the encryption key material in sessionStorage (cleared when tab closes)
  * NEVER stored in localStorage (persists) or cookies (sent to server)
+ *
+ * SECURITY NOTE: We store the password in sessionStorage because PBKDF2 needs
+ * it to derive the AES key on each encrypt/decrypt operation. sessionStorage is:
+ * - Cleared when the tab closes (not persistent)
+ * - Not sent to the server (unlike cookies)
+ * - Only accessible from the same origin (same-origin policy)
+ * - Vulnerable to XSS — but if an attacker has XSS, they can already
+ *   intercept the password at login time, so sessionStorage is not the
+ *   weakest link. The real defense is preventing XSS (which we do via
+ *   CSP headers, input sanitization, and DOMPurify).
+ *
+ * The stored value is base64-encoded to prevent casual inspection in
+ * browser dev tools (not encryption — just obfuscation for shoulder-surfing).
  */
 export function storeSessionKey(password: string): void {
   if (typeof window !== "undefined") {
-    // We store a hash of the password, not the password itself
-    // The actual password is used to derive the AES key on each encrypt/decrypt
-    sessionStorage.setItem(SESSION_KEY, password)
+    sessionStorage.setItem(SESSION_KEY, btoa(password))
   }
 }
 
@@ -140,7 +151,9 @@ export function storeSessionKey(password: string): void {
  */
 export function getSessionKey(): string | null {
   if (typeof window === "undefined") return null
-  return sessionStorage.getItem(SESSION_KEY)
+  const stored = sessionStorage.getItem(SESSION_KEY)
+  if (!stored) return null
+  try { return atob(stored) } catch { return stored } // fallback for pre-encoding values
 }
 
 /**
