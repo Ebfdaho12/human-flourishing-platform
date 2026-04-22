@@ -13,6 +13,7 @@ import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions"
 import { HealthSnapshot } from "@/components/dashboard/HealthSnapshot"
 import { HiveActivity } from "@/components/dashboard/HiveActivity"
 import { LevelUnlocks } from "@/components/dashboard/LevelUnlocks"
+import { WelcomeFlow } from "@/components/dashboard/WelcomeFlow"
 import { HelpTip } from "@/components/ui/help-tip"
 import { formatFound, formatVoice } from "@/lib/utils"
 
@@ -41,6 +42,9 @@ export default async function DashboardPage() {
           <a href="/profile/edit" className="text-xs text-violet-600 hover:underline mt-1 block">Set your display name →</a>
         )}
       </div>
+
+      {/* Welcome flow for new users — hides after completion */}
+      <WelcomeFlow />
 
       {/* Daily rhythm — the core engagement loop */}
       <DailyRhythm />

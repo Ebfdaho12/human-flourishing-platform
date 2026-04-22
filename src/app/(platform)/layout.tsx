@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { MilestoneCelebration } from "@/components/dashboard/MilestoneCelebration"
 import { ToastProvider } from "@/components/ui/toast-notification"
 import { DailyProgress } from "@/components/dashboard/DailyProgress"
+import { PageTracker } from "@/components/PageTracker"
 
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -46,6 +47,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
         <FeedbackButton />
         <KeyboardShortcuts />
         <SearchOverlay />
+        <PageTracker />
       </div>
     </div>
   )
