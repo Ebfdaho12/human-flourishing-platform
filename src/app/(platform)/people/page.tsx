@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Users, Heart, Phone, Plus, X, Gift, AlertTriangle } from "lucide-react"
+import { Users, Heart, Phone, Plus, X, Gift, AlertTriangle, Award } from "lucide-react"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +29,30 @@ function upcomingBirthdays(people: Person[]) {
     if (next < now) next.setFullYear(y + 1)
     return { ...p, nextBday: next, daysUntil: Math.ceil((next.getTime() - now.getTime()) / 86400000) }
   }).filter(b => b.daysUntil <= 60).sort((a, b) => a.daysUntil - b.daysUntil)
+}
+
+function relationshipGrade(p: Person): { grade: "A" | "B" | "C" | "D"; color: string } {
+  // Recency score: 0-5 based on contact status
+  const s = status(p)
+  const recencyScore = s === "green" ? 5 : s === "yellow" ? 3 : 1
+  // Quality score: map 1-10 to 0-5
+  const qualityScore = (p.quality / 10) * 5
+  // Combined: 0-10
+  const combined = recencyScore + qualityScore
+  if (combined >= 8) return { grade: "A", color: "text-emerald-600 bg-emerald-100 border-emerald-300" }
+  if (combined >= 6) return { grade: "B", color: "text-blue-600 bg-blue-100 border-blue-300" }
+  if (combined >= 4) return { grade: "C", color: "text-amber-600 bg-amber-100 border-amber-300" }
+  return { grade: "D", color: "text-red-600 bg-red-100 border-red-300" }
+}
+
+function birthdaysThisMonth(people: Person[]): Person[] {
+  const now = new Date()
+  const currentMonth = now.getMonth() + 1
+  return people.filter(p => {
+    if (!p.birthday) return false
+    const bMonth = parseInt(p.birthday.split("-")[1])
+    return bMonth === currentMonth
+  })
 }
 
 export default function PeoplePage() {
@@ -63,11 +87,42 @@ export default function PeoplePage() {
         <p className="text-sm text-muted-foreground italic">The Harvard Study of Adult Development (1938-present, 80+ years, 724 participants): the #1 predictor of happiness and health in old age is not money, fame, or achievement — it is the quality of your close relationships.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <Card className="border"><CardContent className="p-3 text-center"><p className="text-lg font-bold">{people.length}</p><p className="text-[10px] text-muted-foreground">People Tracked</p></CardContent></Card>
-        <Card className="border"><CardContent className="p-3 text-center"><p className="text-lg font-bold">{avgQuality}</p><p className="text-[10px] text-muted-foreground">Avg Quality</p></CardContent></Card>
-        <Card className="border"><CardContent className="p-3 text-center"><p className="text-lg font-bold text-red-500">{overdue.length}</p><p className="text-[10px] text-muted-foreground">Overdue</p></CardContent></Card>
-      </div>
+      <Card className="border bg-gradient-to-r from-rose-50/40 to-pink-50/40">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Award className="h-4 w-4 text-rose-500" />
+            <p className="text-sm font-semibold">Relationship Summary</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="text-center">
+              <p className="text-lg font-bold">{people.length}</p>
+              <p className="text-[10px] text-muted-foreground">People Tracked</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold">{avgQuality}<span className="text-xs text-muted-foreground">/10</span></p>
+              <p className="text-[10px] text-muted-foreground">Avg Quality</p>
+            </div>
+            <div className="text-center">
+              <p className={cn("text-lg font-bold", overdue.length > 0 ? "text-red-500" : "text-emerald-500")}>{overdue.length}</p>
+              <p className="text-[10px] text-muted-foreground">Overdue Contact</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold">{birthdaysThisMonth(people).length}</p>
+              <p className="text-[10px] text-muted-foreground">Birthdays This Month</p>
+            </div>
+          </div>
+          {birthdaysThisMonth(people).length > 0 && (
+            <div className="pt-2 border-t">
+              <p className="text-[10px] text-muted-foreground mb-1">Birthdays this month:</p>
+              <div className="flex flex-wrap gap-1">
+                {birthdaysThisMonth(people).map(p => (
+                  <Badge key={p.id} variant="outline" className="text-[9px]">{p.name} ({p.birthday})</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {overdue.length > 0 && (
         <Card className="border-2 border-red-300 bg-red-50/20">
@@ -116,6 +171,7 @@ export default function PeoplePage() {
       <div className="space-y-2">
         {people.map(p => {
           const s = status(p); const editing = editId === p.id
+          const { grade, color: gradeColor } = relationshipGrade(p)
           return (
             <Card key={p.id} className={cn("border-2 transition-all", STATUS_STYLE[s])}>
               <CardContent className="p-4 space-y-2">
@@ -124,6 +180,7 @@ export default function PeoplePage() {
                     <div className={cn("h-2.5 w-2.5 rounded-full", STATUS_DOT[s])} />
                     <span className="text-sm font-semibold">{p.name}</span>
                     <Badge className={cn("text-[9px] text-white", REL_COLORS[p.type])}>{p.type}</Badge>
+                    <Badge variant="outline" className={cn("text-[9px] font-bold border", gradeColor)}>{grade}</Badge>
                     {p.birthday && <span className="text-[10px] text-muted-foreground">{p.birthday}</span>}
                   </div>
                   <div className="flex items-center gap-1">

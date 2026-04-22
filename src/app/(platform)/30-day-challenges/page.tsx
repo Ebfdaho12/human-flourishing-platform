@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Flame, Play, CheckCircle2, Trophy, Plus, X, Calendar } from "lucide-react"
+import { Flame, Play, CheckCircle2, Trophy, Plus, X, Calendar, TrendingUp, BarChart3, Target } from "lucide-react"
 import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +41,90 @@ function streak(days: string[]): number {
     if (daysBetween(sorted[i], sorted[i - 1]) === 1) s++; else break
   }
   return s
+}
+
+function longestStreak(days: string[]): number {
+  if (!days.length) return 0
+  const sorted = [...days].sort()
+  let longest = 1, current = 1
+  for (let i = 1; i < sorted.length; i++) {
+    if (daysBetween(sorted[i - 1], sorted[i]) === 1) { current++; longest = Math.max(longest, current) }
+    else current = 1
+  }
+  return longest
+}
+
+function ChallengeAnalytics({ actives, allChallenges }: { actives: ActiveChallenge[]; allChallenges: ChallengeData[] }) {
+  const activeInProgress = actives.filter(a => a.completedDays.length < 30)
+  if (activeInProgress.length === 0) return null
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-500" /> Challenge Analytics</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {activeInProgress.map(ac => {
+          const meta = allChallenges.find(c => c.id === ac.challengeId)
+          if (!meta) return null
+          const today = todayStr()
+          const totalDaysElapsed = Math.max(1, daysBetween(ac.startDate, today) + 1)
+          const cappedElapsed = Math.min(totalDaysElapsed, 30)
+          const completionPct = Math.round((ac.completedDays.length / 30) * 100)
+          const daysRemaining = Math.max(0, 30 - cappedElapsed)
+          const missedDays = cappedElapsed - ac.completedDays.filter(d => d <= today && d >= ac.startDate).length
+          const missRate = cappedElapsed > 0 ? Math.round((missedDays / cappedElapsed) * 100) : 0
+          const best = longestStreak(ac.completedDays)
+
+          // SVG progress ring
+          const radius = 28, circumference = 2 * Math.PI * radius
+          const offset = circumference - (completionPct / 100) * circumference
+
+          return (
+            <Card key={ac.challengeId} className={cn("border", meta.color)}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative shrink-0">
+                    <svg width="68" height="68" className="-rotate-90">
+                      <circle cx="34" cy="34" r={radius} fill="none" stroke="currentColor" className="text-muted/20" strokeWidth="5" />
+                      <circle cx="34" cy="34" r={radius} fill="none" stroke="currentColor" className="text-emerald-500" strokeWidth="5"
+                        strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{completionPct}%</span>
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-semibold flex items-center gap-1">{meta.emoji} {meta.name}</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] text-muted-foreground">
+                      <span>Days remaining: <strong className="text-foreground">{daysRemaining}</strong></span>
+                      <span>Miss rate: <strong className={cn("text-foreground", missRate > 30 ? "text-red-500" : "")}>{missRate}%</strong></span>
+                      <span>Completed: <strong className="text-foreground">{ac.completedDays.length}/30</strong></span>
+                      <span>Best streak: <strong className="text-foreground">{best}d</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function CompletionInsights({ ac, meta }: { ac: ActiveChallenge; meta: ChallengeData }) {
+  return (
+    <div className="space-y-2 pt-1">
+      <div className="rounded-lg bg-gradient-to-r from-amber-100/80 to-yellow-100/80 border border-amber-300 p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-amber-600" />
+          <p className="text-sm font-bold text-amber-800">You completed {meta.name}!</p>
+        </div>
+        <p className="text-xs text-amber-700">That&apos;s 30 days of {meta.description.toLowerCase().replace(/^daily\s+/i, "").replace(/\s+every\s+day$/i, "")}.</p>
+      </div>
+      <div className="rounded-lg bg-blue-50/80 border border-blue-200 p-3 space-y-1">
+        <p className="text-[11px] text-blue-800 flex items-center gap-1"><Target className="h-3.5 w-3.5 text-blue-500 shrink-0" /><strong>Research:</strong> It takes an average of 66 days to make a habit automatic (Phillippa Lally, European Journal of Social Psychology, 2009). You&apos;re over halfway there.</p>
+        <p className="text-[11px] text-blue-700 flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-blue-500 shrink-0" /><strong>What to do next:</strong> Continue as a daily habit, or start your next challenge.</p>
+      </div>
+    </div>
+  )
 }
 
 export default function ThirtyDayChallengesPage() {
@@ -101,7 +185,7 @@ export default function ThirtyDayChallengesPage() {
             {!completed && <Button variant="ghost" size="sm" className="text-[10px] text-red-400 h-6" onClick={() => abandon(ac.challengeId)}><X className="h-3 w-3" /></Button>}
           </div>
           {completed ? (
-            <p className="text-xs text-amber-700 font-medium">You did it! 30 days completed. This challenge is part of your history now.</p>
+            <CompletionInsights ac={ac} meta={meta} />
           ) : (
             <>
               <div className="flex items-center gap-3">
@@ -146,6 +230,8 @@ export default function ThirtyDayChallengesPage() {
           {actives.map(a => renderActive(a))}
         </div>
       )}
+
+      <ChallengeAnalytics actives={actives} allChallenges={allChallenges} />
 
       <div className="space-y-3">
         <h2 className="text-sm font-semibold">Available Challenges</h2>

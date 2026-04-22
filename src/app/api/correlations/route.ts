@@ -201,6 +201,35 @@ export async function GET(req: Request) {
         - (moodOnRestDays.reduce((a, b) => a + b, 0) / moodOnRestDays.length)) * 10) / 10
       : null
 
+    // ─── Exercise Duration vs Mood ───
+    const exerciseDurationMoodPairs: { duration: number; mood: number }[] = []
+    for (const ex of exerciseEntries) {
+      const exDate = new Date(ex.recordedAt).toISOString().split("T")[0]
+      const matchingMood = moodEntries.find(m =>
+        new Date(m.recordedAt).toISOString().split("T")[0] === exDate
+      )
+      if (matchingMood) {
+        const exData = JSON.parse(ex.data || "{}")
+        const duration = exData.durationMinutes ?? exData.duration ?? null
+        if (duration && typeof duration === "number" && duration > 0) {
+          exerciseDurationMoodPairs.push({ duration, mood: matchingMood.score })
+        }
+      }
+    }
+
+    let exerciseDurationMoodCorrelation = null
+    if (exerciseDurationMoodPairs.length >= 5) {
+      const n = exerciseDurationMoodPairs.length
+      const sumX = exerciseDurationMoodPairs.reduce((s, p) => s + p.duration, 0)
+      const sumY = exerciseDurationMoodPairs.reduce((s, p) => s + p.mood, 0)
+      const sumXY = exerciseDurationMoodPairs.reduce((s, p) => s + p.duration * p.mood, 0)
+      const sumX2 = exerciseDurationMoodPairs.reduce((s, p) => s + p.duration ** 2, 0)
+      const sumY2 = exerciseDurationMoodPairs.reduce((s, p) => s + p.mood ** 2, 0)
+      const num = n * sumXY - sumX * sumY
+      const den = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2))
+      exerciseDurationMoodCorrelation = den !== 0 ? Math.round((num / den) * 100) / 100 : null
+    }
+
     // ─── Generate Smart Insights ───
     const insights: { text: string; type: "positive" | "warning" | "neutral"; confidence: "high" | "medium" | "low" }[] = []
 
@@ -253,6 +282,17 @@ export async function GET(req: Request) {
       }
     }
 
+    // Exercise duration insight
+    if (exerciseDurationMoodCorrelation !== null && Math.abs(exerciseDurationMoodCorrelation) > 0.2) {
+      insights.push({
+        text: exerciseDurationMoodCorrelation > 0
+          ? `Longer exercise sessions correlate with better mood (r=${exerciseDurationMoodCorrelation}, based on ${exerciseDurationMoodPairs.length} sessions). More time moving tends to mean a better day for you.`
+          : `Interestingly, longer exercise sessions correlate with slightly lower mood (r=${exerciseDurationMoodCorrelation}). Shorter, more intense sessions may work better for you — or you may exercise longer on already-tough days.`,
+        type: exerciseDurationMoodCorrelation > 0.3 ? "positive" : "neutral",
+        confidence: exerciseDurationMoodPairs.length >= 15 ? "high" : "medium",
+      })
+    }
+
     // Low sleep warning
     const recentSleep = sleepEntries.slice(-7)
     if (recentSleep.length >= 5) {
@@ -283,6 +323,8 @@ export async function GET(req: Request) {
       exerciseMoodDelta,
       exerciseDayCount: moodOnExerciseDays.length,
       restDayCount: moodOnRestDays.length,
+      exerciseDurationMoodCorrelation,
+      exerciseDurationPairs: exerciseDurationMoodPairs.length,
       insights,
       dataPoints: moodEntries.length,
       disclaimer: "Correlations are not causation. These patterns are for personal exploration only — not medical advice.",
