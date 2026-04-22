@@ -9,6 +9,8 @@ import { SearchOverlay } from "@/components/layout/SearchOverlay"
 import { AlyVoice } from "@/components/aly/AlyVoice"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { MilestoneCelebration } from "@/components/dashboard/MilestoneCelebration"
+import { ToastProvider } from "@/components/ui/toast-notification"
+import { DailyProgress } from "@/components/dashboard/DailyProgress"
 
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -33,10 +35,13 @@ export default async function PlatformLayout({ children }: { children: React.Rea
         <TopNav />
         <main id="main-content" className="flex-1 overflow-y-auto p-6" role="main">
           <ErrorBoundary>
-            {children}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </ErrorBoundary>
         </main>
         <MilestoneCelebration />
+        <DailyProgress />
         <AlyVoice />
         <FeedbackButton />
         <KeyboardShortcuts />

@@ -147,6 +147,21 @@ export default function EarnPage() {
         </CardContent>
       </Card>
 
+      {/* Early contributor guarantee */}
+      <Card className="border-2 border-amber-200 bg-amber-50/20">
+        <CardContent className="p-5">
+          <p className="text-sm font-semibold text-amber-900 mb-2 flex items-center gap-2"><Shield className="h-4 w-4" /> Early Contributor Guarantee</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong>Your account and everything you earn transfers seamlessly.</strong> The current platform IS the production
+            platform — same database, same accounts. When Solana tokens go live, you simply connect a wallet and your
+            off-chain token balance bridges to on-chain tokens automatically. Your credibility score, contribution
+            history, habits, health data — everything persists. There is no "beta" that gets wiped. What you build
+            now is permanent. Early contributors who build credibility and earn tokens today will have those
+            advantages on day one of the full blockchain launch.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Quick start */}
       <Card className="border-emerald-200 bg-emerald-50/20">
         <CardContent className="p-5">
