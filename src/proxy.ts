@@ -224,6 +224,8 @@ export const config = {
     "/climate-data/:path*",
     "/world-data/:path*",
     "/glossary/:path*",
+    "/investigate/:path*",
+    "/research-compiler/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
