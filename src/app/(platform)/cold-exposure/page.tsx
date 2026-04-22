@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 interface Session { date: string; duration: number; temp: string; feeling: string }
 
@@ -210,6 +211,15 @@ export default function ColdExposurePage() {
           </CardContent>
         )}
       </Card>
+
+      <SourceList title="Sources & References" sources={[
+        { id: 1, title: "Voluntary activation of the sympathetic nervous system and attenuation of the innate immune response in humans", authors: "Kox M, van Eijk LT, Zwaag J, et al.", journal: "Proc Natl Acad Sci USA", year: 2014, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/24799686/", notes: "Radboud University Wim Hof study. n=24. 29% fewer sick days in trained group." },
+        { id: 2, title: "Human physiological responses to immersion into water of different temperatures", authors: "Šrámek P, Šimečková M, Janský L, et al.", journal: "European Journal of Applied Physiology", year: 2000, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/10751106/", notes: "Dopamine 250% increase at 14°C water immersion, lasting 2-3 hours." },
+        { id: 3, title: "Habitual cold exposure and brown fat activation", authors: "Søberg S, Löfgren J, Philipsen FE, et al.", journal: "Cell Reports Medicine", year: 2021, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/34755128/", notes: "Susanna Søberg's research on cold-induced brown adipose tissue activation." },
+        { id: 4, title: "The Effect of Cold Showering on Health and Work: A Randomized Controlled Trial", authors: "Buijze GA, Sierevelt IN, van der Heijden BC, et al.", journal: "PLoS ONE", year: 2016, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/27631616/", notes: "3,018 participants. 30-90sec cold shower = 29% reduction in sick days." },
+        { id: 5, title: "Deliberate Cold Exposure Protocols — Huberman Lab Podcast", authors: "Huberman A", journal: "Huberman Lab", year: 2022, type: "article", url: "https://www.hubermanlab.com/episode/the-science-and-use-of-cold-exposure-for-health-and-performance", notes: "Comprehensive review of cold exposure science and protocols." },
+        { id: 6, title: "Winter swimming improves general well-being", authors: "Huttunen P, Kokko L, Ylijukuri V", journal: "International Journal of Circumpolar Health", year: 2004, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/15736170/", notes: "Regular winter swimmers report improved mood, energy, and reduced stress." },
+      ]} />
 
       {/* Navigation Links */}
       <div className="flex gap-3 flex-wrap">
