@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 
 interface GratitudeEntry {
   date: string
@@ -18,23 +19,11 @@ function getToday(): string {
 }
 
 export default function GratitudePage() {
-  const [entries, setEntries] = useState<GratitudeEntry[]>([])
+  const [entries, save] = useSyncedStorage<GratitudeEntry[]>("hfp-gratitude", [])
   const [item1, setItem1] = useState("")
   const [item2, setItem2] = useState("")
   const [item3, setItem3] = useState("")
   const today = getToday()
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("hfp-gratitude")
-      if (saved) setEntries(JSON.parse(saved))
-    } catch {}
-  }, [])
-
-  function save(updated: GratitudeEntry[]) {
-    setEntries(updated)
-    localStorage.setItem("hfp-gratitude", JSON.stringify(updated))
-  }
 
   function submit() {
     const items = [item1, item2, item3].filter(i => i.trim())

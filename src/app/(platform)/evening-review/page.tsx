@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 
 interface EveningEntry {
   date: string
@@ -27,7 +28,7 @@ function getToday(): string {
 }
 
 export default function EveningReviewPage() {
-  const [entries, setEntries] = useState<EveningEntry[]>([])
+  const [entries, setEntries] = useSyncedStorage<EveningEntry[]>("hfp-evening-review", [])
   const [dayRating, setDayRating] = useState([6])
   const [win, setWin] = useState("")
   const [lesson, setLesson] = useState("")
@@ -38,13 +39,6 @@ export default function EveningReviewPage() {
   const [wouldChange, setWouldChange] = useState("")
   const today = getToday()
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("hfp-evening-review")
-      if (saved) setEntries(JSON.parse(saved))
-    } catch {}
-  }, [])
-
   const todayEntry = entries.find(e => e.date === today)
 
   function submit() {
@@ -53,9 +47,7 @@ export default function EveningReviewPage() {
       tomorrowPriority, energyLevel: energyLevel[0],
       stressLevel: stressLevel[0], gratefulFor, wouldChange,
     }
-    const updated = [entry, ...entries.filter(e => e.date !== today)]
-    setEntries(updated)
-    localStorage.setItem("hfp-evening-review", JSON.stringify(updated))
+    setEntries([entry, ...entries.filter(e => e.date !== today)])
   }
 
   // Weekly averages

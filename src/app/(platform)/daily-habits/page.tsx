@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 
 interface Habit {
   id: string
@@ -61,29 +62,12 @@ function getLast7Days(): string[] {
 }
 
 export default function DailyHabitsPage() {
-  const [habits, setHabits] = useState<Habit[]>([])
+  const defaultHabits = DEFAULT_HABITS.map(h => ({ ...h, streak: 0, completedDates: [] as string[] }))
+  const [habits, save] = useSyncedStorage<Habit[]>("hfp-daily-habits", defaultHabits)
   const [newHabitName, setNewHabitName] = useState("")
   const [showAdd, setShowAdd] = useState(false)
   const today = getToday()
   const last7 = getLast7Days()
-
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("hfp-daily-habits")
-    if (saved) {
-      setHabits(JSON.parse(saved))
-    } else {
-      // Initialize with defaults
-      const initial = DEFAULT_HABITS.map(h => ({ ...h, streak: 0, completedDates: [] }))
-      setHabits(initial)
-      localStorage.setItem("hfp-daily-habits", JSON.stringify(initial))
-    }
-  }, [])
-
-  function save(updated: Habit[]) {
-    setHabits(updated)
-    localStorage.setItem("hfp-daily-habits", JSON.stringify(updated))
-  }
 
   function toggleToday(habitId: string) {
     const updated = habits.map(h => {

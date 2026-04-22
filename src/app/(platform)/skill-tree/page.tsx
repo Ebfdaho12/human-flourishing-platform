@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { TrendingUp, Zap, Star, Plus, X, Target } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,7 +35,6 @@ const DEFAULT_SKILLS: Record<string, string[]> = {
   leadership: ["Decision Making", "Delegation", "Vision", "Mentoring", "Resilience"],
 }
 
-const LS_KEY = "hfp-skills"
 const BAR_COLORS: Record<string, string> = { emerald: "bg-emerald-500", violet: "bg-violet-500", amber: "bg-amber-500", rose: "bg-rose-500", orange: "bg-orange-500", cyan: "bg-cyan-500", indigo: "bg-indigo-500" }
 const TEXT_COLORS: Record<string, string> = { emerald: "text-emerald-600", violet: "text-violet-600", amber: "text-amber-600", rose: "text-rose-600", orange: "text-orange-600", cyan: "text-cyan-600", indigo: "text-indigo-600" }
 const BORDER_COLORS: Record<string, string> = { emerald: "border-emerald-300", violet: "border-violet-300", amber: "border-amber-300", rose: "border-rose-300", orange: "border-orange-300", cyan: "border-cyan-300", indigo: "border-indigo-300" }
@@ -43,19 +43,10 @@ function initCategories(): Category[] {
   return DEFAULT_CATS.map(c => ({ ...c, skills: DEFAULT_SKILLS[c.id].map((name, i) => ({ id: `${c.id}-${i}`, name, level: 1, focused: false })) }))
 }
 
-function load(): Category[] {
-  if (typeof window === "undefined") return initCategories()
-  try { const d = localStorage.getItem(LS_KEY); return d ? JSON.parse(d) : initCategories() } catch { return initCategories() }
-}
-function save(c: Category[]) { localStorage.setItem(LS_KEY, JSON.stringify(c)) }
-
 export default function SkillTreePage() {
-  const [cats, setCats] = useState<Category[]>([])
+  const [cats, persist] = useSyncedStorage<Category[]>("hfp-skills", initCategories())
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [newSkill, setNewSkill] = useState("")
-
-  useEffect(() => setCats(load()), [])
-  const persist = (c: Category[]) => { setCats(c); save(c) }
 
   const updateSkill = (catId: string, skillId: string, patch: Partial<Skill>) => {
     persist(cats.map(c => c.id === catId ? { ...c, skills: c.skills.map(s => s.id === skillId ? { ...s, ...patch } : s) } : c))

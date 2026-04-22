@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Flame, Play, CheckCircle2, Trophy, Plus, X, Calendar } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,14 +26,6 @@ const CHALLENGES: ChallengeData[] = [
   { id: "nospend", name: "No Spend", emoji: "\u{1F4B0}", description: "Only essentials for 30 days (except bills)", color: "border-yellow-300 bg-yellow-50/30" },
 ]
 
-const LS_KEY = "hfp-challenges"
-
-function loadChallenges(): ActiveChallenge[] {
-  if (typeof window === "undefined") return []
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]") } catch { return [] }
-}
-function saveChallenges(c: ActiveChallenge[]) { localStorage.setItem(LS_KEY, JSON.stringify(c)) }
-
 function todayStr() { return new Date().toISOString().split("T")[0] }
 
 function daysBetween(a: string, b: string) {
@@ -50,18 +43,14 @@ function streak(days: string[]): number {
 }
 
 export default function ThirtyDayChallengesPage() {
-  const [actives, setActives] = useState<ActiveChallenge[]>([])
+  const [actives, save] = useSyncedStorage<ActiveChallenge[]>("hfp-challenges", [])
   const [showCustom, setShowCustom] = useState(false)
   const [customName, setCustomName] = useState("")
   const [customDesc, setCustomDesc] = useState("")
-  const [customs, setCustoms] = useState<ChallengeData[]>([])
-
-  useEffect(() => {
-    setActives(loadChallenges())
-    try { setCustoms(JSON.parse(localStorage.getItem("hfp-custom-challenges") || "[]")) } catch { /* */ }
-  }, [])
-
-  function save(next: ActiveChallenge[]) { setActives(next); saveChallenges(next) }
+  const [customs, setCustoms] = useState<ChallengeData[]>(() => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem("hfp-custom-challenges") || "[]") } catch { return [] }
+  })
 
   function startChallenge(id: string) {
     if (actives.find(a => a.challengeId === id)) return

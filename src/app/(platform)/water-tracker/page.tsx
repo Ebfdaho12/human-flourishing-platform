@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Droplets, Plus, Minus, Flame, GlassWater, Trophy, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,23 +12,14 @@ import { Explain } from "@/components/ui/explain"
 interface WaterEntry { amount: number; time: string }
 interface DayLog { date: string; entries: WaterEntry[]; total: number }
 
-const STORAGE_KEY = "hfp-water-log"
 const today = () => new Date().toISOString().slice(0, 10)
 const fmt = (ml: number) => ml >= 1000 ? `${(ml / 1000).toFixed(1)}L` : `${ml}ml`
 
-function loadLog(): DayLog[] {
-  if (typeof window === "undefined") return []
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") } catch { return [] }
-}
-function saveLog(log: DayLog[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(log)) }
-
 export default function WaterTrackerPage() {
-  const [log, setLog] = useState<DayLog[]>([])
+  const [log, saveLog] = useSyncedStorage<DayLog[]>("hfp-water-log", [])
   const [goal, setGoal] = useState(2500)
   const [customAmt, setCustomAmt] = useState(300)
   const [showSigns, setShowSigns] = useState(false)
-
-  useEffect(() => { setLog(loadLog()) }, [])
 
   const todayLog = log.find(d => d.date === today())
   const current = todayLog?.total || 0
@@ -40,7 +32,7 @@ export default function WaterTrackerPage() {
     const idx = updated.findIndex(d => d.date === today())
     if (idx >= 0) { updated[idx].entries.push(entry); updated[idx].total += ml }
     else updated.push({ date: today(), entries: [entry], total: ml })
-    setLog(updated); saveLog(updated)
+    saveLog(updated)
   }
 
   // 7-day history

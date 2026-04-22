@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Scale, Plus, ChevronDown, ChevronUp, CheckCircle, XCircle, Clock, Brain, Target, AlertTriangle, Trash2 } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -30,7 +31,7 @@ interface Decision {
 function getToday(): string { return new Date().toISOString().split("T")[0] }
 
 export default function DecisionJournalPage() {
-  const [decisions, setDecisions] = useState<Decision[]>([])
+  const [decisions, save] = useSyncedStorage<Decision[]>("hfp-decisions", [])
   const [showForm, setShowForm] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
 
@@ -49,12 +50,6 @@ export default function DecisionJournalPage() {
   const [actualOutcome, setActualOutcome] = useState("")
   const [wasRight, setWasRight] = useState<boolean | null>(null)
   const [lessons, setLessons] = useState("")
-
-  useEffect(() => {
-    try { const saved = localStorage.getItem("hfp-decisions"); if (saved) setDecisions(JSON.parse(saved)) } catch {}
-  }, [])
-
-  function save(updated: Decision[]) { setDecisions(updated); localStorage.setItem("hfp-decisions", JSON.stringify(updated)) }
 
   function submit() {
     if (!title.trim() || !choice.trim()) return

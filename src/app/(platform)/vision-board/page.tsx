@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Sparkles, Plus, ChevronUp, ChevronDown, Trash2, Trophy, Filter, Eye, Brain, Link } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +11,6 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 interface Vision { id: string; title: string; category: string; description: string; targetDate: string; status: string }
-const STORAGE_KEY = "hfp-vision-board"
 const CATEGORIES = ["Health", "Wealth", "Relationships", "Career", "Personal Growth", "Adventure", "Family", "Contribution"] as const
 const STATUSES = ["dream", "planning", "in progress", "achieved"] as const
 const CAT_COLORS: Record<string, string> = {
@@ -21,19 +21,15 @@ const CAT_COLORS: Record<string, string> = {
 }
 const STATUS_COLORS: Record<string, string> = { dream: "bg-slate-100 text-slate-700", planning: "bg-blue-100 text-blue-700", "in progress": "bg-amber-100 text-amber-700", achieved: "bg-green-100 text-green-700" }
 
-function load(): Vision[] { if (typeof window === "undefined") return []; try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") } catch { return [] } }
-function save(v: Vision[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(v)) }
-
 export default function VisionBoardPage() {
-  const [visions, setVisions] = useState<Vision[]>([])
+  const [visions, update] = useSyncedStorage<Vision[]>("hfp-vision-board", [])
   const [mounted, setMounted] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [title, setTitle] = useState(""); const [category, setCategory] = useState(CATEGORIES[0])
   const [description, setDescription] = useState(""); const [targetDate, setTargetDate] = useState("")
   const [filterCat, setFilterCat] = useState("All"); const [filterStatus, setFilterStatus] = useState("All")
 
-  useEffect(() => { setVisions(load()); setMounted(true) }, [])
-  const update = (v: Vision[]) => { setVisions(v); save(v) }
+  useEffect(() => { setMounted(true) }, [])
 
   function addVision() {
     if (!title.trim()) return

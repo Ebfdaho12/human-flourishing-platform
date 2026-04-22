@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Users, Heart, Phone, Plus, X, Gift, AlertTriangle } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,15 +15,11 @@ const REL_COLORS: Record<RelType, string> = { Partner: "bg-rose-500", Family: "b
 
 interface Person { id: string; name: string; type: RelType; birthday: string; notes: string; lastContact: string; quality: number; reminderDays: number; zodiacYear: string }
 
-const LS_KEY = "hfp-people"
 const today = () => new Date().toISOString().split("T")[0]
 const daysSince = (d: string) => d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : 999
 const status = (p: Person): "green" | "yellow" | "red" => { const d = daysSince(p.lastContact); return d <= p.reminderDays * 0.5 ? "green" : d <= p.reminderDays ? "yellow" : "red" }
 const STATUS_STYLE = { green: "border-emerald-400 bg-emerald-50/30", yellow: "border-amber-400 bg-amber-50/30", red: "border-red-400 bg-red-50/30" }
 const STATUS_DOT = { green: "bg-emerald-500", yellow: "bg-amber-500", red: "bg-red-500" }
-
-function load(): Person[] { if (typeof window === "undefined") return []; try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]") } catch { return [] } }
-function save(p: Person[]) { localStorage.setItem(LS_KEY, JSON.stringify(p)) }
 
 function upcomingBirthdays(people: Person[]) {
   const now = new Date(), m = now.getMonth(), y = now.getFullYear()
@@ -35,13 +32,10 @@ function upcomingBirthdays(people: Person[]) {
 }
 
 export default function PeoplePage() {
-  const [people, setPeople] = useState<Person[]>([])
+  const [people, persist] = useSyncedStorage<Person[]>("hfp-people", [])
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ name: "", type: "Friend" as RelType, birthday: "", notes: "", zodiacYear: "" })
   const [editId, setEditId] = useState<string | null>(null)
-
-  useEffect(() => setPeople(load()), [])
-  const persist = (p: Person[]) => { setPeople(p); save(p) }
 
   const addPerson = () => {
     if (!form.name.trim()) return

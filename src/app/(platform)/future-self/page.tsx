@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Mail, Send, Lock, BookOpen, Clock, Trash2 } from "lucide-react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,24 +11,18 @@ import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
 
 interface Letter { id: string; content: string; createdAt: string; deliveryDate: string; read: boolean }
-const STORAGE_KEY = "hfp-future-letters"
 const PROMPTS = ["What are you working on right now?", "What are you afraid of?", "What do you hope is different?", "What would you tell your future self to remember?"]
 const DELAYS = [{ label: "1 month", months: 1 }, { label: "3 months", months: 3 }, { label: "6 months", months: 6 }, { label: "1 year", months: 12 }, { label: "5 years", months: 60 }]
 
-function getLetters(): Letter[] {
-  if (typeof window === "undefined") return []
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]") } catch { return [] }
-}
-function saveLetters(letters: Letter[]) { localStorage.setItem(STORAGE_KEY, JSON.stringify(letters)) }
 function daysUntil(date: string) { return Math.ceil((new Date(date).getTime() - Date.now()) / 86400000) }
 
 export default function FutureSelfPage() {
-  const [letters, setLetters] = useState<Letter[]>([])
+  const [letters, saveLetters] = useSyncedStorage<Letter[]>("hfp-future-letters", [])
   const [content, setContent] = useState("")
   const [delay, setDelay] = useState(3)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setLetters(getLetters()); setMounted(true) }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   function sendLetter() {
     if (!content.trim()) return
@@ -38,17 +33,15 @@ export default function FutureSelfPage() {
       createdAt: new Date().toISOString(), deliveryDate: delivery.toISOString(), read: false,
     }
     const next = [letter, ...letters]
-    setLetters(next); saveLetters(next); setContent("")
+    saveLetters(next); setContent("")
   }
 
   function markRead(id: string) {
-    const next = letters.map(l => l.id === id ? { ...l, read: true } : l)
-    setLetters(next); saveLetters(next)
+    saveLetters(letters.map(l => l.id === id ? { ...l, read: true } : l))
   }
 
   function deleteLetter(id: string) {
-    const next = letters.filter(l => l.id !== id)
-    setLetters(next); saveLetters(next)
+    saveLetters(letters.filter(l => l.id !== id))
   }
 
   const sealed = letters.filter(l => daysUntil(l.deliveryDate) > 0)
