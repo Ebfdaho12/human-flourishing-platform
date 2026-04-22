@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
 import { AletheiaConnection } from "@/components/AletheiaConnection"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 // ────────────────────────────────────────────
 // Federal spending breakdown (2023-2024 fiscal year)
@@ -114,10 +115,17 @@ const WASTE_EXAMPLES = [
   { item: "Consulting fees (McKinsey, Deloitte, Accenture)", cost: "$15.7B (2022-2023)", context: "Federal government spent $15.7B on external consultants in a single year — nearly double from 5 years ago. This is for advice that internal public servants could often provide. The consulting firms then hire former public servants, creating a revolving door.", betterUse: "$15.7B = the entire National Housing Strategy budget for multiple years. Or: hire permanent public servants at 1/3 the cost of consultants to do the same work." },
 ]
 
+type ZoomLevel = "eagle" | "category" | "deep"
+
 export default function CanadaSpendingPage() {
   const [expandedSpend, setExpandedSpend] = useState<number | null>(null)
+  const [zoom, setZoom] = useState<ZoomLevel>("category")
 
   const totalBudget = SPENDING.reduce((s, item) => s + item.amount, 0)
+  const sorted = [...SPENDING].sort((a, b) => b.amount - a.amount)
+  const top3 = sorted.slice(0, 3)
+  const top3Total = top3.reduce((s, i) => s + i.amount, 0)
+  const top3Pct = Math.round((top3Total / totalBudget) * 100)
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -145,8 +153,64 @@ export default function CanadaSpendingPage() {
         </CardContent>
       </Card>
 
-      {/* Visual spending bar */}
-      <Card>
+      {/* Zoom level selector */}
+      <div className="flex gap-2 items-center">
+        <span className="text-[10px] text-muted-foreground">View:</span>
+        {[
+          { level: "eagle" as ZoomLevel, label: "🦅 Bird's Eye", desc: "The 80/20 — what matters most" },
+          { level: "category" as ZoomLevel, label: "📊 Categories", desc: "All spending buckets" },
+          { level: "deep" as ZoomLevel, label: "🔬 Deep Dive", desc: "Every detail + waste examples" },
+        ].map(z => (
+          <button key={z.level} onClick={() => setZoom(z.level)} className={cn("px-3 py-1.5 rounded-lg text-xs border transition-colors", zoom === z.level ? "bg-violet-100 border-violet-300 text-violet-700 font-medium" : "hover:bg-muted/50")} title={z.desc}>
+            {z.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 🦅 EAGLE VIEW — The 80/20 */}
+      {zoom === "eagle" && (
+        <Card className="border-2 border-violet-200">
+          <CardContent className="p-5">
+            <p className="text-sm font-semibold text-violet-900 mb-3">The Big Picture — In 30 Seconds</p>
+            <div className="space-y-3">
+              <div className="text-center p-4 rounded-lg bg-violet-50">
+                <p className="text-4xl font-bold text-violet-600">$480B</p>
+                <p className="text-xs text-muted-foreground">Total federal spending per year · $12,000+ per citizen</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
+                  <p className="text-xl font-bold text-red-600">${top3[0]?.amount}B</p>
+                  <p className="text-[9px] text-muted-foreground">{top3[0]?.category}</p>
+                  <p className="text-[9px] text-muted-foreground">{top3[0]?.pctOfBudget}% of budget</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-center">
+                  <p className="text-xl font-bold text-amber-600">${top3[1]?.amount}B</p>
+                  <p className="text-[9px] text-muted-foreground">{top3[1]?.category}</p>
+                  <p className="text-[9px] text-muted-foreground">{top3[1]?.pctOfBudget}% of budget</p>
+                </div>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+                  <p className="text-xl font-bold text-blue-600">${top3[2]?.amount}B</p>
+                  <p className="text-[9px] text-muted-foreground">{top3[2]?.category}</p>
+                  <p className="text-[9px] text-muted-foreground">{top3[2]?.pctOfBudget}% of budget</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                These 3 categories = <strong>{top3Pct}%</strong> of the budget. That's the 80/20 — most of the money goes to elderly benefits, health transfers, and debt interest.
+              </p>
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                <p className="text-xs text-red-800 font-medium">The uncomfortable truth: <strong>$46.5B/year goes to interest on debt</strong> — producing nothing. That's more than defence, more than housing, more than Indigenous services. Every dollar of interest is a dollar that can't go to anything useful. <Source id={1} url="https://www.canada.ca/en/department-finance/services/publications/annual-financial-report/2024.html" /></p>
+              </div>
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+                <p className="text-xs text-emerald-800 font-medium">What works: <strong>Canada Child Benefit (CCB)</strong> lifted 435,000 children out of poverty since 2016 at $27.5B/year. High ROI, efficient delivery, directly helps families. <Source id={2} url="https://www.canada.ca/en/revenue-agency/programs/about-canada-revenue-agency-cra/federal-government-budgets/budget-2024-fairness-every-generation/canada-child-benefit.html" /></p>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center mt-2">Want more detail? Switch to 📊 Categories or 🔬 Deep Dive above.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Visual spending bar — Categories + Deep */}
+      {(zoom === "category" || zoom === "deep") && <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Budget Breakdown (Top 10 Categories)</CardTitle></CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -185,9 +249,10 @@ export default function CanadaSpendingPage() {
             <span className="flex items-center gap-1"><div className="h-2.5 w-2.5 rounded-full bg-red-400" /> Low/Zero ROI</span>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
-      {/* Waste examples */}
+      {/* Waste examples — Deep dive only */}
+      {zoom === "deep" && <>
       <div>
         <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-red-500" /> Documented Waste & Misallocation
@@ -213,6 +278,8 @@ export default function CanadaSpendingPage() {
         </div>
       </div>
 
+      </>}
+
       {/* The key insight */}
       <Card className="border-2 border-emerald-200 bg-emerald-50/20">
         <CardContent className="p-5">
@@ -230,15 +297,16 @@ export default function CanadaSpendingPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 bg-slate-50/20">
-        <CardContent className="p-4">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>Sources:</strong> Government of Canada Public Accounts, Parliamentary Budget Officer, Auditor General reports,
-            CMHC, Statistics Canada, Department of Finance Budget documents. All data is from official public records.
-            This page presents spending data with ROI analysis — it does not endorse any political party.
-          </p>
-        </CardContent>
-      </Card>
+      <SourceList title="Sources & Official Documents" sources={[
+        { id: 1, title: "Annual Financial Report of the Government of Canada 2024", authors: "Department of Finance Canada", year: 2024, type: "government", url: "https://www.canada.ca/en/department-finance/services/publications/annual-financial-report/2024.html", notes: "Official federal revenue and expenditure data" },
+        { id: 2, title: "Canada Child Benefit — Budget 2024", authors: "Canada Revenue Agency", year: 2024, type: "government", url: "https://www.canada.ca/en/revenue-agency/programs/about-canada-revenue-agency-cra/federal-government-budgets/budget-2024-fairness-every-generation/canada-child-benefit.html", notes: "CCB impact data: 435,000 children lifted from poverty" },
+        { id: 3, title: "Public Accounts of Canada 2024", authors: "Receiver General for Canada", year: 2024, type: "government", url: "https://www.tpsgc-pwgsc.gc.ca/recgen/cpc-pac/index-eng.html", notes: "Detailed line-item federal expenditures" },
+        { id: 4, title: "Fiscal Monitor — Parliamentary Budget Officer", authors: "PBO", year: 2024, type: "report", url: "https://www.pbo-dpb.ca/en/publications", notes: "Independent budget analysis and forecasting" },
+        { id: 5, title: "ArriveCAN Audit Report", authors: "Office of the Auditor General", year: 2024, type: "report", url: "https://www.oag-bvg.gc.ca/internet/English/parl_oag_202402_01_e_44427.html", notes: "$59.5M app with 'disregard for basic management practices'" },
+        { id: 6, title: "Phoenix Pay System — Lessons Learned", authors: "Office of the Auditor General", year: 2023, type: "report", url: "https://www.oag-bvg.gc.ca/internet/English/parl_oag_201805_01_e_43033.html", notes: "$2.2B+ failed payroll system" },
+        { id: 7, title: "National Housing Strategy — What We've Heard", authors: "CMHC", year: 2024, type: "government", url: "https://www.placetocallhome.ca/", notes: "Housing investment programs and outcomes" },
+        { id: 8, title: "Government Spending on Outsourcing", authors: "Parliamentary Budget Officer", year: 2023, type: "report", url: "https://www.pbo-dpb.ca/en/publications", notes: "$15.7B in consulting fees (2022-2023)" },
+      ]} />
 
       <AletheiaConnection topic="government spending" />
 
