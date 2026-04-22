@@ -68,7 +68,7 @@ export default function StrengthTrainingPage() {
           <h1 className="text-2xl font-bold">Strength Training Programs</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          The single most impactful thing you can do for longevity, body composition, and hormone optimization.
+          The single most impactful thing you can do for longevity, body composition, and <Explain tip="Hypertrophy means muscle growth — it happens when you challenge muscles with enough volume and weight to trigger adaptation">hypertrophy</Explain>-driven hormone optimization.
         </p>
       </div>
 
@@ -89,7 +89,7 @@ export default function StrengthTrainingPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-2">
-          <p className="text-[10px] text-muted-foreground mb-2">Programs are interchangeable. These principles are not. Get these right and almost any reasonable program will work.</p>
+          <p className="text-[10px] text-muted-foreground mb-2">Programs are interchangeable. These principles are not. <Explain tip="Progressive overload means gradually increasing weight, reps, or sets over time — without it, your body has no reason to get stronger">Progressive overload</Explain>, <Explain tip="Compound movements are exercises that work multiple muscle groups at once (like squats and deadlifts) — they give you the most results for your time">compound movements</Explain>, and proper recovery. Get these right and almost any reasonable program will work.</p>
           {PRINCIPLES.map((p, i) => (
             <div key={i} className="rounded-lg border p-2.5">
               <div className="flex items-center gap-2 mb-1">

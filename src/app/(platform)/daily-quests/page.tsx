@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { secureFetcher } from "@/lib/encrypted-fetch"
+import { Explain } from "@/components/ui/explain"
 
 function getToday(): string { return new Date().toISOString().split("T")[0] }
 
@@ -47,7 +48,7 @@ const DAILY_QUESTS: Quest[] = [
   { id: "explore", name: "Explorer", description: "Visit a new page", xp: 5, icon: "🗺️", category: "mind", check: ctx => ctx.pagesVisited > 0 },
 ]
 
-// Variable bonus quests — rotates daily based on date hash
+// Variable bonus quests (variable rewards) — rotates daily based on date hash
 const BONUS_QUESTS: Quest[] = [
   { id: "bonus_breathe", name: "Breathe Deep", description: "Do a breathwork session", xp: 25, icon: "🧘", category: "body", check: () => false },
   { id: "bonus_cold", name: "Ice Warrior", description: "Take a cold shower", xp: 25, icon: "🧊", category: "body", check: () => false },
@@ -175,7 +176,7 @@ export default function DailyQuestsPage() {
           <h1 className="text-2xl font-bold">Daily Quests</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Complete quests. Earn XP. Build combos. Level up your life — literally.
+          Complete quests. Earn <Explain tip="Experience Points — you earn XP for completing quests, which levels up your character">XP</Explain>. Build combos. Level up your life — literally.
         </p>
       </div>
 
@@ -234,7 +235,7 @@ export default function DailyQuestsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className={cn("text-xs font-semibold", q.completed ? "line-through text-emerald-700" : "")}>{q.name}</p>
-                  {q.isBonus && <Badge className="bg-amber-500 text-[8px] py-0">Bonus</Badge>}
+                  {q.isBonus && <Badge className="bg-amber-500 text-[8px] py-0"><Explain tip="Bonus quests rotate daily to keep things fresh — this is called variable rewards, and it makes the system more engaging">Bonus</Explain></Badge>}
                   <Badge variant="outline" className={cn("text-[8px]", CATEGORY_COLORS[q.category])}>{q.category}</Badge>
                 </div>
                 <p className="text-[10px] text-muted-foreground">{q.description}</p>
@@ -284,7 +285,7 @@ export default function DailyQuestsPage() {
       {/* How combos work */}
       <Card className="border-orange-200 bg-orange-50/10">
         <CardContent className="p-4">
-          <p className="text-sm font-semibold text-orange-900 mb-2 flex items-center gap-2"><Zap className="h-4 w-4" /> The Combo System</p>
+          <p className="text-sm font-semibold text-orange-900 mb-2 flex items-center gap-2"><Zap className="h-4 w-4" /> The <Explain tip="A combo multiplier gives you bonus XP for completing multiple quests in one day — the more you do, the bigger the multiplier">Combo</Explain> System</p>
           <div className="space-y-1.5 text-xs text-muted-foreground">
             <p><strong>3 quests</strong> = <span className="text-orange-600 font-bold">×1.25</span> XP multiplier</p>
             <p><strong>6 quests</strong> = <span className="text-orange-600 font-bold">×1.5</span> XP multiplier</p>

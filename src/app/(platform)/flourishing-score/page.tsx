@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { secureFetcher } from "@/lib/encrypted-fetch"
+import { Explain } from "@/components/ui/explain"
 
 function getToday(): string { return new Date().toISOString().split("T")[0] }
 
@@ -172,7 +173,7 @@ export default function FlourishingScorePage() {
           <h1 className="text-2xl font-bold">Flourishing Score</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          One number that captures how well you're doing across all dimensions of flourishing.
+          One <Explain tip="A composite score is a single number calculated from a weighted average of multiple dimensions — mood, sleep, exercise, habits, gratitude, and consistency">composite score</Explain> that captures how well you're doing across all dimensions of flourishing.
         </p>
       </div>
 
@@ -262,7 +263,7 @@ export default function FlourishingScorePage() {
             <p><strong>Consistency (5%):</strong> Your longest active streak (20+ days = max).</p>
           </div>
           <p className="text-xs text-violet-700 font-medium mt-2">
-            The score is weighted toward the fundamentals — mood and sleep account for half because they affect everything else. You don't need 100. You need consistent 70+.
+            The score is <Explain tip="Weighted means some dimensions count more than others — mood and sleep have higher weight because they impact everything else">weighted</Explain> toward the fundamentals — mood and sleep account for half because they affect everything else. You don't need 100. You need consistent 70+.
           </p>
         </CardContent>
       </Card>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { secureFetcher } from "@/lib/encrypted-fetch"
+import { Explain } from "@/components/ui/explain"
 
 // ─── XP & Leveling System ─────────────────────────────────────────
 function xpForLevel(level: number): number { return Math.floor(100 * Math.pow(1.5, level - 1)) }
@@ -189,7 +190,7 @@ export default function CharacterSheetPage() {
           <h1 className="text-2xl font-bold">Character Sheet</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Your real-life RPG stats. Every action you take on the platform earns XP and levels up your character.
+          Your real-life RPG stats. Every action you take on the platform earns <Explain tip="Experience Points — you earn XP for completing actions like logging mood, tracking health, and building streaks">XP</Explain> and levels up your character.
         </p>
       </div>
 
@@ -230,12 +231,15 @@ export default function CharacterSheetPage() {
           <StatBar label="AWR — Awareness" value={stats.awareness} max={99} icon={Brain} color="text-pink-500" subtext="Mood tracking, self-reflection, journaling" />
           <StatBar label="WLT — Wealth" value={stats.wealth} max={99} icon={DollarSign} color="text-emerald-500" subtext="FOUND tokens, financial engagement" />
           <StatBar label="SOC — Social" value={stats.social} max={99} icon={Users} color="text-cyan-500" subtext="Community, gratitude, platform engagement" />
+          <p className="text-[9px] text-muted-foreground mt-1 italic">
+            <Explain tip="VIT measures your physical health from exercise, sleep, and health tracking">VIT</Explain> · <Explain tip="RES measures how consistent you are — streaks, habits, and showing up daily">RES</Explain> · <Explain tip="WIS grows as you explore the platform, set goals, and learn new things">WIS</Explain> · <Explain tip="AWR reflects your self-knowledge from mood tracking and journaling">AWR</Explain> · <Explain tip="WLT tracks your FOUND token balance and financial engagement">WLT</Explain> · <Explain tip="SOC measures community involvement, gratitude practice, and social engagement">SOC</Explain>
+          </p>
         </CardContent>
       </Card>
 
       {/* Active Buffs (streaks) */}
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Flame className="h-4 w-4 text-orange-500" /> Active Buffs</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Flame className="h-4 w-4 text-orange-500" /> Active <Explain tip="Buffs are temporary bonuses you get from maintaining active streaks — they boost your stats each day the streak continues">Buffs</Explain></CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[

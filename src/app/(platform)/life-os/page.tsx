@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { secureFetcher } from "@/lib/encrypted-fetch"
+import { Explain } from "@/components/ui/explain"
 
 function getToday(): string { return new Date().toISOString().split("T")[0] }
 
@@ -220,9 +221,9 @@ export default function LifeOSPage() {
       <Card className="border-violet-200 bg-violet-50/10">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>This is your Life Operating System.</strong> Not a collection of tools — a unified command center.
+            <strong>This is your <Explain tip="Life OS treats your life like a system — all your health, habits, mood, and goals are tracked in one place so you can see how everything connects and make better decisions">Life Operating System</Explain>.</strong> Not a collection of tools — a unified command center.
             Every metric here connects to every other metric through your data. Mood affects sleep. Sleep affects exercise.
-            Exercise affects energy. Energy affects decisions. Decisions shape your trajectory. Track it all, see the connections,
+            Exercise affects energy. Energy affects decisions. Decisions shape your <Explain tip="Your trajectory is the direction your life is heading based on your current habits and choices — small daily actions compound into big long-term changes">trajectory</Explain>. Track it all, see the connections,
             and steer deliberately. The examined life, quantified.
           </p>
         </CardContent>

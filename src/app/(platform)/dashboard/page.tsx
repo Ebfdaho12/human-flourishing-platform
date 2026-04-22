@@ -13,6 +13,7 @@ import { SmartSuggestions } from "@/components/dashboard/SmartSuggestions"
 import { HealthSnapshot } from "@/components/dashboard/HealthSnapshot"
 import { HiveActivity } from "@/components/dashboard/HiveActivity"
 import { LevelUnlocks } from "@/components/dashboard/LevelUnlocks"
+import { HelpTip } from "@/components/ui/help-tip"
 import { formatFound, formatVoice } from "@/lib/utils"
 
 export default async function DashboardPage() {
@@ -52,10 +53,10 @@ export default async function DashboardPage() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="FOUND Balance" value={formatFound(foundBalance)} unit="FOUND" color="text-violet-500" />
-        <StatCard label="VOICE Power" value={formatVoice(voiceBalance)} unit="VOICE" color="text-indigo-500" />
-        <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-500" />
-        <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" />
+        <StatCard label="FOUND Balance" value={formatFound(foundBalance)} unit="FOUND" color="text-violet-500" help="Digital tokens you earn by using the platform. Every healthy action earns FOUND. Will be on Solana blockchain." />
+        <StatCard label="VOICE Power" value={formatVoice(voiceBalance)} unit="VOICE" color="text-indigo-500" help="Governance power. Stake FOUND to get VOICE, then vote on platform decisions. More VOICE = more say." />
+        <StatCard label="Identity Claims" value={claimCount.toString()} unit="claims" color="text-emerald-500" help="Encrypted pieces of your identity stored on the platform. Only you can see them. Verified claims prove things about you without revealing details." />
+        <StatCard label="Active Modules" value={activeCount.toString()} unit={`of ${MODULES.length}`} color="text-amber-500" help="The platform's core systems — Health, Education, Governance, etc. Each module is a full toolkit for one area of life." />
       </div>
 
       {/* Hive activity — social proof */}
@@ -146,15 +147,20 @@ function StatCard({
   value,
   unit,
   color,
+  help,
 }: {
   label: string
   value: string
   unit: string
   color: string
+  help?: string
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        {help && <HelpTip tip={help} />}
+      </div>
       <p className={`text-xl font-bold mt-1 ${color}`}>{value}</p>
       <p className="text-xs text-muted-foreground">{unit}</p>
     </div>

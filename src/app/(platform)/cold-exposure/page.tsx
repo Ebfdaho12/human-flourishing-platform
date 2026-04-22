@@ -30,7 +30,7 @@ const HORMETIC_STRESSORS = [
   { name: "Fasting", desc: "Nutrient scarcity activates autophagy and cellular cleanup", link: "/health-protocols" },
   { name: "Heat / Sauna", desc: "Heat shock proteins protect cells and boost growth hormone", link: "/health-protocols" },
   { name: "Sunlight", desc: "UV stress triggers melanin production and vitamin D synthesis", link: "/health-protocols" },
-  { name: "Cold Exposure", desc: "Cold shock proteins, norepinephrine, brown fat activation", link: "/cold-exposure" },
+  { name: "Cold Exposure", desc: "Cold shock proteins, norepinephrine (adrenaline-like focus chemical), brown fat activation", link: "/cold-exposure" },
 ]
 
 export default function ColdExposurePage() {
@@ -87,7 +87,7 @@ export default function ColdExposurePage() {
             <p><strong>Huberman Lab (Stanford):</strong> Dr. Andrew Huberman's protocols emphasize deliberate cold exposure at the end of the day for dopamine, or morning for alertness. Key finding: cold must be uncomfortably cold but safe — adaptation defeats the purpose if there is no stress signal.</p>
             <p><strong>Radboud University (2014):</strong> <Explain tip="Wim Hof is a Dutch athlete famous for extreme cold feats — he ran a half marathon barefoot in the Arctic">Wim Hof</Explain> method practitioners were injected with endotoxin. They showed voluntary control of their innate immune system — something previously thought impossible. 29% fewer sick days in trained group.</p>
             <p><strong>Susanna Soberg (Cell Reports Medicine):</strong> <Explain tip="Brown fat is a special type of fat that burns calories to generate heat, unlike regular white fat that stores energy">Brown fat</Explain> activation increases with regular cold exposure. Her research shows ending on cold (not rewarming artificially) maximizes brown fat recruitment. The shiver is the signal.</p>
-            <p><strong>Molecular Psychiatry:</strong> Cold water immersion produces a 250% increase in <Explain tip="Dopamine is your brain's motivation and reward chemical — it makes you feel driven, focused, and good">dopamine</Explain>, lasting 2-3 hours. Unlike caffeine (which peaks and crashes), cold-induced dopamine has a gradual, sustained release with no subsequent deficit.</p>
+            <p><strong>Molecular Psychiatry:</strong> Cold water immersion produces a 250% increase in <Explain tip="Dopamine is your brain's motivation and reward chemical — it makes you feel driven, focused, and good">dopamine</Explain> above <Explain tip="Your dopamine baseline is your normal resting level of dopamine — cold exposure raises it sustainably without the crash that comes from stimulants">baseline</Explain>, lasting 2-3 hours. Unlike caffeine (which peaks and crashes), cold-induced dopamine has a gradual, sustained release with no subsequent deficit.</p>
           </div>
         </CardContent>
       </Card>

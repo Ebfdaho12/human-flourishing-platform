@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 import { secureFetcher } from "@/lib/encrypted-fetch"
+import { Explain } from "@/components/ui/explain"
 
 const fetcher = secureFetcher
 
@@ -57,7 +58,7 @@ export default function CorrelationsPage() {
           <CardContent className="py-16 text-center">
             <Moon className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
             <p className="font-medium">Not enough data yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Complete at least 5 mood check-ins to see correlations. You have {dataPoints} so far.</p>
+            <p className="text-sm text-muted-foreground mt-1">Complete at least 5 mood check-ins to see correlations. You have {dataPoints} <Explain tip="Data points are individual measurements — each mood check-in, sleep log, or health entry counts as one data point used in the analysis">data points</Explain> so far.</p>
             <a href="/mental-health" className="inline-block mt-4 text-sm text-violet-600 hover:underline">Do a mood check-in →</a>
           </CardContent>
         </Card>
@@ -214,7 +215,7 @@ export default function CorrelationsPage() {
                     {sleepMoodCorrelation > 0 ? "+" : ""}{sleepMoodCorrelation}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {Math.abs(sleepMoodCorrelation) > 0.5 ? "Strong" : Math.abs(sleepMoodCorrelation) > 0.3 ? "Moderate" : "Weak"} {sleepMoodCorrelation > 0 ? "positive" : "negative"} correlation
+                    {Math.abs(sleepMoodCorrelation) > 0.5 ? "Strong" : Math.abs(sleepMoodCorrelation) > 0.3 ? "Moderate" : "Weak"} {sleepMoodCorrelation > 0 ? "positive" : "negative"} <Explain tip="A correlation coefficient is a number from -1 to +1 that shows how strongly two things are related. +1 means they move perfectly together, -1 means perfectly opposite, and 0 means no relationship">correlation</Explain>
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
                     {sleepMoodCorrelation > 0.3
@@ -223,7 +224,7 @@ export default function CorrelationsPage() {
                         ? "Interesting — more sleep correlates with lower mood. Could be oversleeping?"
                         : "Sleep and mood don't show a strong pattern yet. Keep logging for more data."}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">Based on {data.sleepMoodPairs} paired data points</p>
+                  <p className="text-xs text-muted-foreground mt-1">Based on {data.sleepMoodPairs} paired <Explain tip="Each paired data point is a day where you logged both sleep and mood, allowing the system to compare them">data points</Explain></p>
                 </div>
               </CardContent>
             </Card>
