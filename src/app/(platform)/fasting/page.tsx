@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 const PROTOCOLS = [
   { name: "16:8", color: "border-emerald-300 text-emerald-700", label: "Beginner", detail: "Eat within an 8-hour window, fast for 16 hours. Most popular and sustainable. Example: noon to 8 PM eating, skip breakfast.", tip: "Start by pushing breakfast back 1 hour per week until you reach a noon start." },
@@ -174,6 +175,14 @@ export default function FastingPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "Autophagy: mechanisms and roles in disease", authors: "Ohsumi Y", journal: "Nobel Prize Lecture", year: 2016, type: "study", url: "https://www.nobelprize.org/prizes/medicine/2016/ohsumi/lecture/", notes: "Nobel Prize for autophagy mechanism discovery" },
+        { id: 2, title: "Intermittent time-restricted eating may increase autophagic flux in humans", authors: "Bensalem J, et al.", journal: "Journal of Physiology", year: 2025, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/40345145/", notes: "121 humans. iTRE increased autophagy vs control (P=0.04)." },
+        { id: 3, title: "Effects of intermittent fasting on health, aging, and disease", authors: "de Cabo R, Mattson MP", journal: "NEJM", year: 2019, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/31881139/", notes: "Comprehensive review of IF mechanisms and clinical evidence." },
+        { id: 4, title: "Fasting: Molecular Mechanisms and Clinical Applications", authors: "Longo VD, Mattson MP", journal: "Cell Metabolism", year: 2014, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/24440038/", notes: "Fasting triggers stem cell regeneration and autophagy." },
+      ]} />
 
       {/* Navigation Links */}
       <div className="flex gap-3 flex-wrap">

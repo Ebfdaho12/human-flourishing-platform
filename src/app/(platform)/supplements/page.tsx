@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 type Grade = "A" | "B" | "C" | "D"
 interface Supp { name: string; grade: Grade; dose: string; timing: string; what: string; warn: string }
@@ -202,6 +203,13 @@ export default function SupplementsPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "International Society of Sports Nutrition position stand: creatine", authors: "Kreider RB, et al.", journal: "JISSN", year: 2017, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/28615996/", notes: "Most extensively studied sports supplement. Safe and effective." },
+        { id: 2, title: "Effect of magnesium supplementation on sleep quality", authors: "Abbasi B, et al.", journal: "J Res Med Sci", year: 2012, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/23853635/", notes: "Magnesium improved sleep quality, melatonin, and cortisol." },
+        { id: 3, title: "Omega-3 Fatty Acids and Cardiovascular Disease", authors: "Siscovick DS, et al.", journal: "Circulation (AHA)", year: 2017, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/28289069/", notes: "AHA advisory on omega-3 for cardiovascular risk reduction." },
+      ]} />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/nutrition" className="text-sm text-emerald-600 hover:underline">Nutrition</a>

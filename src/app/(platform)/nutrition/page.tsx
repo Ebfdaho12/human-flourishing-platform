@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 const macros = [
   { name: "Protein", role: "Builds and repairs every tissue. Drives satiety. Preserves muscle during fat loss. Most people under-eat it.", target: "0.7-1g per lb bodyweight", color: "text-red-600 bg-red-50 border-red-200" },
@@ -131,6 +132,13 @@ export default function NutritionPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "Ultra-Processed Foods and Health Outcomes: A Narrative Review", authors: "Hall KD, et al.", journal: "Cell Metabolism", year: 2019, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/31105044/", notes: "RCT: ultra-processed diet caused 500 cal/day more intake and 2lbs weight gain in 2 weeks." },
+        { id: 2, title: "Prevalence of Vitamin D Deficiency by Region", authors: "Cashman KD, et al.", journal: "Dermato-Endocrinology", year: 2019, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/31700717/", notes: "40-70% of adults worldwide are vitamin D insufficient." },
+        { id: 3, title: "Dietary protein and muscle mass in older persons", authors: "Baum JI, et al.", journal: "Nutrients", year: 2016, type: "review", url: "https://pubmed.ncbi.nlm.nih.gov/27338461/", notes: "0.7-1g/lb protein recommended for muscle maintenance." },
+      ]} />
 
       <div className="flex gap-3 flex-wrap">
         <a href="/gut-health" className="text-sm text-green-600 hover:underline">Gut Health</a>

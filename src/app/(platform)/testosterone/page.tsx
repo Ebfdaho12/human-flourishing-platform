@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 function Section({ title, icon: Icon, color, children, defaultOpen = false }: { title: string; icon: React.ElementType; color: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
@@ -234,6 +235,14 @@ export default function TestosteronePage() {
           <p className="text-xs text-muted-foreground">The same natural strategies apply — sleep, resistance training, stress management, and key nutrients (zinc, vitamin D, magnesium) all support healthy T in women. Hormonal testing should include total T, free T, DHEA-S, and a full female hormone panel.</p>
         </div>
       </Section>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "Effect of 1 Week of Sleep Restriction on Testosterone Levels", authors: "Leproult R, Van Cauter E", journal: "JAMA", year: 2011, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/21632481/", notes: "5hrs sleep = 10-15% lower testosterone." },
+        { id: 2, title: "A Prospective Study of the Effect of KSM-66 Ashwagandha on Testosterone", authors: "Lopresti AL, et al.", journal: "Am J Mens Health", year: 2019, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/30854916/", notes: "600mg/day KSM-66: 17% increase in testosterone, 18% increase in DHEA-S." },
+        { id: 3, title: "Integrative Natural Approaches for Age-Related Testosterone Decline", authors: "Multiple", journal: "Cureus", year: 2026, type: "review", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC12887910/", notes: "Comprehensive review of exercise, nutrition, and bioactive compounds for T." },
+        { id: 4, title: "Vitamin D supplementation and testosterone concentrations in men", authors: "Pilz S, et al.", journal: "Hormone and Metabolic Research", year: 2011, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/21154195/", notes: "3332 IU D3/day increased testosterone significantly." },
+      ]} />
 
       {/* Related Pages */}
       <Card>

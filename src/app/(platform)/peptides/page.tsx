@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { Source, SourceList } from "@/components/ui/source-citation"
 
 /* ── data ──────────────────────────────────────────────────────────── */
 
@@ -188,6 +189,14 @@ export default function PeptidesPage() {
           <p><strong>Absence of evidence is not evidence of absence</strong> — but it is also not evidence of efficacy. A peptide that heals rat tendons may do nothing in humans, or may do something entirely different. We report what exists; we do not extrapolate beyond it.</p>
         </CardContent>
       </Card>
+
+      {/* Sources */}
+      <SourceList sources={[
+        { id: 1, title: "Emerging Use of BPC-157 in Orthopaedic Sports Medicine", authors: "Vasireddi N, et al.", journal: "OJSM Systematic Review", year: 2025, type: "review", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC12313605/", notes: "544 articles reviewed (1993-2024). 35 preclinical + 1 clinical study." },
+        { id: 2, title: "Safety of Intravenous Infusion of BPC157 in Humans: A Pilot Study", authors: "Lee J, Burgess A", journal: "PubMed", year: 2025, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/40131143/", notes: "2 adults tolerated IV BPC-157 up to 20mg with no adverse events." },
+        { id: 3, title: "Prolonged stimulation of GH and IGF-I by CJC-1295", authors: "Teichman SL, et al.", journal: "JCEM", year: 2006, type: "study", url: "https://pubmed.ncbi.nlm.nih.gov/16352683/", notes: "Sustained dose-dependent GH/IGF-1 increases in healthy adults." },
+        { id: 4, title: "Therapeutic peptides in gerontology: mechanisms for healthy aging", authors: "Multiple", journal: "Frontiers in Aging", year: 2026, type: "review", url: "https://www.frontiersin.org/journals/aging/articles/10.3389/fragi.2026.1790247/full", notes: "Comprehensive review of peptides for longevity and healthspan." },
+      ]} />
     </div>
   )
 }

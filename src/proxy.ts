@@ -226,6 +226,7 @@ export const config = {
     "/glossary/:path*",
     "/investigate/:path*",
     "/research-compiler/:path*",
+    "/connections/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
