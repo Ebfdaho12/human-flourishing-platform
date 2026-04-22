@@ -229,6 +229,8 @@ export const config = {
     "/connections/:path*",
     "/contribute/:path*",
     "/earn/:path*",
+    "/depin/:path*",
+    "/staking-guide/:path*",
 
     // API routes (returns 401 instead of redirect)
     "/api/bookmarks/:path*",
