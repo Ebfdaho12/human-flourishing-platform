@@ -1,10 +1,23 @@
 "use client"
 
-import { useState } from "react"
-import { Zap, ChevronDown, RefreshCw, CheckCircle, Shield } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Zap, ChevronDown, RefreshCw, CheckCircle, Shield, Clock, TrendingUp, Target, UserCheck } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type DailyHabit = {
+  id: string
+  name: string
+  completions?: string[]
+  completedDates?: string[]
+  createdAt?: string
+  scheduledTime?: string
+  trigger?: string
+}
+
+function dayKey(d: Date) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` }
 
 const LOOP_PARTS = [
   {
@@ -78,6 +91,65 @@ export default function HabitSciencePage() {
   const [expandedLoop, setExpandedLoop] = useState<number | null>(0)
   const [expandedLaw, setExpandedLaw] = useState<number | null>(null)
   const [expandedIdentity, setExpandedIdentity] = useState<number | null>(null)
+  const [habits] = useSyncedStorage<DailyHabit[]>("hfp-daily-habits", [])
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  const personal = useMemo(() => {
+    if (!habits.length) return null
+    const weekAgo = Date.now() - 7 * 86400000
+    const monthAgo = Date.now() - 30 * 86400000
+
+    const enriched = habits.map(h => {
+      const all = (h.completions ?? h.completedDates ?? [])
+      const recent7 = all.filter(d => new Date(d).getTime() >= weekAgo).length
+      const recent30 = all.filter(d => new Date(d).getTime() >= monthAgo).length
+      const total = all.length
+      const hasTime = Boolean(h.scheduledTime && h.scheduledTime.trim())
+      const hasTrigger = Boolean(h.trigger && h.trigger.trim())
+      return { ...h, recent7, recent30, total, hasTime, hasTrigger, ratio7: recent7 / 7 }
+    })
+
+    const scheduled = enriched.filter(h => h.hasTime)
+    const unscheduled = enriched.filter(h => !h.hasTime)
+    const avgScheduled = scheduled.length ? scheduled.reduce((s, h) => s + h.ratio7, 0) / scheduled.length : 0
+    const avgUnscheduled = unscheduled.length ? unscheduled.reduce((s, h) => s + h.ratio7, 0) / unscheduled.length : 0
+    const scheduledLift = avgScheduled - avgUnscheduled
+
+    const triggered = enriched.filter(h => h.hasTrigger)
+    const untriggered = enriched.filter(h => !h.hasTrigger)
+    const avgTriggered = triggered.length ? triggered.reduce((s, h) => s + h.ratio7, 0) / triggered.length : 0
+    const avgUntriggered = untriggered.length ? untriggered.reduce((s, h) => s + h.ratio7, 0) / untriggered.length : 0
+    const triggerLift = avgTriggered - avgUntriggered
+
+    const automatic = enriched.filter(h => h.total >= 66)
+    const learning = enriched.filter(h => h.total >= 18 && h.total < 66)
+    const newbies = enriched.filter(h => h.total < 18)
+
+    const byHour: number[] = Array(24).fill(0)
+    const byHourSuccess: number[] = Array(24).fill(0)
+    enriched.forEach(h => {
+      if (!h.hasTime) return
+      const [hr] = h.scheduledTime!.split(":").map(Number)
+      if (isNaN(hr)) return
+      byHour[hr]++
+      byHourSuccess[hr] += h.recent7
+    })
+    const bestHour = byHour.map((count, hr) => ({ hr, count, avg: count ? byHourSuccess[hr] / count / 7 : 0 }))
+      .filter(x => x.count > 0)
+      .sort((a, b) => b.avg - a.avg)[0]
+
+    const totalAll = enriched.reduce((s, h) => s + h.total, 0)
+
+    return {
+      enriched,
+      scheduled, unscheduled, avgScheduled, avgUnscheduled, scheduledLift,
+      triggered, untriggered, avgTriggered, avgUntriggered, triggerLift,
+      automatic, learning, newbies,
+      bestHour,
+      totalAll,
+    }
+  }, [habits])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -104,6 +176,112 @@ export default function HabitSciencePage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Your personal habit science */}
+      {mounted && personal && (
+        <Card className="border-teal-200 bg-gradient-to-br from-teal-50/30 to-emerald-50/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><UserCheck className="h-4 w-4 text-teal-600" /> Your Habit Science — Personalized</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              The patterns from your <span className="font-semibold text-foreground tabular-nums">{personal.enriched.length}</span> tracked habits and {personal.totalAll} lifetime completions.
+            </p>
+
+            {/* Scheduling lift */}
+            {personal.scheduled.length > 0 && personal.unscheduled.length > 0 && (
+              <div className="rounded-lg border bg-white p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4 text-indigo-600" />
+                  <p className="text-xs font-semibold">Implementation intention lift</p>
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex-1">
+                    <p className="text-muted-foreground">With scheduled time</p>
+                    <p className="font-bold text-emerald-600 tabular-nums">{Math.round(personal.avgScheduled * 100)}% / day</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-muted-foreground">Without</p>
+                    <p className="font-bold text-slate-500 tabular-nums">{Math.round(personal.avgUnscheduled * 100)}% / day</p>
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-muted-foreground">Your lift</p>
+                    <p className={cn("font-bold tabular-nums", personal.scheduledLift > 0 ? "text-emerald-600" : "text-rose-600")}>{personal.scheduledLift > 0 ? "+" : ""}{Math.round(personal.scheduledLift * 100)}%</p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">Gollwitzer (1999): committing to a specific when/where can 2-3x follow-through. {personal.scheduledLift > 0.15 ? "Your data confirms this — time-boxing works for you." : personal.scheduledLift > 0 ? "A small effect in your data — try it on your weakest habit." : "Try scheduling your hardest habits and measure the lift."}</p>
+              </div>
+            )}
+
+            {/* Trigger lift */}
+            {personal.triggered.length > 0 && personal.untriggered.length > 0 && (
+              <div className="rounded-lg border bg-white p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-4 w-4 text-amber-600" />
+                  <p className="text-xs font-semibold">Trigger-based lift</p>
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex-1">
+                    <p className="text-muted-foreground">With a trigger</p>
+                    <p className="font-bold text-amber-600 tabular-nums">{Math.round(personal.avgTriggered * 100)}%</p>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-muted-foreground">Without</p>
+                    <p className="font-bold text-slate-500 tabular-nums">{Math.round(personal.avgUntriggered * 100)}%</p>
+                  </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-muted-foreground">Your lift</p>
+                    <p className={cn("font-bold tabular-nums", personal.triggerLift > 0 ? "text-emerald-600" : "text-rose-600")}>{personal.triggerLift > 0 ? "+" : ""}{Math.round(personal.triggerLift * 100)}%</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Automaticity ladder */}
+            <div className="rounded-lg border bg-white p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="h-4 w-4 text-violet-600" />
+                <p className="text-xs font-semibold">Automaticity ladder (Lally 2010: median 66 days to automatic)</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="rounded-md bg-emerald-50 p-2 text-center">
+                  <p className="text-[10px] text-emerald-700 uppercase tracking-wide">Automatic</p>
+                  <p className="text-xl font-bold text-emerald-700 tabular-nums">{personal.automatic.length}</p>
+                  <p className="text-[9px] text-muted-foreground">≥66 reps</p>
+                </div>
+                <div className="rounded-md bg-amber-50 p-2 text-center">
+                  <p className="text-[10px] text-amber-700 uppercase tracking-wide">Learning</p>
+                  <p className="text-xl font-bold text-amber-700 tabular-nums">{personal.learning.length}</p>
+                  <p className="text-[9px] text-muted-foreground">18-65 reps</p>
+                </div>
+                <div className="rounded-md bg-slate-50 p-2 text-center">
+                  <p className="text-[10px] text-slate-600 uppercase tracking-wide">New</p>
+                  <p className="text-xl font-bold text-slate-700 tabular-nums">{personal.newbies.length}</p>
+                  <p className="text-[9px] text-muted-foreground">&lt;18 reps</p>
+                </div>
+              </div>
+              {personal.automatic.length > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-2">
+                  Automatic for you: {personal.automatic.slice(0, 3).map(h => h.name).join(" · ")}{personal.automatic.length > 3 ? ` · +${personal.automatic.length - 3} more` : ""}. These are part of who you are now.
+                </p>
+              )}
+            </div>
+
+            {/* Best hour */}
+            {personal.bestHour && personal.bestHour.count >= 2 && (
+              <div className="rounded-lg border bg-white p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-4 w-4 text-rose-600" />
+                  <p className="text-xs font-semibold">Your peak habit hour</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Habits scheduled at <span className="font-bold text-foreground tabular-nums">{String(personal.bestHour.hr).padStart(2, "0")}:00</span> have the highest completion rate (<span className="tabular-nums font-semibold">{Math.round(personal.bestHour.avg * 100)}%</span>). Stack new habits here when possible.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* The Habit Loop */}
       <div>

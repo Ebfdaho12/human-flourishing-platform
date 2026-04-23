@@ -1,11 +1,22 @@
 "use client"
 
-import { Apple, Droplets, Clock, Leaf, FlaskConical, Salad, ShieldCheck, ArrowRight } from "lucide-react"
+import { Apple, Droplets, Clock, Leaf, FlaskConical, Salad, ShieldCheck, ArrowRight, Plus, Trash2, Flame, Sprout } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
 import { Source, SourceList } from "@/components/ui/source-citation"
+import { useMemo, useState } from "react"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type Meal = { id: string; date: string; time: string; name: string; protein?: number; carbs?: number; fat?: number; plants?: string[]; notes?: string }
+
+const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+const timeToMin = (t: string) => {
+  const [h, m] = t.split(":").map(Number)
+  return h * 60 + m
+}
+const minToTime = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`
 
 const macros = [
   { name: "Protein", role: "Builds and repairs every tissue. Drives satiety. Preserves muscle during fat loss. Most people under-eat it.", target: "0.7-1g per lb bodyweight", color: "text-red-600 bg-red-50 border-red-200" },
@@ -22,6 +33,82 @@ const deficiencies = [
 ]
 
 export default function NutritionPage() {
+  const [meals, setMeals] = useSyncedStorage<Meal[]>("hfp-meals", [])
+  const [water] = useSyncedStorage<Record<string, number>>("hfp-water-log", {})
+  const [targets, setTargets] = useSyncedStorage<{ protein: number; carbs: number; fat: number }>("hfp-nutrition-targets", { protein: 150, carbs: 200, fat: 70 })
+  const [form, setForm] = useState<Partial<Meal>>({ date: new Date().toISOString().slice(0, 10), time: new Date().toTimeString().slice(0, 5) })
+  const [showForm, setShowForm] = useState(false)
+  const [plantInput, setPlantInput] = useState("")
+
+  const analytics = useMemo(() => {
+    const today = dayKey(new Date())
+    const todayMeals = meals.filter(m => m.date === today).sort((a, b) => timeToMin(a.time) - timeToMin(b.time))
+    const todayTotals = todayMeals.reduce((s, m) => ({
+      protein: s.protein + (m.protein ?? 0),
+      carbs: s.carbs + (m.carbs ?? 0),
+      fat: s.fat + (m.fat ?? 0),
+      plants: new Set([...Array.from(s.plants), ...(m.plants ?? [])]),
+    }), { protein: 0, carbs: 0, fat: 0, plants: new Set<string>() })
+    const todayCalories = todayTotals.protein * 4 + todayTotals.carbs * 4 + todayTotals.fat * 9
+
+    const weekPlants = new Set<string>()
+    const weekStart = Date.now() - 7 * 86400000
+    meals.filter(m => new Date(m.date).getTime() >= weekStart).forEach(m => (m.plants ?? []).forEach(p => weekPlants.add(p.toLowerCase().trim())))
+
+    const eatingWindow = todayMeals.length >= 2 ? {
+      start: todayMeals[0].time,
+      end: todayMeals[todayMeals.length - 1].time,
+      hours: (timeToMin(todayMeals[todayMeals.length - 1].time) - timeToMin(todayMeals[0].time)) / 60,
+    } : null
+
+    const last7Days: { key: string; protein: number; carbs: number; fat: number; plants: number }[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000)
+      const k = dayKey(d)
+      const dayMeals = meals.filter(m => m.date === k)
+      const p = new Set<string>()
+      dayMeals.forEach(m => (m.plants ?? []).forEach(x => p.add(x.toLowerCase().trim())))
+      last7Days.push({
+        key: k,
+        protein: dayMeals.reduce((s, m) => s + (m.protein ?? 0), 0),
+        carbs: dayMeals.reduce((s, m) => s + (m.carbs ?? 0), 0),
+        fat: dayMeals.reduce((s, m) => s + (m.fat ?? 0), 0),
+        plants: p.size,
+      })
+    }
+    const daysLogged = last7Days.filter(d => d.protein + d.carbs + d.fat > 0).length
+    const avgProtein = daysLogged ? last7Days.filter(d => d.protein > 0).reduce((s, d) => s + d.protein, 0) / daysLogged : 0
+
+    const todayWater = water[today] ?? 0
+
+    return { todayMeals, todayTotals, todayCalories, weekPlants, eatingWindow, last7Days, daysLogged, avgProtein, todayWater }
+  }, [meals, water])
+
+  function addMeal() {
+    if (!form.name || !form.date || !form.time) return
+    const meal: Meal = {
+      id: crypto.randomUUID(),
+      date: form.date!,
+      time: form.time!,
+      name: form.name!,
+      protein: Number(form.protein) || undefined,
+      carbs: Number(form.carbs) || undefined,
+      fat: Number(form.fat) || undefined,
+      plants: form.plants ?? [],
+      notes: form.notes,
+    }
+    setMeals([meal, ...meals])
+    setForm({ date: new Date().toISOString().slice(0, 10), time: new Date().toTimeString().slice(0, 5) })
+    setPlantInput("")
+    setShowForm(false)
+  }
+
+  function addPlant(p: string) {
+    if (!p.trim()) return
+    setForm({ ...form, plants: [...(form.plants ?? []), p.trim()] })
+    setPlantInput("")
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
@@ -35,6 +122,137 @@ export default function NutritionPage() {
           Not a diet page. These principles apply whether you eat keto, vegan, Mediterranean, or carnivore. The science underneath doesn't change.
         </p>
       </div>
+
+      {/* Today's intake + log */}
+      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/40 to-green-50/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 justify-between">
+            <span className="flex items-center gap-2"><Flame className="h-4 w-4 text-emerald-600" /> Today — {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+            <span className="text-xs font-normal text-muted-foreground">{analytics.todayMeals.length} meals · {Math.round(analytics.todayCalories)} cal</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            {(["protein", "carbs", "fat"] as const).map(k => {
+              const val = analytics.todayTotals[k]
+              const target = targets[k]
+              const pct = Math.min(100, (val / target) * 100)
+              const colors = { protein: "text-red-600 bg-red-100", carbs: "text-amber-600 bg-amber-100", fat: "text-yellow-600 bg-yellow-100" }
+              const barColors = { protein: "bg-red-500", carbs: "bg-amber-500", fat: "bg-yellow-500" }
+              return (
+                <div key={k} className="rounded-lg border bg-white p-2">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className={cn("text-[10px] uppercase tracking-wide font-semibold", colors[k].split(" ")[0])}>{k}</span>
+                    <span className="text-xs tabular-nums font-mono">{Math.round(val)}/{target}g</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all", barColors[k])} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+              <span className="text-muted-foreground">Plants this week:</span>
+              <span className={cn("font-bold tabular-nums", analytics.weekPlants.size >= 30 ? "text-emerald-600" : analytics.weekPlants.size >= 15 ? "text-amber-600" : "text-slate-600")}>{analytics.weekPlants.size}</span>
+              <span className="text-muted-foreground">/ 30</span>
+            </div>
+            {analytics.eatingWindow && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-sky-600" />
+                <span className="text-muted-foreground">Window:</span>
+                <span className="font-semibold">{analytics.eatingWindow.start}–{analytics.eatingWindow.end}</span>
+                <span className="text-muted-foreground">({analytics.eatingWindow.hours.toFixed(1)}h)</span>
+              </div>
+            )}
+            {analytics.todayWater > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Droplets className="h-3.5 w-3.5 text-blue-600" />
+                <span className="text-muted-foreground">Water:</span>
+                <span className="font-semibold tabular-nums">{analytics.todayWater}oz</span>
+              </div>
+            )}
+          </div>
+
+          {analytics.todayMeals.length > 0 && (
+            <div className="space-y-1">
+              {analytics.todayMeals.map(m => (
+                <div key={m.id} className="flex items-center gap-2 text-xs rounded-md bg-white border p-2">
+                  <span className="text-muted-foreground font-mono tabular-nums w-10">{m.time}</span>
+                  <span className="flex-1 font-medium">{m.name}</span>
+                  {(m.protein || m.carbs || m.fat) && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {m.protein ? `P${m.protein}` : ""} {m.carbs ? `C${m.carbs}` : ""} {m.fat ? `F${m.fat}` : ""}
+                    </span>
+                  )}
+                  {m.plants && m.plants.length > 0 && <span className="text-[10px] text-emerald-600">{m.plants.length} 🌱</span>}
+                  <button onClick={() => setMeals(meals.filter(x => x.id !== m.id))} className="text-slate-400 hover:text-rose-500"><Trash2 className="h-3 w-3" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!showForm ? (
+            <button onClick={() => setShowForm(true)} className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-emerald-300 py-2 text-sm text-emerald-700 hover:bg-emerald-50/40 transition">
+              <Plus className="h-4 w-4" /> Log a meal
+            </button>
+          ) : (
+            <div className="rounded-lg border bg-white p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" value={form.date ?? ""} onChange={e => setForm({ ...form, date: e.target.value })} className="rounded-md border px-2 py-1 text-xs" />
+                <input type="time" value={form.time ?? ""} onChange={e => setForm({ ...form, time: e.target.value })} className="rounded-md border px-2 py-1 text-xs" />
+              </div>
+              <input placeholder="Meal name (e.g. chicken + sweet potato + broccoli)" value={form.name ?? ""} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full rounded-md border px-2 py-1.5 text-xs" />
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" placeholder="Protein g" value={form.protein ?? ""} onChange={e => setForm({ ...form, protein: Number(e.target.value) || undefined })} className="rounded-md border px-2 py-1 text-xs" />
+                <input type="number" placeholder="Carbs g" value={form.carbs ?? ""} onChange={e => setForm({ ...form, carbs: Number(e.target.value) || undefined })} className="rounded-md border px-2 py-1 text-xs" />
+                <input type="number" placeholder="Fat g" value={form.fat ?? ""} onChange={e => setForm({ ...form, fat: Number(e.target.value) || undefined })} className="rounded-md border px-2 py-1 text-xs" />
+              </div>
+              <div className="flex gap-1 flex-wrap items-center">
+                <input placeholder="Add plant (press enter)" value={plantInput} onChange={e => setPlantInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addPlant(plantInput) } }} className="flex-1 min-w-32 rounded-md border px-2 py-1 text-xs" />
+                {(form.plants ?? []).map((p, i) => (
+                  <Badge key={i} variant="outline" className="text-[9px] cursor-pointer" onClick={() => setForm({ ...form, plants: (form.plants ?? []).filter((_, j) => j !== i) })}>{p} ×</Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={addMeal} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg py-1.5">Save</button>
+                <button onClick={() => setShowForm(false)} className="flex-1 border rounded-lg text-xs py-1.5">Cancel</button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 7-day trend (only if data exists) */}
+      {analytics.daysLogged >= 2 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">Last 7 Days — Protein vs Target</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-1.5 h-20 mb-2">
+              {analytics.last7Days.map((d, i) => {
+                const pct = Math.min(100, (d.protein / targets.protein) * 100)
+                const date = new Date(d.key)
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className={cn("w-full rounded-t transition-all relative", pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-400" : d.protein > 0 ? "bg-rose-300" : "bg-slate-100")} style={{ height: `${pct}%`, minHeight: d.protein > 0 ? 6 : 0 }}>
+                      {d.protein > 0 && <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[8px] font-mono">{Math.round(d.protein)}</span>}
+                    </div>
+                    <span className="text-[9px] text-muted-foreground">{date.toLocaleDateString("en-US", { weekday: "narrow" })}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              7-day avg: <span className="font-semibold text-foreground tabular-nums">{Math.round(analytics.avgProtein)}g protein</span> across {analytics.daysLogged} logged days · target {targets.protein}g
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Macronutrients */}
       <Card>
