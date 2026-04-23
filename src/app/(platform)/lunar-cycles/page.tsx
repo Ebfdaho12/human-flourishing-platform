@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Moon, TrendingUp, Brain, Heart, Droplets, DollarSign, Users, Activity, Sun, Eye, BarChart3, AlertTriangle } from "lucide-react"
+import useSWR from "swr"
+import { Moon, TrendingUp, Brain, Heart, Droplets, DollarSign, Users, Activity, Sun, Eye, BarChart3, AlertTriangle, Zap, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Explain } from "@/components/ui/explain"
+import { secureFetcher } from "@/lib/encrypted-fetch"
 import { cn } from "@/lib/utils"
 
 // Moon phase calculation (simplified but accurate to ~1 day)
@@ -53,10 +55,20 @@ function getUpcomingPhases(from: Date, count: number): { date: Date; phase: stri
   return phases
 }
 
+const PHASE_ORDER = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"]
+const PHASE_EMOJI: Record<string, string> = {
+  "New Moon": "🌑", "Waxing Crescent": "🌒", "First Quarter": "🌓", "Waxing Gibbous": "🌔",
+  "Full Moon": "🌕", "Waning Gibbous": "🌖", "Last Quarter": "🌗", "Waning Crescent": "🌘",
+}
+
 export default function LunarCyclesPage() {
   const [today] = useState(new Date())
   const currentMoon = getMoonPhase(today)
   const upcoming = useMemo(() => getUpcomingPhases(today, 8), [today])
+
+  // Pull user's mood and sleep data from other platform features
+  const { data: moodData } = useSWR("/api/mental-health/mood?limit=200", secureFetcher)
+  const { data: healthData } = useSWR("/api/health/entries?limit=500", secureFetcher)
 
   // Log entries
   const [logs, setLogs] = useState<{ date: string; mood: number; sleep: number; energy: number; focus: number; pain: number; social: number; note: string }[]>([])
@@ -108,6 +120,66 @@ export default function LunarCyclesPage() {
       count: data.mood.length,
     }))
   }, [logs])
+
+  // ===== Personal lunar patterns from mood/sleep data =====
+  const personalLunarPatterns = useMemo(() => {
+    const moods = moodData?.entries || []
+    const healthEntries = healthData?.entries || []
+    const sleepEntries = healthEntries.filter((e: any) => e.entryType === "SLEEP")
+
+    if (moods.length < 5 && sleepEntries.length < 5) return null
+
+    const byPhase: Record<string, { moods: number[]; sleepHours: number[] }> = {}
+    PHASE_ORDER.forEach(p => { byPhase[p] = { moods: [], sleepHours: [] } })
+
+    moods.forEach((m: any) => {
+      if (!m.score || !m.createdAt) return
+      const phase = getMoonPhase(new Date(m.createdAt)).phase
+      if (byPhase[phase]) byPhase[phase].moods.push(m.score)
+    })
+
+    sleepEntries.forEach((e: any) => {
+      try {
+        const hrs = JSON.parse(e.data)?.hoursSlept || 0
+        if (!hrs || !e.createdAt) return
+        const phase = getMoonPhase(new Date(e.createdAt)).phase
+        if (byPhase[phase]) byPhase[phase].sleepHours.push(hrs)
+      } catch {}
+    })
+
+    const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null)
+    const rows = PHASE_ORDER.map(phase => {
+      const m = avg(byPhase[phase].moods)
+      const s = avg(byPhase[phase].sleepHours)
+      return {
+        phase,
+        emoji: PHASE_EMOJI[phase],
+        mood: m !== null ? Math.round(m * 10) / 10 : null,
+        moodCount: byPhase[phase].moods.length,
+        sleep: s !== null ? Math.round(s * 10) / 10 : null,
+        sleepCount: byPhase[phase].sleepHours.length,
+      }
+    })
+
+    // Best / worst insights
+    const moodRows = rows.filter(r => r.mood !== null && r.moodCount >= 2)
+    const sleepRows = rows.filter(r => r.sleep !== null && r.sleepCount >= 2)
+
+    let bestMood = null, worstMood = null, bestSleep = null, worstSleep = null
+    if (moodRows.length >= 2) {
+      bestMood = moodRows.reduce((a, b) => ((b.mood as number) > (a.mood as number) ? b : a))
+      worstMood = moodRows.reduce((a, b) => ((b.mood as number) < (a.mood as number) ? b : a))
+    }
+    if (sleepRows.length >= 2) {
+      bestSleep = sleepRows.reduce((a, b) => ((b.sleep as number) > (a.sleep as number) ? b : a))
+      worstSleep = sleepRows.reduce((a, b) => ((b.sleep as number) < (a.sleep as number) ? b : a))
+    }
+
+    const totalMoodEntries = moodRows.reduce((s, r) => s + r.moodCount, 0)
+    const totalSleepEntries = sleepRows.reduce((s, r) => s + r.sleepCount, 0)
+
+    return { rows, bestMood, worstMood, bestSleep, worstSleep, totalMoodEntries, totalSleepEntries }
+  }, [moodData, healthData])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -408,6 +480,112 @@ export default function LunarCyclesPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* ===== Your Personal Lunar Patterns (from mood + sleep data) ===== */}
+      {personalLunarPatterns && (
+        <Card className="border-2 border-indigo-300 bg-gradient-to-br from-indigo-50/40 to-violet-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-indigo-500" />
+              Your Personal Lunar Patterns
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Computed from your logged mood ({personalLunarPatterns.totalMoodEntries} entries) and sleep
+              ({personalLunarPatterns.totalSleepEntries} entries) data across the platform. Phases with fewer than
+              2 data points are shown but not used for "best/worst" detection.
+            </p>
+
+            {/* Insight summary */}
+            <div className="space-y-1.5">
+              {personalLunarPatterns.bestMood && personalLunarPatterns.worstMood &&
+                personalLunarPatterns.bestMood.phase !== personalLunarPatterns.worstMood.phase && (
+                  <div className="rounded-lg border bg-background p-2.5 flex items-center gap-2">
+                    <span className="text-lg shrink-0">{personalLunarPatterns.bestMood.emoji}</span>
+                    <p className="text-xs flex-1">
+                      Your data suggests you <span className="font-semibold text-emerald-600">feel best</span> during{" "}
+                      <span className="font-semibold">{personalLunarPatterns.bestMood.phase}</span>{" "}
+                      (avg mood {personalLunarPatterns.bestMood.mood}/10),
+                      and <span className="font-semibold text-red-600">worst</span> during{" "}
+                      <span className="font-semibold">{personalLunarPatterns.worstMood.phase}</span>{" "}
+                      (avg mood {personalLunarPatterns.worstMood.mood}/10).
+                    </p>
+                  </div>
+              )}
+              {personalLunarPatterns.bestSleep && personalLunarPatterns.worstSleep &&
+                personalLunarPatterns.bestSleep.phase !== personalLunarPatterns.worstSleep.phase && (
+                  <div className="rounded-lg border bg-background p-2.5 flex items-center gap-2">
+                    <span className="text-lg shrink-0">{personalLunarPatterns.worstSleep.emoji}</span>
+                    <p className="text-xs flex-1">
+                      You <span className="font-semibold text-emerald-600">sleep longest</span> during{" "}
+                      <span className="font-semibold">{personalLunarPatterns.bestSleep.phase}</span>{" "}
+                      ({personalLunarPatterns.bestSleep.sleep}hrs avg),
+                      and <span className="font-semibold text-red-600">sleep least</span> during{" "}
+                      <span className="font-semibold">{personalLunarPatterns.worstSleep.phase}</span>{" "}
+                      ({personalLunarPatterns.worstSleep.sleep}hrs avg).
+                    </p>
+                  </div>
+              )}
+              {!personalLunarPatterns.bestMood && !personalLunarPatterns.bestSleep && (
+                <div className="rounded-lg border bg-background p-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    Not enough data yet to detect phase-based patterns. Keep logging — patterns need 2+ entries per phase.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Phase-by-phase breakdown */}
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Averages by phase</p>
+              {personalLunarPatterns.rows.map((row, i) => {
+                const bestMoodPhase = personalLunarPatterns.bestMood?.phase
+                const worstMoodPhase = personalLunarPatterns.worstMood?.phase
+                const bestSleepPhase = personalLunarPatterns.bestSleep?.phase
+                const worstSleepPhase = personalLunarPatterns.worstSleep?.phase
+                return (
+                  <div key={i} className={cn(
+                    "flex items-center gap-2 rounded-lg border p-2 bg-background",
+                    row.phase === bestMoodPhase && "ring-1 ring-emerald-300",
+                    row.phase === worstMoodPhase && "ring-1 ring-red-300",
+                  )}>
+                    <span className="text-lg shrink-0">{row.emoji}</span>
+                    <p className="text-xs font-semibold w-32 shrink-0">{row.phase}</p>
+                    <div className="flex items-center gap-3 flex-1 text-[10px]">
+                      <div className="flex items-center gap-1">
+                        <Heart className="h-2.5 w-2.5 text-rose-500" />
+                        <span className="text-muted-foreground">mood:</span>
+                        <span className={cn(
+                          "font-bold",
+                          row.mood !== null && row.mood >= 7 ? "text-emerald-600" :
+                          row.mood !== null && row.mood <= 4 ? "text-red-600" : ""
+                        )}>{row.mood !== null ? row.mood : "—"}</span>
+                        <span className="text-muted-foreground">({row.moodCount})</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Moon className="h-2.5 w-2.5 text-indigo-500" />
+                        <span className="text-muted-foreground">sleep:</span>
+                        <span className={cn(
+                          "font-bold",
+                          row.phase === bestSleepPhase ? "text-emerald-600" :
+                          row.phase === worstSleepPhase ? "text-red-600" : ""
+                        )}>{row.sleep !== null ? `${row.sleep}h` : "—"}</span>
+                        <span className="text-muted-foreground">({row.sleepCount})</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <p className="text-[10px] text-muted-foreground italic">
+              Based on your actual platform data — not astrology, not traditional associations. Cross-check against
+              the daily log above and the "Your Patterns (So Far)" section for a full picture.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-3 flex-wrap">
         <a href="/chinese-zodiac" className="text-sm text-red-600 hover:underline">Chinese Zodiac</a>

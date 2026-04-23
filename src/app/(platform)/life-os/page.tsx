@@ -123,6 +123,186 @@ export default function LifeOSPage() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
 
+  // ===== Cross-feature correlations =====
+  const correlations = (() => {
+    const insights: { text: string; icon: string; color: string }[] = []
+
+    // Mood on exercise days vs non-exercise days
+    try {
+      const exerciseDates = new Set(
+        entries.filter((e: any) => e.entryType === "EXERCISE").map((e: any) => (e.createdAt || "").slice(0, 10))
+      )
+      const moodOnExercise: number[] = []
+      const moodOffExercise: number[] = []
+      moods.forEach((m: any) => {
+        const d = (m.createdAt || "").slice(0, 10)
+        if (!m.score) return
+        if (exerciseDates.has(d)) moodOnExercise.push(m.score)
+        else moodOffExercise.push(m.score)
+      })
+      if (moodOnExercise.length >= 2 && moodOffExercise.length >= 2) {
+        const avgOn = moodOnExercise.reduce((a, b) => a + b, 0) / moodOnExercise.length
+        const avgOff = moodOffExercise.reduce((a, b) => a + b, 0) / moodOffExercise.length
+        const diff = Math.round((avgOn - avgOff) * 10) / 10
+        if (Math.abs(diff) >= 0.2) {
+          insights.push({
+            text: `Your mood is ${Math.abs(diff)} pts ${diff > 0 ? "higher" : "lower"} on days you exercise`,
+            icon: "💪", color: diff > 0 ? "text-emerald-600" : "text-amber-600",
+          })
+        }
+      }
+    } catch {}
+
+    // Best sleep night
+    try {
+      const sleepWithDate = sleepEntries.map((e: any) => {
+        try { return { date: (e.createdAt || "").slice(0, 10), hours: JSON.parse(e.data)?.hoursSlept || 0 } }
+        catch { return { date: "", hours: 0 } }
+      }).filter((e: any) => e.hours > 0)
+      if (sleepWithDate.length > 0) {
+        const best = sleepWithDate.reduce((a: any, b: any) => (b.hours > a.hours ? b : a))
+        insights.push({
+          text: `Your best sleep was ${new Date(best.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${best.hours}hrs`,
+          icon: "😴", color: "text-indigo-600",
+        })
+      }
+    } catch {}
+
+    // Focus peaks — morning vs afternoon
+    try {
+      const focusHistory = JSON.parse(localStorage.getItem("hfp-focus-history") || "[]")
+      const morning: number[] = []
+      const afternoon: number[] = []
+      focusHistory.forEach((f: any) => {
+        const h = new Date(f.timestamp || f.date).getHours()
+        if (h < 12 && f.focusMinutes) morning.push(f.focusMinutes)
+        else if (h >= 12 && f.focusMinutes) afternoon.push(f.focusMinutes)
+      })
+      if (morning.length + afternoon.length >= 3) {
+        const avgMorning = morning.length ? morning.reduce((a, b) => a + b, 0) / morning.length : 0
+        const avgAfternoon = afternoon.length ? afternoon.reduce((a, b) => a + b, 0) / afternoon.length : 0
+        if (Math.abs(avgMorning - avgAfternoon) > 2) {
+          insights.push({
+            text: `Your focus peaks in the ${avgMorning > avgAfternoon ? "morning" : "afternoon"}`,
+            icon: "🎯", color: "text-red-600",
+          })
+        }
+      }
+    } catch {}
+
+    // Most consistent habit
+    try {
+      if (habits.length > 0) {
+        const withRate = habits.map((h: any) => {
+          const created = new Date(h.createdAt || Date.now()).getTime()
+          const days = Math.max(1, Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24)))
+          const completions = h.completedDates?.length || 0
+          return { name: h.name || h.title || "Unnamed", pct: Math.min(100, Math.round((completions / days) * 100)) }
+        })
+        const best = withRate.sort((a, b) => b.pct - a.pct)[0]
+        if (best && best.pct > 0) {
+          insights.push({
+            text: `You're most consistent with "${best.name}" (${best.pct}% completion)`,
+            icon: "✓", color: "text-emerald-600",
+          })
+        }
+      }
+    } catch {}
+
+    return insights
+  })()
+
+  // ===== Weekly trajectory (7-day trend per metric) =====
+  const weeklyTrajectory = (() => {
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (6 - i))
+      return d.toISOString().split("T")[0]
+    })
+
+    // Mood by day
+    const moodByDay = last7.map(date => {
+      const dayMoods = moods.filter((m: any) => (m.createdAt || "").startsWith(date)).map((m: any) => m.score).filter(Boolean)
+      return dayMoods.length ? dayMoods.reduce((a: number, b: number) => a + b, 0) / dayMoods.length : 0
+    })
+    // Sleep by day
+    const sleepByDay = last7.map(date => {
+      const daySleep = sleepEntries.filter((e: any) => (e.createdAt || "").startsWith(date))
+        .map((e: any) => { try { return JSON.parse(e.data)?.hoursSlept || 0 } catch { return 0 } })
+        .filter((h: number) => h > 0)
+      return daySleep.length ? daySleep.reduce((a: number, b: number) => a + b, 0) / daySleep.length : 0
+    })
+    // Focus by day
+    let focusByDay: number[] = Array(7).fill(0)
+    try {
+      const fh = JSON.parse(localStorage.getItem("hfp-focus-history") || "[]")
+      focusByDay = last7.map(date => {
+        const day = fh.find((e: any) => e.date === date)
+        return day?.focusMinutes || 0
+      })
+    } catch {}
+    // Habits completion % by day
+    const habitsByDay = last7.map(date => {
+      if (habits.length === 0) return 0
+      const done = habits.filter((h: any) => h.completedDates?.includes(date)).length
+      return Math.round((done / habits.length) * 100)
+    })
+
+    function trend(data: number[]): number {
+      const nonZero = data.filter(v => v > 0)
+      if (nonZero.length < 2) return 0
+      const firstHalf = data.slice(0, 3).filter(v => v > 0)
+      const secondHalf = data.slice(-3).filter(v => v > 0)
+      if (!firstHalf.length || !secondHalf.length) return 0
+      const a = firstHalf.reduce((s, v) => s + v, 0) / firstHalf.length
+      const b = secondHalf.reduce((s, v) => s + v, 0) / secondHalf.length
+      return Math.round((b - a) * 10) / 10
+    }
+
+    return [
+      { label: "Mood", data: moodByDay, current: moodByDay[6] || 0, unit: "/10", change: trend(moodByDay), color: "#8b5cf6" },
+      { label: "Sleep", data: sleepByDay, current: sleepByDay[6] || 0, unit: "hrs", change: trend(sleepByDay), color: "#6366f1" },
+      { label: "Focus", data: focusByDay, current: focusByDay[6] || 0, unit: "min", change: trend(focusByDay), color: "#ef4444" },
+      { label: "Habits", data: habitsByDay, current: habitsByDay[6] || 0, unit: "%", change: trend(habitsByDay), color: "#10b981" },
+    ]
+  })()
+
+  // ===== Momentum score =====
+  const momentumScore = (() => {
+    // 1. Active streaks (normalized to 40 pts max)
+    const totalStreakDays = (streaks.health || 0) + (streaks.mood || 0) + (streaks.journal || 0) + (streaks.platform || 0)
+    const streakPts = Math.min(40, totalStreakDays * 2)
+
+    // 2. Daily completion rate (today's 5 key rituals, 30 pts max)
+    const todayRituals = [
+      moodScores.length > 0 && moods[moods.length - 1]?.createdAt?.startsWith(today),
+      habitPct >= 50,
+      gratitudeDone,
+      waterToday >= waterGoal,
+      eveningDone,
+    ].filter(Boolean).length
+    const completionPts = Math.round((todayRituals / 5) * 30)
+
+    // 3. Consistency (how many days this week had any activity, 30 pts max)
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (6 - i))
+      return d.toISOString().split("T")[0]
+    })
+    const activeDays = last7.filter(date => {
+      const hadMood = moods.some((m: any) => (m.createdAt || "").startsWith(date))
+      const hadHealth = entries.some((e: any) => (e.createdAt || "").startsWith(date))
+      const hadHabit = habits.some((h: any) => h.completedDates?.includes(date))
+      return hadMood || hadHealth || hadHabit
+    }).length
+    const consistencyPts = Math.round((activeDays / 7) * 30)
+
+    return Math.min(100, streakPts + completionPts + consistencyPts)
+  })()
+
+  const momentumLabel = momentumScore >= 70 ? "High" : momentumScore >= 40 ? "Moderate" : "Slowing"
+  const momentumColor = momentumScore >= 70 ? "emerald" : momentumScore >= 40 ? "amber" : "red"
+
   return (
     <div className="space-y-5 max-w-4xl">
       {/* Header */}
@@ -228,6 +408,128 @@ export default function LifeOSPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* ===== Momentum Score ===== */}
+      <Card className={cn(
+        "border-2",
+        momentumColor === "emerald" ? "border-emerald-200 bg-emerald-50/20" :
+        momentumColor === "amber" ? "border-amber-200 bg-amber-50/20" :
+        "border-red-200 bg-red-50/20"
+      )}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Zap className={cn(
+                "h-4 w-4",
+                momentumColor === "emerald" ? "text-emerald-500" :
+                momentumColor === "amber" ? "text-amber-500" : "text-red-500"
+              )} />
+              <p className="text-sm font-semibold">Weekly Momentum</p>
+            </div>
+            <Badge variant="outline" className={cn(
+              "text-[10px]",
+              momentumColor === "emerald" ? "border-emerald-300 text-emerald-700" :
+              momentumColor === "amber" ? "border-amber-300 text-amber-700" :
+              "border-red-300 text-red-700"
+            )}>{momentumLabel}</Badge>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative w-24 h-24 shrink-0">
+              <svg width={96} height={96} viewBox="0 0 96 96" className="-rotate-90">
+                <circle cx={48} cy={48} r={40} fill="none" stroke="currentColor" className="text-muted/30" strokeWidth={8} />
+                <circle
+                  cx={48} cy={48} r={40} fill="none"
+                  stroke={momentumColor === "emerald" ? "#10b981" : momentumColor === "amber" ? "#f59e0b" : "#ef4444"}
+                  strokeWidth={8} strokeLinecap="round"
+                  strokeDasharray={`${(momentumScore / 100) * 251.3} 251.3`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <p className={cn(
+                  "text-2xl font-bold",
+                  momentumColor === "emerald" ? "text-emerald-600" :
+                  momentumColor === "amber" ? "text-amber-600" : "text-red-600"
+                )}>{momentumScore}</p>
+                <p className="text-[8px] text-muted-foreground">/ 100</p>
+              </div>
+            </div>
+            <div className="flex-1 text-[10px] text-muted-foreground space-y-0.5">
+              <p>Combines active streaks, daily completion rate, and 7-day consistency.</p>
+              <p className={cn(
+                "font-medium pt-1",
+                momentumColor === "emerald" ? "text-emerald-700" :
+                momentumColor === "amber" ? "text-amber-700" : "text-red-700"
+              )}>
+                {momentumScore >= 70 ? "You're in flow — keep going." :
+                 momentumScore >= 40 ? "Steady. Small actions compound." :
+                 "Momentum is slipping. Pick one ritual to re-anchor today."}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===== Weekly Trajectory ===== */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-blue-500" />
+            <p className="text-sm font-semibold">7-Day Trajectory</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {weeklyTrajectory.map((m, i) => (
+              <div key={i} className="rounded-lg border p-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                  {m.change !== 0 && (
+                    m.change > 0
+                      ? <TrendingUp className="h-3 w-3 text-emerald-500" />
+                      : <TrendingDown className="h-3 w-3 text-red-500" />
+                  )}
+                </div>
+                <div className="flex items-end justify-between gap-1">
+                  <div>
+                    <p className="text-base font-bold">
+                      {m.current ? (Math.round(m.current * 10) / 10) : "—"}
+                      <span className="text-[8px] text-muted-foreground ml-0.5">{m.unit}</span>
+                    </p>
+                    {m.change !== 0 && (
+                      <p className={cn(
+                        "text-[9px] font-medium",
+                        m.change > 0 ? "text-emerald-600" : "text-red-600"
+                      )}>{m.change > 0 ? "+" : ""}{m.change}{m.unit === "%" ? "%" : ""}</p>
+                    )}
+                  </div>
+                  <Spark data={m.data.length && m.data.some(v => v > 0) ? m.data : [0, 0, 0]} color={m.color} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===== Cross-feature Correlations ===== */}
+      {correlations.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              <p className="text-sm font-semibold">Patterns in Your Data</p>
+            </div>
+            <div className="space-y-1.5">
+              {correlations.map((c, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border p-2.5 bg-muted/20">
+                  <span className="text-base shrink-0">{c.icon}</span>
+                  <p className={cn("text-xs flex-1", c.color)}>{c.text}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Cross-referenced across your mood, health, focus, and habit data. More data = sharper patterns.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-3 flex-wrap text-xs">
         <a href="/dashboard" className="text-violet-600 hover:underline">Dashboard</a>

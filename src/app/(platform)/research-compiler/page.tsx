@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { FileText, Download, Trash2, Plus, Search, ExternalLink, FolderOpen, Link2 } from "lucide-react"
+import { FileText, Download, Trash2, Plus, Search, ExternalLink, FolderOpen, Link2, TrendingUp, Tag, BarChart3, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -53,6 +53,42 @@ export default function ResearchCompilerPage() {
 
   function saveItems(updated: ResearchItem[]) { setItems(updated); localStorage.setItem("hfp-research-items", JSON.stringify(updated)) }
   function saveProjects(updated: ResearchProject[]) { setProjects(updated); localStorage.setItem("hfp-research-projects", JSON.stringify(updated)) }
+
+  // ===== Auto-tagging: suggest tags based on keywords =====
+  const TAG_KEYWORDS: Record<string, string[]> = {
+    health: ["health", "medical", "disease", "virus", "vaccine", "doctor", "hospital", "cancer", "fitness", "nutrition", "diet", "exercise", "wellness", "symptom"],
+    politics: ["politic", "election", "vote", "government", "congress", "parliament", "senate", "president", "prime minister", "policy", "legislation", "democrat", "republican", "liberal", "conservative"],
+    science: ["science", "research", "study", "experiment", "journal", "peer-review", "physics", "chemistry", "biology", "quantum", "theorem", "hypothesis"],
+    finance: ["finance", "money", "stock", "market", "invest", "economy", "bank", "interest rate", "inflation", "gdp", "deficit", "debt", "fed", "federal reserve"],
+    climate: ["climate", "environment", "emission", "carbon", "global warming", "greenhouse", "pollution", "temperature", "weather", "sustainability"],
+    tech: ["tech", "software", "ai", "artificial intelligence", "machine learning", "algorithm", "code", "programming", "internet", "cyber", "computer"],
+    media: ["media", "news", "journalism", "press", "broadcast", "newspaper", "propaganda", "censorship", "narrative"],
+    legal: ["law", "legal", "court", "judge", "lawsuit", "attorney", "trial", "verdict", "constitution", "statute", "regulation"],
+    corporate: ["corporat", "company", "ceo", "executive", "shareholder", "merger", "acquisition", "profit", "revenue"],
+    history: ["history", "historical", "century", "ancient", "war", "empire", "revolution", "past"],
+  }
+
+  function suggestTags(text: string): string[] {
+    const lower = text.toLowerCase()
+    const found: string[] = []
+    Object.entries(TAG_KEYWORDS).forEach(([tag, keywords]) => {
+      if (keywords.some(k => lower.includes(k))) found.push(tag)
+    })
+    return found
+  }
+
+  const autoTagSuggestions = (() => {
+    const combined = `${title} ${content} ${source}`
+    if (combined.trim().length < 3) return []
+    const suggested = suggestTags(combined)
+    const existing = tags.split(",").map(t => t.trim().toLowerCase()).filter(Boolean)
+    return suggested.filter(s => !existing.includes(s))
+  })()
+
+  function applyTagSuggestion(tag: string) {
+    const existing = tags.split(",").map(t => t.trim()).filter(Boolean)
+    setTags([...existing, tag].join(", "))
+  }
 
   function addItem() {
     if (!title.trim()) return
@@ -118,8 +154,43 @@ export default function ResearchCompilerPage() {
     URL.revokeObjectURL(url)
   }
 
+  function exportAllJSON() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      source: "Human Flourishing Platform — Research Compiler",
+      items,
+      projects,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a"); a.href = url; a.download = "research-compilation.json"; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportAllCSV() {
+    const escape = (s: string) => `"${(s || "").replace(/"/g, '""').replace(/\r?\n/g, " ")}"`
+    const header = ["id", "title", "content", "source", "sourceUrl", "category", "tags", "createdAt"]
+    const rows = items.map(i => [
+      i.id, i.title, i.content, i.source || "", i.sourceUrl || "", i.category,
+      i.tags.join("; "), i.createdAt,
+    ].map(v => escape(String(v))).join(","))
+    const csv = [header.join(","), ...rows].join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a"); a.href = url; a.download = "research-compilation.csv"; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const filtered = items.filter(i => {
-    if (search && !i.title.toLowerCase().includes(search.toLowerCase()) && !i.content.toLowerCase().includes(search.toLowerCase()) && !i.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))) return false
+    if (search) {
+      const q = search.toLowerCase()
+      const inTitle = i.title.toLowerCase().includes(q)
+      const inContent = i.content.toLowerCase().includes(q)
+      const inTags = i.tags.some(t => t.toLowerCase().includes(q))
+      const inCategory = i.category.toLowerCase().includes(q)
+      const inSource = (i.source || "").toLowerCase().includes(q)
+      if (!inTitle && !inContent && !inTags && !inCategory && !inSource) return false
+    }
     if (activeProject) {
       const project = projects.find(p => p.id === activeProject)
       if (project && !project.items.includes(i.id)) return false
@@ -128,6 +199,38 @@ export default function ResearchCompilerPage() {
   })
 
   const categories = [...new Set(items.map(i => i.category))]
+
+  // ===== Stats dashboard =====
+  const stats = (() => {
+    const now = new Date()
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+    const thisWeek = items.filter(i => new Date(i.createdAt) >= weekAgo).length
+    const lastWeek = items.filter(i => {
+      const d = new Date(i.createdAt)
+      return d >= twoWeeksAgo && d < weekAgo
+    }).length
+
+    // Most active project
+    const mostActiveProject: { name: string; count: number } | null = projects.length > 0
+      ? projects.reduce<{ name: string; count: number }>((best, p) =>
+          p.items.length > best.count ? { name: p.name, count: p.items.length } : best,
+          { name: projects[0].name, count: projects[0].items.length })
+      : null
+
+    // Most common tag
+    const tagCounts: Record<string, number> = {}
+    items.forEach(i => i.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1 }))
+    const topTagEntry = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0]
+    const mostCommonTag = topTagEntry ? { name: topTagEntry[0], count: topTagEntry[1] } : null
+
+    // Average items per project
+    const avgPerProject = projects.length > 0
+      ? Math.round((projects.reduce((s, p) => s + p.items.length, 0) / projects.length) * 10) / 10
+      : 0
+
+    return { total: items.length, thisWeek, lastWeek, mostActiveProject, mostCommonTag, avgPerProject }
+  })()
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -143,12 +246,79 @@ export default function ResearchCompilerPage() {
         </p>
       </div>
 
+      {/* ===== Stats Dashboard ===== */}
+      {items.length > 0 && (
+        <Card className="border-violet-200 bg-violet-50/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="h-4 w-4 text-violet-500" />
+              <p className="text-sm font-semibold">Research Dashboard</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="rounded-lg border p-2.5 bg-background">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Total items</p>
+                <p className="text-lg font-bold">{stats.total}</p>
+              </div>
+              <div className="rounded-lg border p-2.5 bg-background">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <TrendingUp className="h-2.5 w-2.5" /> This / last week
+                </p>
+                <p className="text-lg font-bold">
+                  {stats.thisWeek}
+                  <span className="text-[10px] text-muted-foreground font-normal"> / {stats.lastWeek}</span>
+                </p>
+                {stats.lastWeek > 0 && (
+                  <p className={cn(
+                    "text-[9px] font-medium",
+                    stats.thisWeek > stats.lastWeek ? "text-emerald-600" :
+                    stats.thisWeek < stats.lastWeek ? "text-red-600" : "text-muted-foreground"
+                  )}>
+                    {stats.thisWeek > stats.lastWeek ? "↑" : stats.thisWeek < stats.lastWeek ? "↓" : "="}{" "}
+                    {Math.abs(stats.thisWeek - stats.lastWeek)}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-lg border p-2.5 bg-background">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Top project</p>
+                <p className="text-sm font-bold truncate" title={stats.mostActiveProject?.name || "—"}>
+                  {stats.mostActiveProject?.name || "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  {stats.mostActiveProject ? `${stats.mostActiveProject.count} items` : ""}
+                </p>
+              </div>
+              <div className="rounded-lg border p-2.5 bg-background">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                  <Tag className="h-2.5 w-2.5" /> Top tag
+                </p>
+                <p className="text-sm font-bold truncate" title={stats.mostCommonTag?.name || "—"}>
+                  {stats.mostCommonTag?.name || "—"}
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  {stats.mostCommonTag ? `${stats.mostCommonTag.count} uses` : ""}
+                </p>
+              </div>
+              <div className="rounded-lg border p-2.5 bg-background">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Avg / project</p>
+                <p className="text-lg font-bold">{stats.avgPerProject}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap items-center">
         <Badge variant="outline">{items.length} items</Badge>
         <Badge variant="outline">{projects.length} projects</Badge>
         <Badge variant="outline">{categories.length} categories</Badge>
-        {items.length > 0 && <Button variant="outline" size="sm" onClick={exportAll} className="ml-auto text-xs"><Download className="h-3 w-3 mr-1" /> Export All (.md)</Button>}
+        {items.length > 0 && (
+          <div className="ml-auto flex gap-1.5 flex-wrap">
+            <Button variant="outline" size="sm" onClick={exportAll} className="text-xs"><Download className="h-3 w-3 mr-1" /> .md</Button>
+            <Button variant="outline" size="sm" onClick={exportAllJSON} className="text-xs"><Download className="h-3 w-3 mr-1" /> .json</Button>
+            <Button variant="outline" size="sm" onClick={exportAllCSV} className="text-xs"><Download className="h-3 w-3 mr-1" /> .csv</Button>
+          </div>
+        )}
       </div>
 
       {/* Projects */}
@@ -169,7 +339,7 @@ export default function ResearchCompilerPage() {
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search your research..." className="h-9 text-sm pl-9" />
+        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Smart search — titles, notes, tags, categories, sources..." className="h-9 text-sm pl-9" />
       </div>
 
       {/* Add buttons */}
@@ -194,6 +364,22 @@ export default function ResearchCompilerPage() {
               </select>
               <Input value={tags} onChange={e => setTags(e.target.value)} placeholder="Tags (comma separated)" className="h-8 text-sm" />
             </div>
+            {autoTagSuggestions.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <Sparkles className="h-3 w-3 text-violet-500" />
+                <span className="text-[10px] text-muted-foreground">Suggested:</span>
+                {autoTagSuggestions.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => applyTagSuggestion(tag)}
+                    className="px-2 py-0.5 rounded-full text-[10px] border border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors"
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+            )}
             <Button onClick={addItem} size="sm" disabled={!title.trim()}>Save Item</Button>
           </CardContent>
         </Card>
