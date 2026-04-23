@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { Activity, TrendingUp, TrendingDown, Target, Ruler, Scale, Zap, AlertTriangle, CheckCircle } from "lucide-react"
+import { useState } from "react"
+import { Activity, TrendingUp, TrendingDown, Target, Ruler, Scale, Zap, AlertTriangle, CheckCircle, Minus, LineChart } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
 
 interface Entry {
   date: string
@@ -70,7 +71,7 @@ export default function BodyCompositionPage() {
   const [heightFt, setHeightFt] = useState(5)
   const [heightIn, setHeightIn] = useState(10)
   const [isMale, setIsMale] = useState(true)
-  const [entries, setEntries] = useState<Entry[]>([])
+  const [entries, setEntries] = useSyncedStorage<Entry[]>("hfp-body-comp", [])
 
   // New entry form
   const [weight, setWeight] = useState<number | "">("")
@@ -83,13 +84,6 @@ export default function BodyCompositionPage() {
   const [thighs, setThighs] = useState<number | "">("")
 
   const totalHeightIn = heightFt * 12 + heightIn
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("hfp-body-comp")
-      if (saved) setEntries(JSON.parse(saved))
-    } catch {}
-  }, [])
 
   function addEntry() {
     if (!weight) return
@@ -106,7 +100,6 @@ export default function BodyCompositionPage() {
     }
     const updated = [...entries.filter(e => e.date !== entry.date), entry].sort((a, b) => b.date.localeCompare(a.date))
     setEntries(updated)
-    localStorage.setItem("hfp-body-comp", JSON.stringify(updated))
   }
 
   const latest = entries[0]
@@ -279,6 +272,152 @@ export default function BodyCompositionPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Progress charts — SVG line charts over time */}
+      {entries.length >= 3 && (() => {
+        // Chronological order (oldest first) for charting
+        const chrono = [...entries].sort((a, b) => a.date.localeCompare(b.date))
+        const weightSeries = chrono.map(e => ({ date: e.date, value: e.weight }))
+        const waistSeries = chrono.filter(e => typeof e.waist === "number").map(e => ({ date: e.date, value: e.waist as number }))
+        const bfSeries = chrono.filter(e => typeof e.bodyFat === "number").map(e => ({ date: e.date, value: e.bodyFat as number }))
+
+        function renderChart(series: { date: string; value: number }[], label: string, unit: string, colorHex: string, gradId: string) {
+          if (series.length < 3) return null
+          const w = 600, h = 140
+          const pad = { t: 10, r: 10, b: 18, l: 36 }
+          const innerW = w - pad.l - pad.r
+          const innerH = h - pad.t - pad.b
+          const n = series.length
+          const vals = series.map(s => s.value)
+          const minV = Math.min(...vals)
+          const maxV = Math.max(...vals)
+          const buf = Math.max(0.5, (maxV - minV) * 0.15)
+          const lo = minV - buf
+          const hi = maxV + buf
+          const range = Math.max(0.001, hi - lo)
+          const xAt = (i: number) => pad.l + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW)
+          const yAt = (v: number) => pad.t + innerH - ((v - lo) / range) * innerH
+          const linePath = series.map((p, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(p.value)}`).join(" ")
+          const areaPath = `${linePath} L ${xAt(n - 1)} ${pad.t + innerH} L ${xAt(0)} ${pad.t + innerH} Z`
+          return (
+            <div key={label} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold">{label}</p>
+                <p className="text-[10px] text-muted-foreground">{series[0].value}{unit} → {series[n - 1].value}{unit}</p>
+              </div>
+              <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-32" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={colorHex} stopOpacity="0.35" />
+                    <stop offset="100%" stopColor={colorHex} stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
+                  <line key={i} x1={pad.l} x2={w - pad.r} y1={pad.t + innerH * t} y2={pad.t + innerH * t} stroke="currentColor" className="text-muted/30" strokeWidth={0.5} strokeDasharray="2 3" />
+                ))}
+                {[0, 0.5, 1].map((t, i) => {
+                  const val = Math.round((hi - (hi - lo) * t) * 10) / 10
+                  return <text key={i} x={pad.l - 4} y={pad.t + innerH * t + 3} textAnchor="end" className="fill-muted-foreground" fontSize="8">{val}{unit}</text>
+                })}
+                <path d={areaPath} fill={`url(#${gradId})`} />
+                <path d={linePath} fill="none" stroke={colorHex} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                {series.map((p, i) => (
+                  <circle key={i} cx={xAt(i)} cy={yAt(p.value)} r={2} fill={colorHex}>
+                    <title>{p.date}: {p.value}{unit}</title>
+                  </circle>
+                ))}
+              </svg>
+              <div className="flex justify-between text-[9px] text-muted-foreground">
+                <span>{series[0].date}</span>
+                <span>{series[n - 1].date}</span>
+              </div>
+            </div>
+          )
+        }
+
+        const weightChart = renderChart(weightSeries, "Weight over time", " lbs", "rgb(59, 130, 246)", "wGrad")
+        const waistChart = waistSeries.length >= 3 ? renderChart(waistSeries, "Waist over time", "\"", "rgb(6, 182, 212)", "waGrad") : null
+        const bfChart = bfSeries.length >= 3 ? renderChart(bfSeries, "Body fat % over time", "%", "rgb(244, 63, 94)", "bfGrad") : null
+
+        if (!weightChart && !waistChart && !bfChart) return null
+
+        return (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><LineChart className="h-4 w-4 text-blue-500" /> Progress Charts</CardTitle></CardHeader>
+            <CardContent className="space-y-5">
+              {weightChart}
+              {waistChart}
+              {bfChart}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Progress insights — requires 7+ days of data */}
+      {entries.length >= 2 && (() => {
+        const chrono = [...entries].sort((a, b) => a.date.localeCompare(b.date))
+        const first = chrono[0]
+        const last = chrono[chrono.length - 1]
+        const firstTs = new Date(first.date).getTime()
+        const lastTs = new Date(last.date).getTime()
+        const daysSpan = Math.max(1, Math.round((lastTs - firstTs) / (1000 * 60 * 60 * 24)))
+        if (daysSpan < 7) return null
+
+        // Rate of change per week (weight)
+        const weightDelta = last.weight - first.weight
+        const weeks = daysSpan / 7
+        const weightPerWeek = Math.round((weightDelta / weeks) * 10) / 10
+
+        // Longest streak of logging (consecutive days)
+        let longest = 1
+        let current = 1
+        for (let i = 1; i < chrono.length; i++) {
+          const prev = new Date(chrono[i - 1].date).getTime()
+          const curr = new Date(chrono[i].date).getTime()
+          const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24))
+          if (diffDays === 1) {
+            current++
+            if (current > longest) longest = current
+          } else {
+            current = 1
+          }
+        }
+
+        const trendDirection = Math.abs(weightPerWeek) < 0.3 ? "stable" : weightPerWeek > 0 ? "up" : "down"
+        const TrendDirIcon = trendDirection === "up" ? TrendingUp : trendDirection === "down" ? TrendingDown : Minus
+        const trendColor = trendDirection === "stable" ? "text-muted-foreground" : trendDirection === "down" ? "text-emerald-600" : "text-amber-600"
+        const absPerWeek = Math.abs(weightPerWeek)
+
+        return (
+          <Card className="border-blue-200 bg-blue-50/20">
+            <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Zap className="h-4 w-4 text-blue-500" /> Progress Insights</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <TrendDirIcon className={cn("h-4 w-4", trendColor)} />
+                <p>
+                  Your weight is trending <strong className={trendColor}>{trendDirection}</strong>
+                  {trendDirection !== "stable" && <> at <strong>{absPerWeek} lbs/week</strong></>}
+                  <span className="text-muted-foreground"> (over {daysSpan} days)</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Scale className="h-4 w-4 text-blue-500" />
+                <p>Total change: <strong className={weightDelta < 0 ? "text-emerald-600" : weightDelta > 0 ? "text-amber-600" : ""}>{weightDelta > 0 ? "+" : ""}{Math.round(weightDelta * 10) / 10} lbs</strong> since {first.date}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <p>Longest logging streak: <strong>{longest} {longest === 1 ? "day" : "consecutive days"}</strong></p>
+              </div>
+              {absPerWeek > 2 && trendDirection === "down" && (
+                <p className="text-amber-700 text-[11px] pt-1">⚠ Rate of loss exceeds 2 lbs/week — sustainable fat loss is typically 0.5-1% of body weight per week.</p>
+              )}
+              {absPerWeek > 1 && trendDirection === "up" && (
+                <p className="text-amber-700 text-[11px] pt-1">⚠ Rate of gain exceeds 1 lb/week — fast weight gain is typically more fat than muscle.</p>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Reference charts */}
       <Card>

@@ -71,7 +71,7 @@ export default function FlourishingScorePage() {
   const { data: moodData } = useSWR("/api/mental-health/mood?limit=7", secureFetcher)
   const { data: healthData } = useSWR("/api/health/entries?limit=50", secureFetcher)
   const { data: streakData } = useSWR("/api/streaks", secureFetcher)
-  const [history, setHistory] = useState<{ date: string; score: number }[]>([])
+  const [history, setHistory] = useState<{ date: string; score: number; dimensions?: { mood: number; sleep: number; exercise: number; habits: number; gratitude: number; consistency: number } }[]>([])
   const [showBreakdown, setShowBreakdown] = useState(false)
 
   const moods = moodData?.entries || []
@@ -143,12 +143,20 @@ export default function FlourishingScorePage() {
     if (compositeScore > 0) {
       try {
         const saved = JSON.parse(localStorage.getItem("hfp-flourishing-history") || "[]")
-        const updated = [{ date: today, score: compositeScore }, ...saved.filter((h: any) => h.date !== today)].slice(0, 90)
+        const dimSnapshot = {
+          mood: dimensions[0].score,
+          sleep: dimensions[1].score,
+          exercise: dimensions[2].score,
+          habits: dimensions[3].score,
+          gratitude: dimensions[4].score,
+          consistency: dimensions[5].score,
+        }
+        const updated = [{ date: today, score: compositeScore, dimensions: dimSnapshot }, ...saved.filter((h: any) => h.date !== today)].slice(0, 90)
         localStorage.setItem("hfp-flourishing-history", JSON.stringify(updated))
         setHistory(updated)
       } catch {}
     }
-  }, [compositeScore, today])
+  }, [compositeScore, today, dimensions])
 
   // Load history
   useEffect(() => {
@@ -230,22 +238,129 @@ export default function FlourishingScorePage() {
         )}
       </Card>
 
-      {/* History */}
-      {history.length > 1 && (
+      {/* History — SVG line chart with gradient fill */}
+      {history.length > 1 && (() => {
+        const points = history.slice(0, 30).reverse()
+        const w = 600
+        const h = 140
+        const pad = { t: 10, r: 10, b: 18, l: 28 }
+        const innerW = w - pad.l - pad.r
+        const innerH = h - pad.t - pad.b
+        const n = points.length
+        const minScore = Math.max(0, Math.min(...points.map(p => p.score)) - 5)
+        const maxScore = Math.min(100, Math.max(...points.map(p => p.score)) + 5)
+        const range = Math.max(1, maxScore - minScore)
+        const xAt = (i: number) => pad.l + (n <= 1 ? innerW / 2 : (i / (n - 1)) * innerW)
+        const yAt = (v: number) => pad.t + innerH - ((v - minScore) / range) * innerH
+        const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(p.score)}`).join(" ")
+        const areaPath = `${linePath} L ${xAt(n - 1)} ${pad.t + innerH} L ${xAt(0)} ${pad.t + innerH} Z`
+        const firstDate = points[0]?.date
+        const lastDate = points[points.length - 1]?.date
+        return (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-base">Recent History</CardTitle></CardHeader>
+            <CardContent>
+              <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-40" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="flourishFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgb(139, 92, 246)" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="rgb(139, 92, 246)" stopOpacity="0.02" />
+                  </linearGradient>
+                  <linearGradient id="flourishLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="rgb(99, 102, 241)" />
+                    <stop offset="100%" stopColor="rgb(139, 92, 246)" />
+                  </linearGradient>
+                </defs>
+                {/* Gridlines */}
+                {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
+                  <line key={i} x1={pad.l} x2={w - pad.r} y1={pad.t + innerH * t} y2={pad.t + innerH * t} stroke="currentColor" className="text-muted/30" strokeWidth={0.5} strokeDasharray="2 3" />
+                ))}
+                {/* Y axis labels */}
+                {[0, 0.5, 1].map((t, i) => {
+                  const val = Math.round(maxScore - (maxScore - minScore) * t)
+                  return <text key={i} x={pad.l - 4} y={pad.t + innerH * t + 3} textAnchor="end" className="fill-muted-foreground" fontSize="8">{val}</text>
+                })}
+                {/* Area fill */}
+                <path d={areaPath} fill="url(#flourishFill)" />
+                {/* Line */}
+                <path d={linePath} fill="none" stroke="url(#flourishLine)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                {/* Points */}
+                {points.map((p, i) => (
+                  <circle key={i} cx={xAt(i)} cy={yAt(p.score)} r={2} fill="rgb(139, 92, 246)">
+                    <title>{p.date}: {p.score}</title>
+                  </circle>
+                ))}
+              </svg>
+              <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
+                <span>{firstDate}</span>
+                <span>Today ({lastDate})</span>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Dimension trends over time — mini sparklines per dimension */}
+      {history.length >= 2 && history.some(h => h.dimensions) && (
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-base">Recent History</CardTitle></CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-1 h-20">
-              {history.slice(0, 30).reverse().map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                  <div className={cn("w-full rounded-t min-h-[2px]", h.score >= 70 ? "bg-emerald-400" : h.score >= 40 ? "bg-amber-400" : "bg-red-400")} style={{ height: `${h.score}%`, opacity: 0.6 + (i / 30) * 0.4 }} title={`${h.date}: ${h.score}`} />
+          <CardHeader className="pb-2"><CardTitle className="text-base">Dimension Trends</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {dimensions.map((d, idx) => {
+              const key = d.name.toLowerCase() as "mood" | "sleep" | "exercise" | "habits" | "gratitude" | "consistency"
+              const series = history
+                .slice(0, 30)
+                .reverse()
+                .map(h => h.dimensions ? (h.dimensions as any)[key] : null)
+                .filter((v): v is number => typeof v === "number")
+              if (series.length < 2) return (
+                <div key={idx} className="flex items-center gap-2 rounded border p-2">
+                  <d.icon className={cn("h-3.5 w-3.5 shrink-0", d.color)} />
+                  <span className="text-xs flex-1">{d.name}</span>
+                  <span className="text-[9px] text-muted-foreground">Need more data</span>
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
-              <span>{history.length > 1 ? history[history.length - 1]?.date : ""}</span>
-              <span>Today</span>
-            </div>
+              )
+              const sw = 120
+              const sh = 28
+              const sMin = Math.max(0, Math.min(...series) - 5)
+              const sMax = Math.min(100, Math.max(...series) + 5)
+              const sRange = Math.max(1, sMax - sMin)
+              const sx = (i: number) => (i / (series.length - 1)) * sw
+              const sy = (v: number) => sh - ((v - sMin) / sRange) * sh
+              const sparkPath = series.map((v, i) => `${i === 0 ? "M" : "L"} ${sx(i)} ${sy(v)}`).join(" ")
+              const sparkArea = `${sparkPath} L ${sx(series.length - 1)} ${sh} L ${sx(0)} ${sh} Z`
+              const first = series[0]
+              const last = series[series.length - 1]
+              const delta = last - first
+              const trendIcon = delta > 3 ? TrendingUp : delta < -3 ? TrendingDown : Minus
+              const TrendIcon = trendIcon
+              const trendColor = delta > 3 ? "text-emerald-500" : delta < -3 ? "text-red-500" : "text-muted-foreground"
+              const stroke = d.score >= 70 ? "rgb(16, 185, 129)" : d.score >= 40 ? "rgb(245, 158, 11)" : "rgb(239, 68, 68)"
+              const fillId = `sparkFill-${idx}`
+              return (
+                <div key={idx} className="flex items-center gap-2 rounded border p-2">
+                  <d.icon className={cn("h-3.5 w-3.5 shrink-0", d.color)} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-xs font-medium">{d.name}</span>
+                      <div className="flex items-center gap-1">
+                        <TrendIcon className={cn("h-3 w-3", trendColor)} />
+                        <span className={cn("text-[9px] font-semibold", trendColor)}>{delta > 0 ? "+" : ""}{delta}</span>
+                      </div>
+                    </div>
+                    <svg viewBox={`0 0 ${sw} ${sh}`} className="w-full h-6" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={stroke} stopOpacity="0.35" />
+                          <stop offset="100%" stopColor={stroke} stopOpacity="0.02" />
+                        </linearGradient>
+                      </defs>
+                      <path d={sparkArea} fill={`url(#${fillId})`} />
+                      <path d={sparkPath} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
       )}

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import useSWR from "swr"
-import { Sun, Moon, Heart, DollarSign, Brain, TrendingUp, Flame, Target, Coffee, Zap, Calendar, BookOpen, Activity } from "lucide-react"
+import { Sun, Moon, Heart, DollarSign, Brain, TrendingUp, TrendingDown, Minus, Flame, Target, Coffee, Zap, Calendar, BookOpen, Activity, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -106,6 +106,77 @@ export default function MorningBriefingPage() {
   const todayStr = today.toISOString().split("T")[0]
   const loggedToday = recentHealth.some((e: any) => e.recordedAt?.startsWith(todayStr))
   const moodToday = recentMoods.some((e: any) => e.createdAt?.startsWith(todayStr))
+
+  // Load flourishing history for progress insights
+  const [flourishHistory, setFlourishHistory] = useState<{ date: string; score: number; dimensions?: Record<string, number> }[]>([])
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("hfp-flourishing-history") || "[]")
+      setFlourishHistory(saved)
+    } catch {}
+  }, [])
+
+  // Weekly progress computation
+  const weekProgress = useMemo(() => {
+    if (flourishHistory.length < 3) return null
+    // History is stored newest-first; take last 7 and previous 7
+    const last7 = flourishHistory.slice(0, 7)
+    const prev7 = flourishHistory.slice(7, 14)
+    const lastAvg = last7.length > 0 ? last7.reduce((s, h) => s + h.score, 0) / last7.length : 0
+    const prevAvg = prev7.length > 0 ? prev7.reduce((s, h) => s + h.score, 0) / prev7.length : null
+    const delta = prevAvg !== null ? Math.round(lastAvg - prevAvg) : null
+    const direction = delta === null ? "new" : Math.abs(delta) < 3 ? "stable" : delta > 0 ? "up" : "down"
+
+    // Find weakest dimension (avg over last 7 days that have dimension data)
+    const dimNames = ["mood", "sleep", "exercise", "habits", "gratitude", "consistency"] as const
+    const dimAvgs: { name: string; avg: number }[] = []
+    for (const dn of dimNames) {
+      const vals = last7.map(h => h.dimensions?.[dn]).filter((v): v is number => typeof v === "number")
+      if (vals.length > 0) {
+        dimAvgs.push({ name: dn, avg: vals.reduce((a, b) => a + b, 0) / vals.length })
+      }
+    }
+    const weakest = dimAvgs.length > 0 ? dimAvgs.reduce((min, d) => d.avg < min.avg ? d : min) : null
+
+    return { last7, lastAvg: Math.round(lastAvg), delta, direction, weakest }
+  }, [flourishHistory])
+
+  // Mood trend over last 7 entries
+  const moodTrend = useMemo(() => {
+    if (recentMoods.length < 3) return null
+    const sorted = [...recentMoods].sort((a: any, b: any) => (a.createdAt || "").localeCompare(b.createdAt || ""))
+    const half = Math.floor(sorted.length / 2)
+    const olderAvg = sorted.slice(0, half).reduce((s: number, m: any) => s + (m.score || 0), 0) / Math.max(1, half)
+    const newerAvg = sorted.slice(half).reduce((s: number, m: any) => s + (m.score || 0), 0) / Math.max(1, sorted.length - half)
+    const diff = newerAvg - olderAvg
+    return Math.abs(diff) < 0.5 ? "stable" : diff > 0 ? "up" : "down"
+  }, [recentMoods])
+
+  // Today's single recommended focus
+  const todayFocus = useMemo(() => {
+    // What's missing first
+    if (!moodToday) return { action: "Log your mood today", reason: "Mood tracking is the foundation — you haven't logged yet.", href: "/mental-health", color: "violet" }
+    if (!loggedToday) return { action: "Log one health metric", reason: "Sleep, exercise, water, or weight. Consistency compounds.", href: "/health", color: "rose" }
+
+    // Trending down mood
+    if (moodTrend === "down" && avgMood !== null && avgMood < 6) return { action: "Try a breathwork session", reason: `Your mood is trending down (avg ${avgMood}/10). 5 minutes of box breathing can reset.`, href: "/breathwork", color: "cyan" }
+
+    // Weakest flourishing dimension
+    if (weekProgress?.weakest) {
+      const w = weekProgress.weakest
+      if (w.name === "sleep" && w.avg < 60) return { action: "Read sleep optimization", reason: `Sleep is your weakest area this week (${Math.round(w.avg)}/100).`, href: "/sleep-optimization", color: "indigo" }
+      if (w.name === "exercise" && w.avg < 60) return { action: "Get one exercise session in", reason: `Exercise is your weakest area this week (${Math.round(w.avg)}/100).`, href: "/health", color: "orange" }
+      if (w.name === "habits" && w.avg < 60) return { action: "Check off your daily habits", reason: `Habits are your weakest area this week (${Math.round(w.avg)}/100).`, href: "/daily-habits", color: "emerald" }
+      if (w.name === "gratitude" && w.avg < 60) return { action: "Write 3 gratitudes", reason: "Gratitude is your lowest dimension. Two minutes now.", href: "/gratitude", color: "rose" }
+    }
+
+    // Streak momentum — trending up
+    const maxStreak = Math.max(streaks.health || 0, streaks.mood || 0, streaks.journal || 0, streaks.platform || 0)
+    if (maxStreak >= 7 && weekProgress?.direction === "up") return { action: `Protect your ${maxStreak}-day streak`, reason: "You're trending up this week — momentum is precious. Do one small thing to keep it going.", href: "/daily-habits", color: "amber" }
+
+    // Default positive
+    return { action: "Reflect for 2 minutes", reason: "Core logs are in. A brief reflection locks in today's learning.", href: "/weekly-reflection", color: "indigo" }
+  }, [moodToday, loggedToday, moodTrend, avgMood, weekProgress, streaks])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -278,6 +349,114 @@ export default function MorningBriefingPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* This week's progress — flourishing score trend */}
+      {weekProgress && (() => {
+        // Sparkline from last 7 entries (chronological order)
+        const series = [...weekProgress.last7].reverse().map(h => h.score)
+        const sw = 280
+        const sh = 50
+        const sMin = Math.max(0, Math.min(...series) - 5)
+        const sMax = Math.min(100, Math.max(...series) + 5)
+        const sRange = Math.max(1, sMax - sMin)
+        const xAt = (i: number) => series.length <= 1 ? sw / 2 : (i / (series.length - 1)) * sw
+        const yAt = (v: number) => sh - ((v - sMin) / sRange) * sh
+        const linePath = series.map((v, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(v)}`).join(" ")
+        const areaPath = `${linePath} L ${xAt(series.length - 1)} ${sh} L ${xAt(0)} ${sh} Z`
+        const DirIcon = weekProgress.direction === "up" ? TrendingUp : weekProgress.direction === "down" ? TrendingDown : Minus
+        const dirColor = weekProgress.direction === "up" ? "text-emerald-600" : weekProgress.direction === "down" ? "text-red-600" : "text-muted-foreground"
+        const dimLabel: Record<string, string> = { mood: "Mood", sleep: "Sleep", exercise: "Exercise", habits: "Habits", gratitude: "Gratitude", consistency: "Consistency" }
+        return (
+          <Card className="border-indigo-200 bg-indigo-50/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-indigo-500" /> This Week's Progress</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-end gap-4">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">7-day average</p>
+                  <p className={cn("text-3xl font-bold", weekProgress.lastAvg >= 70 ? "text-emerald-600" : weekProgress.lastAvg >= 50 ? "text-amber-600" : "text-red-600")}>{weekProgress.lastAvg}</p>
+                </div>
+                <svg viewBox={`0 0 ${sw} ${sh}`} className="flex-1 h-12" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="weekFlourishFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="rgb(99, 102, 241)" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
+                  <path d={areaPath} fill="url(#weekFlourishFill)" />
+                  <path d={linePath} fill="none" stroke="rgb(99, 102, 241)" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+                  {series.map((v, i) => (
+                    <circle key={i} cx={xAt(i)} cy={yAt(v)} r={1.5} fill="rgb(99, 102, 241)" />
+                  ))}
+                </svg>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <DirIcon className={cn("h-3.5 w-3.5", dirColor)} />
+                <p>
+                  Your score is <strong className={dirColor}>
+                    {weekProgress.direction === "up" ? "up" : weekProgress.direction === "down" ? "down" : weekProgress.direction === "new" ? "just getting started" : "stable"}
+                  </strong>
+                  {weekProgress.delta !== null && weekProgress.direction !== "stable" && <> ({weekProgress.delta > 0 ? "+" : ""}{weekProgress.delta} pts) vs last week</>}
+                  {weekProgress.delta !== null && weekProgress.direction === "stable" && <> vs last week</>}
+                </p>
+              </div>
+              {weekProgress.weakest && (
+                <p className="text-xs text-muted-foreground">
+                  → Your weakest area is <strong className="text-indigo-700">{dimLabel[weekProgress.weakest.name] || weekProgress.weakest.name}</strong> ({Math.round(weekProgress.weakest.avg)}/100). Focus here today.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
+
+      {/* Today's focus — single recommended action */}
+      {todayFocus && (
+        <Card className={cn(
+          "border-2",
+          todayFocus.color === "violet" && "border-violet-300 bg-violet-50/30",
+          todayFocus.color === "rose" && "border-rose-300 bg-rose-50/30",
+          todayFocus.color === "cyan" && "border-cyan-300 bg-cyan-50/30",
+          todayFocus.color === "indigo" && "border-indigo-300 bg-indigo-50/30",
+          todayFocus.color === "orange" && "border-orange-300 bg-orange-50/30",
+          todayFocus.color === "emerald" && "border-emerald-300 bg-emerald-50/30",
+          todayFocus.color === "amber" && "border-amber-300 bg-amber-50/30",
+        )}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-lg shrink-0",
+                todayFocus.color === "violet" && "bg-violet-500",
+                todayFocus.color === "rose" && "bg-rose-500",
+                todayFocus.color === "cyan" && "bg-cyan-500",
+                todayFocus.color === "indigo" && "bg-indigo-500",
+                todayFocus.color === "orange" && "bg-orange-500",
+                todayFocus.color === "emerald" && "bg-emerald-500",
+                todayFocus.color === "amber" && "bg-amber-500",
+              )}>
+                <Target className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">Today's Focus</p>
+                <a href={todayFocus.href} className={cn(
+                  "text-sm font-semibold hover:underline",
+                  todayFocus.color === "violet" && "text-violet-700",
+                  todayFocus.color === "rose" && "text-rose-700",
+                  todayFocus.color === "cyan" && "text-cyan-700",
+                  todayFocus.color === "indigo" && "text-indigo-700",
+                  todayFocus.color === "orange" && "text-orange-700",
+                  todayFocus.color === "emerald" && "text-emerald-700",
+                  todayFocus.color === "amber" && "text-amber-700",
+                )}>
+                  {todayFocus.action} →
+                </a>
+                <p className="text-xs text-muted-foreground mt-1">{todayFocus.reason}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-3 flex-wrap">
         <a href="/dashboard" className="text-sm text-violet-600 hover:underline">Dashboard</a>
