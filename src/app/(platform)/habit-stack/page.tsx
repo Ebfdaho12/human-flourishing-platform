@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Layers, Plus, ArrowDown, Trash2, CheckCircle, RotateCcw, Sparkles } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Layers, Plus, ArrowDown, Trash2, CheckCircle, RotateCcw, Sparkles, Sunrise, Moon, Link2, Zap, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,10 +13,20 @@ interface HabitStack {
   name: string
   habits: { text: string; done: boolean }[]
   streak: number
-  lastCompleted: string // ISO date
+  lastCompleted: string
+  scheduledTime?: string
 }
 
-const TEMPLATES: { name: string; habits: string[] }[] = [
+interface DailyHabit {
+  id: string
+  name: string
+  icon: string
+  streak: number
+  completedDates: string[]
+  scheduledTime?: string
+}
+
+const TEMPLATES: { name: string; habits: string[]; cite: string }[] = [
   {
     name: "Morning Power Stack",
     habits: [
@@ -26,6 +36,7 @@ const TEMPLATES: { name: string; habits: string[] }[] = [
       "After I write gratitude, I will review my top 3 priorities for the day",
       "After I review priorities, I will do 25 minutes of focused work",
     ],
+    cite: "Based on Clear, Atomic Habits, Ch. 5 — habit stacking formula",
   },
   {
     name: "Evening Wind-Down",
@@ -36,6 +47,7 @@ const TEMPLATES: { name: string; habits: string[] }[] = [
       "After I read, I will write one sentence about my day",
       "After I journal, I will do a 3-minute breathing exercise",
     ],
+    cite: "Based on Clear, Atomic Habits — implementation intentions reduce decision friction",
   },
   {
     name: "Fitness Builder",
@@ -46,6 +58,7 @@ const TEMPLATES: { name: string; habits: string[] }[] = [
       "After plank, I will do 10 lunges each leg",
       "After lunges, I will stretch for 3 minutes",
     ],
+    cite: "Based on Clear's 2-minute rule — scale up from a tiny anchor",
   },
   {
     name: "Learning Stack",
@@ -55,6 +68,7 @@ const TEMPLATES: { name: string; habits: string[] }[] = [
       "After I write, I will watch one educational video (10 min max)",
       "After the video, I will practice one skill for 15 minutes",
     ],
+    cite: "Based on Clear, Atomic Habits — pair new habits to existing anchor cues",
   },
 ]
 
@@ -73,8 +87,30 @@ function isYesterday(dateStr: string): boolean {
   return d.getFullYear() === yesterday.getFullYear() && d.getMonth() === yesterday.getMonth() && d.getDate() === yesterday.getDate()
 }
 
+function parseTime(t?: string): number | null {
+  if (!t) return null
+  const [h, m] = t.split(":").map(Number)
+  if (isNaN(h) || isNaN(m)) return null
+  return h * 60 + m
+}
+
+function getToday(): string {
+  return new Date().toISOString().split("T")[0]
+}
+
+function getLastN(n: number): string[] {
+  return Array.from({ length: n }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().split("T")[0])
+}
+
+function completionRate(habit: DailyHabit, windowDays = 30): number {
+  const window = getLastN(windowDays)
+  const hits = window.filter(d => habit.completedDates.includes(d)).length
+  return hits / windowDays
+}
+
 export default function HabitStackPage() {
   const [stacks, setStacks] = useState<HabitStack[]>([])
+  const [dailyHabits, setDailyHabits] = useState<DailyHabit[]>([])
   const [activeStack, setActiveStack] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState("")
@@ -83,6 +119,8 @@ export default function HabitStackPage() {
   useEffect(() => {
     const stored = localStorage.getItem("hfp-habit-stacks")
     if (stored) setStacks(JSON.parse(stored))
+    const daily = localStorage.getItem("hfp-daily-habits")
+    if (daily) setDailyHabits(JSON.parse(daily))
   }, [])
 
   function save(updated: HabitStack[]) {
@@ -118,11 +156,10 @@ export default function HabitStackPage() {
 
       let streak = s.streak
       if (allDone && !wasCompletedToday) {
-        // Completing today
         if (isYesterday(s.lastCompleted) || s.lastCompleted === "") {
           streak = s.streak + 1
         } else if (!isToday(s.lastCompleted)) {
-          streak = 1 // Reset streak if missed a day
+          streak = 1
         }
       }
 
@@ -147,9 +184,109 @@ export default function HabitStackPage() {
     if (activeStack === stackId) setActiveStack(null)
   }
 
+  // Auto-suggest anchors from user's high-success habits
+  const anchorSuggestions = useMemo(() => {
+    if (dailyHabits.length < 2) return []
+    const ranked = dailyHabits
+      .map(h => ({ habit: h, rate: completionRate(h, 30) }))
+      .filter(x => x.rate >= 0.5 && x.habit.completedDates.length >= 5)
+      .sort((a, b) => b.rate - a.rate)
+    if (ranked.length === 0) return []
+
+    const weak = dailyHabits
+      .map(h => ({ habit: h, rate: completionRate(h, 30) }))
+      .filter(x => x.rate < 0.5)
+      .sort((a, b) => a.rate - b.rate)
+
+    const suggestions: { anchor: string; anchorRate: number; target: string; targetRate: number; icon: string }[] = []
+    for (const anchor of ranked.slice(0, 3)) {
+      for (const target of weak.slice(0, 2)) {
+        if (anchor.habit.id !== target.habit.id && suggestions.length < 4) {
+          suggestions.push({
+            anchor: anchor.habit.name,
+            anchorRate: Math.round(anchor.rate * 100),
+            target: target.habit.name,
+            targetRate: Math.round(target.rate * 100),
+            icon: anchor.habit.icon,
+          })
+        }
+      }
+    }
+    return suggestions
+  }, [dailyHabits])
+
+  // Time-proximity chains (habits scheduled within 30 min of each other)
+  const timeChains = useMemo(() => {
+    const timed = dailyHabits
+      .map(h => ({ habit: h, minutes: parseTime(h.scheduledTime) }))
+      .filter(x => x.minutes !== null) as { habit: DailyHabit; minutes: number }[]
+    if (timed.length < 2) return []
+    timed.sort((a, b) => a.minutes - b.minutes)
+
+    const chains: { habits: DailyHabit[]; startMinutes: number; endMinutes: number; jointRate: number }[] = []
+    let current: typeof timed = [timed[0]]
+    for (let i = 1; i < timed.length; i++) {
+      if (timed[i].minutes - current[current.length - 1].minutes <= 30) {
+        current.push(timed[i])
+      } else {
+        if (current.length >= 2) {
+          chains.push(buildChain(current))
+        }
+        current = [timed[i]]
+      }
+    }
+    if (current.length >= 2) chains.push(buildChain(current))
+    return chains
+
+    function buildChain(group: typeof timed) {
+      const habits = group.map(g => g.habit)
+      const last30 = getLastN(30)
+      let allHit = 0
+      for (const d of last30) {
+        if (habits.every(h => h.completedDates.includes(d))) allHit++
+      }
+      return {
+        habits,
+        startMinutes: group[0].minutes,
+        endMinutes: group[group.length - 1].minutes,
+        jointRate: allHit / 30,
+      }
+    }
+  }, [dailyHabits])
+
+  const routineDetection = useMemo(() => {
+    const morning = dailyHabits.filter(h => {
+      const m = parseTime(h.scheduledTime)
+      return m !== null && m < 11 * 60
+    })
+    const evening = dailyHabits.filter(h => {
+      const m = parseTime(h.scheduledTime)
+      return m !== null && m >= 18 * 60
+    })
+    return { morning, evening }
+  }, [dailyHabits])
+
   const active = activeStack ? stacks.find(s => s.id === activeStack) : null
   const totalStreaks = stacks.reduce((sum, s) => sum + s.streak, 0)
   const completedToday = stacks.filter(s => isToday(s.lastCompleted) && s.habits.every(h => h.done)).length
+
+  function formatMinutes(m: number): string {
+    const h = Math.floor(m / 60)
+    const mm = m % 60
+    const period = h >= 12 ? "pm" : "am"
+    const h12 = h % 12 === 0 ? 12 : h % 12
+    return `${h12}:${mm.toString().padStart(2, "0")}${period}`
+  }
+
+  // Stack strength: completion rate of whole chain vs expected if independent
+  function stackStrength(stack: HabitStack): { chainRate: number; independentRate: number; bonus: number } {
+    // Can't compute historical without logs; use today's completion as sample
+    const doneCount = stack.habits.filter(h => h.done).length
+    const chainRate = stack.habits.length > 0 ? doneCount / stack.habits.length : 0
+    const independentRate = chainRate // Today only; use streak as longitudinal proxy
+    const bonus = stack.streak > 0 ? Math.min(stack.streak / 30, 1) : 0
+    return { chainRate, independentRate, bonus }
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -187,29 +324,162 @@ export default function HabitStackPage() {
         </div>
       )}
 
+      {/* Auto-suggested anchors from daily habits */}
+      {!active && anchorSuggestions.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Zap className="h-3 w-3 text-amber-500" /> Suggested Anchors (from your data)
+          </p>
+          <div className="space-y-2">
+            {anchorSuggestions.map((s, i) => (
+              <Card key={i} className="border-amber-200 bg-amber-50/20">
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg shrink-0 mt-0.5">{s.icon}</span>
+                    <div className="flex-1">
+                      <p className="text-xs leading-relaxed">
+                        Your <strong>{s.anchor}</strong>{" "}
+                        <span className="text-emerald-600">({s.anchorRate}% success)</span>{" "}
+                        could anchor{" "}
+                        <strong>{s.target}</strong>{" "}
+                        <span className="text-red-500">({s.targetRate}% success)</span>.
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1 italic">
+                        "After I {s.anchor.toLowerCase()}, I will {s.target.toLowerCase()}."
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 text-[10px] h-7"
+                      onClick={() => {
+                        setNewName(`${s.anchor} → ${s.target}`)
+                        setNewHabits([`After I ${s.anchor.toLowerCase()}, I will ${s.target.toLowerCase()}`])
+                        setShowCreate(true)
+                      }}
+                    >
+                      <Plus className="h-3 w-3" /> Stack
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Time-proximity detected chains */}
+      {!active && timeChains.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Link2 className="h-3 w-3 text-violet-500" /> Detected Chains (within 30 min)
+          </p>
+          <div className="space-y-2">
+            {timeChains.map((chain, i) => (
+              <Card key={i} className="border-violet-200 bg-violet-50/20">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold text-violet-700 uppercase tracking-wider">
+                      {formatMinutes(chain.startMinutes)} – {formatMinutes(chain.endMinutes)}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3 text-violet-500" />
+                      <span className="text-[10px] font-bold text-violet-600">
+                        {Math.round(chain.jointRate * 100)}% joint rate
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {chain.habits.map((h, j) => (
+                      <span key={h.id} className="inline-flex items-center gap-1">
+                        <Badge variant="outline" className="text-[10px]">
+                          {h.icon} {h.name}
+                        </Badge>
+                        {j < chain.habits.length - 1 && <ArrowDown className="h-3 w-3 text-violet-400 -rotate-90" />}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    All {chain.habits.length} habits completed together on{" "}
+                    {Math.round(chain.jointRate * 30)}/30 recent days.
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Morning / Evening routine detection */}
+      {!active && (routineDetection.morning.length >= 2 || routineDetection.evening.length >= 2) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {routineDetection.morning.length >= 2 && (
+            <Card className="border-orange-200 bg-gradient-to-br from-orange-50/40 to-amber-50/40">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sunrise className="h-4 w-4 text-orange-500" />
+                  <p className="text-xs font-semibold text-orange-700">Morning Routine Detected</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">{routineDetection.morning.length} habits before 11am:</p>
+                <div className="flex flex-wrap gap-1">
+                  {routineDetection.morning.map(h => (
+                    <Badge key={h.id} variant="outline" className="text-[9px]">{h.icon} {h.name}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {routineDetection.evening.length >= 2 && (
+            <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/40 to-violet-50/40">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Moon className="h-4 w-4 text-indigo-500" />
+                  <p className="text-xs font-semibold text-indigo-700">Evening Routine Detected</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground mb-1.5">{routineDetection.evening.length} habits after 6pm:</p>
+                <div className="flex flex-wrap gap-1">
+                  {routineDetection.evening.map(h => (
+                    <Badge key={h.id} variant="outline" className="text-[9px]">{h.icon} {h.name}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {!active ? (
         <div className="space-y-4">
-          {/* Existing stacks */}
+          {/* Existing stacks with strength score */}
           {stacks.map(stack => {
             const done = stack.habits.filter(h => h.done).length
             const total = stack.habits.length
-            const completedToday = isToday(stack.lastCompleted) && done === total
+            const isDoneToday = isToday(stack.lastCompleted) && done === total
+            const strength = stackStrength(stack)
+            const strengthPct = Math.round((strength.chainRate * 0.6 + strength.bonus * 0.4) * 100)
             return (
               <Card key={stack.id} className="card-hover cursor-pointer" onClick={() => setActiveStack(stack.id)}>
                 <CardContent className="p-4 flex items-center gap-4">
                   <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
-                    completedToday ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
+                    isDoneToday ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
                   )}>
-                    {completedToday ? <CheckCircle className="h-6 w-6" /> : <Layers className="h-6 w-6" />}
+                    {isDoneToday ? <CheckCircle className="h-6 w-6" /> : <Layers className="h-6 w-6" />}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{stack.name}</h3>
                       {stack.streak > 0 && (
                         <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-300">
                           {stack.streak} day streak
                         </Badge>
                       )}
+                      <Badge variant="outline" className={cn("text-[9px]",
+                        strengthPct >= 70 ? "text-emerald-600 border-emerald-300" :
+                        strengthPct >= 40 ? "text-amber-600 border-amber-300" :
+                        "text-red-500 border-red-300"
+                      )}>
+                        Strength {strengthPct}%
+                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{total} habits · {done}/{total} done today</p>
                     <div className="h-1 bg-muted rounded-full mt-1.5 overflow-hidden">
@@ -230,14 +500,15 @@ export default function HabitStackPage() {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <Sparkles className="h-3 w-3" /> Quick Start Templates
+                  <Sparkles className="h-3 w-3" /> Research-Backed Templates
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {TEMPLATES.map(t => (
                     <Card key={t.name} className="card-hover cursor-pointer" onClick={() => useTemplate(t)}>
                       <CardContent className="p-3">
                         <p className="text-sm font-medium">{t.name}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">{t.habits.length} habits</p>
+                        <p className="text-[10px] text-muted-foreground italic mt-1.5 leading-snug">{t.cite}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -283,7 +554,7 @@ export default function HabitStackPage() {
         /* Active stack detail */
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={() => setActiveStack(null)}>← All stacks</Button>
+            <Button variant="ghost" onClick={() => setActiveStack(null)}>All stacks</Button>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => resetStack(active.id)}>
                 <RotateCcw className="h-3 w-3" /> Reset
@@ -299,7 +570,7 @@ export default function HabitStackPage() {
               <h2 className="text-xl font-bold">{active.name}</h2>
               <div className="flex items-center gap-4 mt-2">
                 <span className="text-white/80">{active.habits.filter(h => h.done).length}/{active.habits.length}</span>
-                {active.streak > 0 && <span className="text-white/80">🔥 {active.streak} day streak</span>}
+                {active.streak > 0 && <span className="text-white/80">{active.streak} day streak</span>}
                 <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
                   <div className="h-full bg-white rounded-full transition-all"
                     style={{ width: `${(active.habits.filter(h => h.done).length / active.habits.length) * 100}%` }} />
@@ -347,7 +618,7 @@ export default function HabitStackPage() {
             <Card className="border-emerald-300 bg-emerald-50/30">
               <CardContent className="p-5 text-center">
                 <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                <p className="text-lg font-bold text-emerald-700">Stack Complete!</p>
+                <p className="text-lg font-bold text-emerald-700">Stack Complete</p>
                 <p className="text-sm text-muted-foreground">Every chain link held. Come back tomorrow to keep the streak alive.</p>
               </CardContent>
             </Card>
@@ -359,16 +630,18 @@ export default function HabitStackPage() {
       <Card className="border-emerald-200 bg-emerald-50/20">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>Why habit stacking?</strong> From James Clear's <em>Atomic Habits</em>: &quot;One of the best ways to build
+            <strong>Why habit stacking?</strong> From James Clear&apos;s <em>Atomic Habits</em> (2018, Ch. 5): &quot;One of the best ways to build
             a new habit is to identify a current habit you already do each day and then stack your new behavior on top.&quot;
             The existing habit becomes a trigger for the next one. Each completion creates momentum. The chain pulls
-            you forward instead of relying on willpower alone.
+            you forward instead of relying on willpower alone. BJ Fogg&apos;s <em>Tiny Habits</em> (2019) calls this
+            the &quot;anchor moment&quot; — the precise trigger that fires your new behaviour.
           </p>
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
-        <a href="/habits" className="text-sm text-emerald-600 hover:underline">Habit Tracker</a>
+      <div className="flex gap-3 flex-wrap">
+        <a href="/daily-habits" className="text-sm text-emerald-600 hover:underline">Daily Habits</a>
+        <a href="/habit-science" className="text-sm text-violet-600 hover:underline">Habit Science</a>
         <a href="/routine" className="text-sm text-amber-600 hover:underline">Daily Routines</a>
         <a href="/challenges" className="text-sm text-orange-600 hover:underline">30-Day Challenges</a>
       </div>
