@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Calculator, DollarSign, TrendingUp, TrendingDown, PiggyBank, AlertTriangle, CheckCircle, Download } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Calculator, DollarSign, TrendingUp, TrendingDown, PiggyBank, AlertTriangle, CheckCircle, Download, Camera, Activity, Shield, Target, Zap, Droplet } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,15 @@ interface BudgetLine {
   category: string
 }
 
+interface BudgetSnapshot {
+  date: string // YYYY-MM-01
+  startingBalance: number
+  totalIncome: number
+  totalExpenses: number
+  surplus: number
+  categories: { category: string; spent: number }[]
+}
+
 const INCOME_TEMPLATES: { label: string; placeholder: string }[] = [
   { label: "Primary salary (after tax)", placeholder: "e.g. 4200" },
   { label: "Second income (after tax)", placeholder: "e.g. 2800" },
@@ -24,10 +33,11 @@ const INCOME_TEMPLATES: { label: string; placeholder: string }[] = [
   { label: "Other income", placeholder: "e.g. 200" },
 ]
 
-const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: string; placeholder: string }[] }[] = [
+const EXPENSE_CATEGORIES: { category: string; color: string; hex: string; items: { label: string; placeholder: string }[] }[] = [
   {
     category: "Housing",
     color: "bg-blue-500",
+    hex: "#3b82f6",
     items: [
       { label: "Rent / Mortgage", placeholder: "e.g. 1800" },
       { label: "Property tax", placeholder: "e.g. 250" },
@@ -38,6 +48,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Transport",
     color: "bg-violet-500",
+    hex: "#8b5cf6",
     items: [
       { label: "Car payment", placeholder: "e.g. 450" },
       { label: "Car insurance", placeholder: "e.g. 180" },
@@ -50,6 +61,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Food",
     color: "bg-emerald-500",
+    hex: "#10b981",
     items: [
       { label: "Groceries", placeholder: "e.g. 800" },
       { label: "Eating out / takeout", placeholder: "e.g. 300" },
@@ -59,6 +71,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Childcare & Kids",
     color: "bg-rose-500",
+    hex: "#f43f5e",
     items: [
       { label: "Daycare / before-after school", placeholder: "e.g. 1500" },
       { label: "Kids activities / sports", placeholder: "e.g. 150" },
@@ -68,6 +81,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Utilities & Bills",
     color: "bg-cyan-500",
+    hex: "#06b6d4",
     items: [
       { label: "Electricity", placeholder: "e.g. 120" },
       { label: "Gas / heating", placeholder: "e.g. 80" },
@@ -79,6 +93,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Insurance & Health",
     color: "bg-amber-500",
+    hex: "#f59e0b",
     items: [
       { label: "Health / dental insurance", placeholder: "e.g. 200" },
       { label: "Life insurance", placeholder: "e.g. 50" },
@@ -88,6 +103,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Debt Payments",
     color: "bg-red-500",
+    hex: "#ef4444",
     items: [
       { label: "Credit cards", placeholder: "e.g. 200" },
       { label: "Student loans", placeholder: "e.g. 300" },
@@ -97,6 +113,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Lifestyle & Subscriptions",
     color: "bg-pink-500",
+    hex: "#ec4899",
     items: [
       { label: "Streaming (Netflix, etc.)", placeholder: "e.g. 40" },
       { label: "Gym / fitness", placeholder: "e.g. 50" },
@@ -109,6 +126,7 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   {
     category: "Work-Related Costs",
     color: "bg-slate-500",
+    hex: "#64748b",
     items: [
       { label: "Work lunches / coffee", placeholder: "e.g. 150" },
       { label: "Work clothes / dry cleaning", placeholder: "e.g. 50" },
@@ -118,12 +136,36 @@ const EXPENSE_CATEGORIES: { category: string; color: string; items: { label: str
   },
 ]
 
+// Indices used repeatedly
+const IDX_HOUSING = 0
+const IDX_TRANSPORT = 1
+const IDX_FOOD = 2
+const IDX_CHILDCARE = 3
+const IDX_UTILITIES = 4
+const IDX_INSURANCE = 5
+const IDX_DEBT = 6
+const IDX_LIFESTYLE = 7
+const IDX_WORK = 8
+
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split("-")
+  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return `${names[Number(m) - 1]} ${y.slice(2)}`
+}
+
 export default function BudgetPage() {
   const [incomes, setIncomes] = useState<number[]>(new Array(INCOME_TEMPLATES.length).fill(0))
   const [expenses, setExpenses] = useState<number[][]>(
     EXPENSE_CATEGORIES.map(cat => new Array(cat.items.length).fill(0))
   )
   const [showSingleIncome, setShowSingleIncome] = useState(false)
+  const [history, setHistory] = useState<BudgetSnapshot[]>([])
+  const [cashBalance, setCashBalance] = useState<number>(0)
+  const [cashAvailable, setCashAvailable] = useState<boolean>(false)
 
   useEffect(() => {
     const stored = localStorage.getItem("hfp-budget")
@@ -131,6 +173,41 @@ export default function BudgetPage() {
       const data = JSON.parse(stored)
       if (data.incomes) setIncomes(data.incomes)
       if (data.expenses) setExpenses(data.expenses)
+    }
+    const hist = localStorage.getItem("hfp-budget-history")
+    if (hist) {
+      try {
+        const parsed = JSON.parse(hist) as BudgetSnapshot[]
+        if (Array.isArray(parsed)) setHistory(parsed)
+      } catch {}
+    }
+    // Try to read cash from net-worth tracker for emergency fund runway
+    const nw = localStorage.getItem("hfp-net-worth")
+    if (nw) {
+      try {
+        const parsed = JSON.parse(nw)
+        // Look for cash/checking/savings across several possible shapes
+        let cash = 0
+        let found = false
+        const scan = (obj: unknown) => {
+          if (!obj || typeof obj !== "object") return
+          if (Array.isArray(obj)) { obj.forEach(scan); return }
+          for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+            const key = k.toLowerCase()
+            if (typeof v === "number" && (key.includes("cash") || key.includes("checking") || key.includes("savings") || key.includes("chequing"))) {
+              cash += v
+              found = true
+            } else if (typeof v === "object") {
+              scan(v)
+            }
+          }
+        }
+        scan(parsed)
+        if (found) {
+          setCashBalance(cash)
+          setCashAvailable(true)
+        }
+      } catch {}
     }
   }, [])
 
@@ -163,21 +240,131 @@ export default function BudgetPage() {
 
   // Single income simulation
   const secondIncome = incomes[1] || 0
-  const childcareCost = expenses[3]?.[0] || 0 // daycare
-  const workCosts = expenses[8]?.reduce((s, v) => s + v, 0) || 0 // work-related
-  const secondVehicle = expenses[1]?.[4] || 0 // second vehicle
-  const eatingOutSavings = Math.round((expenses[2]?.[1] || 0) * 0.6) // 60% less eating out
+  const childcareCost = expenses[IDX_CHILDCARE]?.[0] || 0
+  const workCosts = expenses[IDX_WORK]?.reduce((s, v) => s + v, 0) || 0
+  const secondVehicle = expenses[IDX_TRANSPORT]?.[4] || 0
+  const eatingOutSavings = Math.round((expenses[IDX_FOOD]?.[1] || 0) * 0.6)
   const singleIncomeTotal = totalIncome - secondIncome
   const singleIncomeExpenses = totalExpenses - childcareCost - workCosts - secondVehicle - eatingOutSavings
   const singleIncomeSurplus = singleIncomeTotal - singleIncomeExpenses
 
-  // CCB increase estimate (rough: lower income = higher CCB)
   const ccbIncrease = secondIncome > 30000 ? Math.round(secondIncome * 0.07) : secondIncome > 20000 ? Math.round(secondIncome * 0.05) : 0
   const adjustedSingleSurplus = singleIncomeSurplus + Math.round(ccbIncrease / 12)
 
   // 50/30/20 rule comparison
-  const needsPct = totalIncome > 0 ? Math.round(((categoryTotals[0].total + categoryTotals[1].total + categoryTotals[4].total + categoryTotals[5].total + categoryTotals[3].total) / totalIncome) * 100) : 0
-  const wantsPct = totalIncome > 0 ? Math.round(((categoryTotals[7].total + categoryTotals[2].total - (expenses[2]?.[0] || 0)) / totalIncome) * 100) : 0
+  const needsPct = totalIncome > 0 ? Math.round(((categoryTotals[IDX_HOUSING].total + categoryTotals[IDX_TRANSPORT].total + categoryTotals[IDX_UTILITIES].total + categoryTotals[IDX_INSURANCE].total + categoryTotals[IDX_CHILDCARE].total) / totalIncome) * 100) : 0
+  const wantsPct = totalIncome > 0 ? Math.round(((categoryTotals[IDX_LIFESTYLE].total + categoryTotals[IDX_FOOD].total - (expenses[IDX_FOOD]?.[0] || 0)) / totalIncome) * 100) : 0
+
+  // === Snapshot current month ===
+  function saveSnapshot() {
+    const key = monthKey(new Date())
+    const snap: BudgetSnapshot = {
+      date: key,
+      startingBalance: cashAvailable ? cashBalance : 0,
+      totalIncome,
+      totalExpenses,
+      surplus,
+      categories: categoryTotals.map(c => ({ category: c.category, spent: c.total })),
+    }
+    // Replace if same month exists
+    const filtered = history.filter(h => h.date !== key)
+    const updated = [...filtered, snap].sort((a, b) => a.date.localeCompare(b.date))
+    setHistory(updated)
+    localStorage.setItem("hfp-budget-history", JSON.stringify(updated))
+  }
+
+  function removeSnapshot(key: string) {
+    const updated = history.filter(h => h.date !== key)
+    setHistory(updated)
+    localStorage.setItem("hfp-budget-history", JSON.stringify(updated))
+  }
+
+  // === Build 12-month series (real snapshots only) ===
+  const last12 = useMemo(() => history.slice(-12), [history])
+  const last6 = useMemo(() => history.slice(-6), [history])
+
+  // === Budget adherence score ===
+  // Target = median of last 6 months spend per category (or current if no history)
+  const categoryAdherence = useMemo(() => {
+    return categoryTotals.map((cat) => {
+      const historySpends = last6
+        .map(h => h.categories.find(c => c.category === cat.category)?.spent ?? 0)
+        .filter(v => v > 0)
+      if (historySpends.length < 2) {
+        return { category: cat.category, hex: cat.hex, color: cat.color, target: cat.total, actual: cat.total, score: 100, deltaPct: 0, hasTarget: false }
+      }
+      const sorted = [...historySpends].sort((a, b) => a - b)
+      const target = sorted[Math.floor(sorted.length / 2)]
+      const actual = cat.total
+      const deltaPct = target > 0 ? Math.round(((actual - target) / target) * 100) : 0
+      // Score: 100 if within 5%, lose 2 points per % deviation thereafter (both over and under)
+      const absDev = Math.abs(deltaPct)
+      const score = Math.max(0, Math.min(100, 100 - Math.max(0, absDev - 5) * 2))
+      return { category: cat.category, hex: cat.hex, color: cat.color, target, actual, score, deltaPct, hasTarget: true }
+    })
+  }, [categoryTotals, last6])
+
+  const overallAdherenceScore = useMemo(() => {
+    const withTarget = categoryAdherence.filter(c => c.hasTarget && c.actual > 0)
+    if (withTarget.length === 0) return null
+    return Math.round(withTarget.reduce((s, c) => s + c.score, 0) / withTarget.length)
+  }, [categoryAdherence])
+
+  // === Money leak / biggest win ===
+  const moneyLeak = useMemo(() => {
+    const candidates = categoryAdherence.filter(c => c.hasTarget && c.actual > 0 && c.deltaPct > 0)
+    if (candidates.length === 0) return null
+    return candidates.sort((a, b) => b.deltaPct - a.deltaPct)[0]
+  }, [categoryAdherence])
+
+  const biggestWin = useMemo(() => {
+    const candidates = categoryAdherence.filter(c => c.hasTarget && c.actual > 0 && c.deltaPct < 0)
+    if (candidates.length === 0) return null
+    return candidates.sort((a, b) => a.deltaPct - b.deltaPct)[0]
+  }, [categoryAdherence])
+
+  // === 50/30/20 bucket split ===
+  const needsTotal = (categoryTotals[IDX_HOUSING].total + categoryTotals[IDX_TRANSPORT].total + categoryTotals[IDX_UTILITIES].total + categoryTotals[IDX_INSURANCE].total + categoryTotals[IDX_CHILDCARE].total + (expenses[IDX_FOOD]?.[0] || 0))
+  const wantsTotal = (categoryTotals[IDX_LIFESTYLE].total + categoryTotals[IDX_FOOD].total - (expenses[IDX_FOOD]?.[0] || 0) + categoryTotals[IDX_WORK].total)
+  const savingsOrDebt = Math.max(0, surplus) + categoryTotals[IDX_DEBT].total
+  const bucketTotal = needsTotal + wantsTotal + savingsOrDebt
+  const needsBucketPct = bucketTotal > 0 ? (needsTotal / bucketTotal) * 100 : 0
+  const wantsBucketPct = bucketTotal > 0 ? (wantsTotal / bucketTotal) * 100 : 0
+  const savingsBucketPct = bucketTotal > 0 ? (savingsOrDebt / bucketTotal) * 100 : 0
+
+  // === Emergency fund runway ===
+  const runwayMonths = (cashAvailable && totalExpenses > 0) ? cashBalance / totalExpenses : 0
+
+  // === SVG chart geometry ===
+  const barChartW = 640
+  const barChartH = 180
+  const barChartPad = { t: 10, r: 10, b: 22, l: 42 }
+
+  const surplusSeries = last12.map(h => h.surplus)
+  const maxSurplusAbs = Math.max(1, ...surplusSeries.map(v => Math.abs(v)))
+  const zeroY = barChartPad.t + (barChartH - barChartPad.t - barChartPad.b) / 2
+  const halfH = (barChartH - barChartPad.t - barChartPad.b) / 2
+  const bandW = last12.length > 0 ? (barChartW - barChartPad.l - barChartPad.r) / last12.length : 0
+
+  // Stacked bars for 6-month
+  const stackedChartH = 200
+  const stackedMax = Math.max(1, ...last6.map(h => h.totalExpenses))
+  const stackedBandW = last6.length > 0 ? (barChartW - barChartPad.l - barChartPad.r) / last6.length : 0
+
+  // Savings rate sparkline
+  const sparkSeries = last12.map(h => h.totalIncome > 0 ? ((h.totalIncome - h.totalExpenses) / h.totalIncome) * 100 : 0)
+  const sparkW = 220
+  const sparkH = 44
+  const sparkMin = Math.min(-5, ...sparkSeries)
+  const sparkMax = Math.max(25, ...sparkSeries)
+  const sparkRange = sparkMax - sparkMin || 1
+  const sparkPath = sparkSeries.length > 1
+    ? sparkSeries.map((v, i) => {
+        const x = (i / (sparkSeries.length - 1)) * sparkW
+        const y = sparkH - ((v - sparkMin) / sparkRange) * sparkH
+        return `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`
+      }).join(" ")
+    : ""
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -215,6 +402,25 @@ export default function BudgetPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Snapshot controls */}
+      {(totalIncome > 0 || totalExpenses > 0) && (
+        <Card className="border-emerald-200 bg-emerald-50/20">
+          <CardContent className="p-4 flex items-center gap-3 flex-wrap">
+            <Camera className="h-5 w-5 text-emerald-600 shrink-0" />
+            <div className="flex-1 min-w-[180px]">
+              <p className="text-sm font-semibold">Save this month's snapshot</p>
+              <p className="text-[11px] text-muted-foreground">
+                {history.length === 0 ? "No history yet. Save a snapshot each month to unlock trend charts." :
+                  `${history.length} snapshot${history.length === 1 ? "" : "s"} saved. Latest: ${monthLabel(history[history.length - 1].date)}.`}
+              </p>
+            </div>
+            <Button size="sm" onClick={saveSnapshot} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              Save {monthLabel(monthKey(new Date()))} snapshot
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Income */}
@@ -305,7 +511,7 @@ export default function BudgetPage() {
         </Card>
       )}
 
-      {/* 50/30/20 check */}
+      {/* 50/30/20 check (existing) */}
       {totalIncome > 0 && totalExpenses > 0 && (
         <Card className={cn("border-2", savingsRate >= 20 ? "border-emerald-200 bg-emerald-50/20" : savingsRate >= 10 ? "border-amber-200 bg-amber-50/20" : "border-red-200 bg-red-50/20")}>
           <CardContent className="p-4">
@@ -330,6 +536,445 @@ export default function BudgetPage() {
                savingsRate >= 0 ? "You are barely breaking even. The budget shows exactly where the leaks are." :
                "You are spending more than you earn. This is urgent — focus on the biggest expenses first."}
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 50/30/20 bucket visualization (new) */}
+      {bucketTotal > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-4 w-4 text-violet-500" /> 50 / 30 / 20 Bucket Split
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Target bar */}
+            <div className="mb-2">
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Recommended</span>
+                <span>50% needs · 30% wants · 20% savings/debt</span>
+              </div>
+              <div className="flex h-4 rounded-full overflow-hidden bg-muted">
+                <div className="h-full bg-slate-300" style={{ width: "50%" }} />
+                <div className="h-full bg-slate-400" style={{ width: "30%" }} />
+                <div className="h-full bg-slate-500" style={{ width: "20%" }} />
+              </div>
+            </div>
+            {/* Actual bar */}
+            <div className="mb-3">
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Your actual</span>
+                <span>
+                  {needsBucketPct.toFixed(0)}% · {wantsBucketPct.toFixed(0)}% · {savingsBucketPct.toFixed(0)}%
+                </span>
+              </div>
+              <div className="flex h-4 rounded-full overflow-hidden bg-muted">
+                <div className="h-full bg-blue-500" style={{ width: `${needsBucketPct}%` }} title={`Needs: $${needsTotal.toLocaleString()}`} />
+                <div className="h-full bg-pink-500" style={{ width: `${wantsBucketPct}%` }} title={`Wants: $${wantsTotal.toLocaleString()}`} />
+                <div className="h-full bg-emerald-500" style={{ width: `${savingsBucketPct}%` }} title={`Savings/debt: $${savingsOrDebt.toLocaleString()}`} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                  <div className="h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Needs</span>
+                </div>
+                <p className={cn("text-sm font-bold", needsBucketPct <= 55 ? "text-emerald-600" : "text-red-500")}>
+                  {needsBucketPct.toFixed(0)}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">${needsTotal.toLocaleString()}</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                  <div className="h-2 w-2 rounded-full bg-pink-500" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Wants</span>
+                </div>
+                <p className={cn("text-sm font-bold", wantsBucketPct <= 35 ? "text-emerald-600" : "text-amber-500")}>
+                  {wantsBucketPct.toFixed(0)}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">${wantsTotal.toLocaleString()}</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Savings/Debt</span>
+                </div>
+                <p className={cn("text-sm font-bold", savingsBucketPct >= 20 ? "text-emerald-600" : "text-red-500")}>
+                  {savingsBucketPct.toFixed(0)}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">${savingsOrDebt.toLocaleString()}</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+              Savings/debt combines surplus you can save plus required debt payments — both build net worth over time.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 12-month surplus / deficit chart */}
+      {last12.length >= 2 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4 text-emerald-500" /> Monthly Surplus / Deficit
+              <span className="text-[10px] font-normal text-muted-foreground ml-auto">{last12.length} of 12 months</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <svg viewBox={`0 0 ${barChartW} ${barChartH}`} className="w-full h-auto" preserveAspectRatio="none">
+              {/* Zero line */}
+              <line
+                x1={barChartPad.l} y1={zeroY}
+                x2={barChartW - barChartPad.r} y2={zeroY}
+                stroke="currentColor" strokeOpacity="0.2" strokeWidth="1"
+              />
+              {/* Y-axis labels */}
+              <text x={barChartPad.l - 4} y={barChartPad.t + 8} textAnchor="end" fontSize="9" fill="currentColor" opacity="0.5">
+                +${Math.round(maxSurplusAbs).toLocaleString()}
+              </text>
+              <text x={barChartPad.l - 4} y={zeroY + 3} textAnchor="end" fontSize="9" fill="currentColor" opacity="0.5">$0</text>
+              <text x={barChartPad.l - 4} y={barChartH - barChartPad.b - 2} textAnchor="end" fontSize="9" fill="currentColor" opacity="0.5">
+                -${Math.round(maxSurplusAbs).toLocaleString()}
+              </text>
+              {/* Bars */}
+              {last12.map((h, i) => {
+                const barH = (Math.abs(h.surplus) / maxSurplusAbs) * halfH
+                const x = barChartPad.l + i * bandW + bandW * 0.15
+                const w = bandW * 0.7
+                const isPositive = h.surplus >= 0
+                return (
+                  <g key={h.date}>
+                    <rect
+                      x={x}
+                      y={isPositive ? zeroY - barH : zeroY}
+                      width={w}
+                      height={barH}
+                      fill={isPositive ? "#10b981" : "#ef4444"}
+                      opacity="0.85"
+                      rx="1.5"
+                    >
+                      <title>{`${monthLabel(h.date)}: ${isPositive ? "+" : ""}$${h.surplus.toLocaleString()}`}</title>
+                    </rect>
+                    {i % Math.max(1, Math.ceil(last12.length / 6)) === 0 && (
+                      <text
+                        x={x + w / 2}
+                        y={barChartH - barChartPad.b + 12}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill="currentColor"
+                        opacity="0.55"
+                      >
+                        {monthLabel(h.date)}
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
+            </svg>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 6-month stacked category bars */}
+      {last6.length >= 2 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-violet-500" /> Category Spend Over Time
+              <span className="text-[10px] font-normal text-muted-foreground ml-auto">Last {last6.length} months</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <svg viewBox={`0 0 ${barChartW} ${stackedChartH}`} className="w-full h-auto" preserveAspectRatio="none">
+              {/* Y-axis grid */}
+              {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
+                const y = barChartPad.t + (1 - r) * (stackedChartH - barChartPad.t - barChartPad.b)
+                return (
+                  <g key={i}>
+                    <line x1={barChartPad.l} y1={y} x2={barChartW - barChartPad.r} y2={y} stroke="currentColor" strokeOpacity="0.08" strokeWidth="1" />
+                    <text x={barChartPad.l - 4} y={y + 3} textAnchor="end" fontSize="9" fill="currentColor" opacity="0.5">
+                      ${Math.round(stackedMax * r).toLocaleString()}
+                    </text>
+                  </g>
+                )
+              })}
+              {/* Stacked bars */}
+              {last6.map((h, i) => {
+                const x = barChartPad.l + i * stackedBandW + stackedBandW * 0.15
+                const w = stackedBandW * 0.7
+                const plotH = stackedChartH - barChartPad.t - barChartPad.b
+                let runningY = stackedChartH - barChartPad.b
+                return (
+                  <g key={h.date}>
+                    {EXPENSE_CATEGORIES.map((cat, cIdx) => {
+                      const spent = h.categories.find(c => c.category === cat.category)?.spent ?? 0
+                      if (spent <= 0) return null
+                      const segH = (spent / stackedMax) * plotH
+                      runningY -= segH
+                      return (
+                        <rect
+                          key={cat.category}
+                          x={x}
+                          y={runningY}
+                          width={w}
+                          height={segH}
+                          fill={cat.hex}
+                          opacity="0.88"
+                        >
+                          <title>{`${monthLabel(h.date)} — ${cat.category}: $${spent.toLocaleString()}`}</title>
+                        </rect>
+                      )
+                    })}
+                    <text x={x + w / 2} y={stackedChartH - barChartPad.b + 12} textAnchor="middle" fontSize="9" fill="currentColor" opacity="0.6">
+                      {monthLabel(h.date)}
+                    </text>
+                  </g>
+                )
+              })}
+            </svg>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-1 mt-3">
+              {EXPENSE_CATEGORIES.map(cat => (
+                <div key={cat.category} className="flex items-center gap-1.5">
+                  <div className={cn("h-2 w-2 rounded-full shrink-0", cat.color)} />
+                  <span className="text-[10px] text-muted-foreground">{cat.category}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Savings rate sparkline */}
+      {sparkSeries.length >= 2 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" /> Savings Rate Trend
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-4 flex-wrap">
+            <svg viewBox={`0 0 ${sparkW} ${sparkH + 6}`} className="w-full max-w-[260px] h-auto">
+              {/* 20% target line */}
+              {sparkMin <= 20 && sparkMax >= 20 && (
+                <line
+                  x1="0"
+                  y1={sparkH - ((20 - sparkMin) / sparkRange) * sparkH}
+                  x2={sparkW}
+                  y2={sparkH - ((20 - sparkMin) / sparkRange) * sparkH}
+                  stroke="#10b981"
+                  strokeDasharray="2,2"
+                  strokeOpacity="0.5"
+                  strokeWidth="1"
+                />
+              )}
+              {/* Zero line */}
+              {sparkMin <= 0 && sparkMax >= 0 && (
+                <line
+                  x1="0"
+                  y1={sparkH - ((0 - sparkMin) / sparkRange) * sparkH}
+                  x2={sparkW}
+                  y2={sparkH - ((0 - sparkMin) / sparkRange) * sparkH}
+                  stroke="currentColor"
+                  strokeOpacity="0.25"
+                  strokeWidth="1"
+                />
+              )}
+              <path d={sparkPath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              {sparkSeries.map((v, i) => {
+                const x = (i / (sparkSeries.length - 1)) * sparkW
+                const y = sparkH - ((v - sparkMin) / sparkRange) * sparkH
+                return (
+                  <circle key={i} cx={x} cy={y} r="2" fill={v >= 20 ? "#10b981" : v >= 0 ? "#f59e0b" : "#ef4444"}>
+                    <title>{`${monthLabel(last12[i].date)}: ${v.toFixed(1)}%`}</title>
+                  </circle>
+                )
+              })}
+            </svg>
+            <div className="flex-1 min-w-[150px]">
+              <p className="text-2xl font-bold">
+                <span className={cn(sparkSeries[sparkSeries.length - 1] >= 20 ? "text-emerald-600" : sparkSeries[sparkSeries.length - 1] >= 0 ? "text-amber-500" : "text-red-500")}>
+                  {sparkSeries[sparkSeries.length - 1].toFixed(1)}%
+                </span>
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Latest savings rate · {sparkSeries.length}-month avg: {(sparkSeries.reduce((s, v) => s + v, 0) / sparkSeries.length).toFixed(1)}%
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Dashed line = 20% target
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Budget adherence score */}
+      {overallAdherenceScore !== null && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-500" /> Budget Adherence Score
+              <span className={cn("ml-auto text-lg font-bold",
+                overallAdherenceScore >= 80 ? "text-emerald-600" :
+                overallAdherenceScore >= 60 ? "text-amber-500" : "text-red-500")}>
+                {overallAdherenceScore}/100
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Each category is scored against your own 6-month median. Within 5% of target = 100. Score drops 2 points per % deviation beyond that.
+            </p>
+            <div className="space-y-1.5">
+              {categoryAdherence.filter(c => c.hasTarget && c.actual > 0).sort((a, b) => a.score - b.score).map(c => (
+                <div key={c.category} className="flex items-center gap-2">
+                  <div className={cn("h-2 w-2 rounded-full shrink-0", c.color)} />
+                  <span className="text-xs text-muted-foreground w-32 shrink-0 truncate">{c.category}</span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn("h-full",
+                        c.score >= 80 ? "bg-emerald-500" :
+                        c.score >= 60 ? "bg-amber-500" : "bg-red-500")}
+                      style={{ width: `${c.score}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] tabular-nums w-10 text-right text-muted-foreground">
+                    {c.deltaPct > 0 ? "+" : ""}{c.deltaPct}%
+                  </span>
+                  <span className={cn("text-xs font-medium tabular-nums w-8 text-right",
+                    c.score >= 80 ? "text-emerald-600" :
+                    c.score >= 60 ? "text-amber-500" : "text-red-500")}>
+                    {c.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Money leak + biggest win */}
+      {(moneyLeak || biggestWin) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {moneyLeak && (
+            <Card className="border-red-200 bg-red-50/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Droplet className="h-4 w-4 text-red-500" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-red-600">Money Leak</p>
+                </div>
+                <p className="text-lg font-bold">{moneyLeak.category}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-red-500 font-semibold">+{moneyLeak.deltaPct}%</span> over your 6-month median.
+                  Spent ${moneyLeak.actual.toLocaleString()} vs. typical ${moneyLeak.target.toLocaleString()}.
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  This is the single biggest place to cut before next month. A ${(moneyLeak.actual - moneyLeak.target).toLocaleString()} reset here is more powerful than trimming five smaller categories.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {biggestWin && (
+            <Card className="border-emerald-200 bg-emerald-50/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-4 w-4 text-emerald-600" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Biggest Win</p>
+                </div>
+                <p className="text-lg font-bold">{biggestWin.category}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-emerald-600 font-semibold">{biggestWin.deltaPct}%</span> under your 6-month median.
+                  Spent ${biggestWin.actual.toLocaleString()} vs. typical ${biggestWin.target.toLocaleString()}.
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  You saved ${(biggestWin.target - biggestWin.actual).toLocaleString()} here. Lock in the behaviour that made this possible — it compounds.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Emergency fund runway */}
+      {cashAvailable && totalExpenses > 0 && (
+        <Card className={cn("border-2",
+          runwayMonths >= 6 ? "border-emerald-200 bg-emerald-50/20" :
+          runwayMonths >= 3 ? "border-amber-200 bg-amber-50/20" :
+          "border-red-200 bg-red-50/20")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-500" />
+              <Explain tip="Number of months your cash reserves could cover your current expenses if all income stopped. Standard guidance: 3 months is a minimum cushion, 6 months is strong, 12 months gives full optionality">Emergency Fund Runway</Explain>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className={cn("text-3xl font-bold",
+                runwayMonths >= 6 ? "text-emerald-600" :
+                runwayMonths >= 3 ? "text-amber-500" : "text-red-500")}>
+                {runwayMonths.toFixed(1)}
+              </span>
+              <span className="text-sm text-muted-foreground">months of expenses covered</span>
+            </div>
+            <div className="relative h-3 rounded-full bg-muted overflow-hidden mb-2">
+              <div
+                className={cn("h-full",
+                  runwayMonths >= 6 ? "bg-emerald-500" :
+                  runwayMonths >= 3 ? "bg-amber-500" : "bg-red-500")}
+                style={{ width: `${Math.min(100, (runwayMonths / 12) * 100)}%` }}
+              />
+              {/* 3-month marker */}
+              <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: "25%" }} title="3 months (minimum)" />
+              {/* 6-month marker */}
+              <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: "50%" }} title="6 months (strong)" />
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>0</span>
+              <span>3mo</span>
+              <span>6mo</span>
+              <span>12mo</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+              Cash available: <span className="font-medium text-foreground">${cashBalance.toLocaleString()}</span> (from Net Worth tracker) &middot;
+              Monthly burn: <span className="font-medium text-foreground">${totalExpenses.toLocaleString()}</span>.
+              {runwayMonths < 3 && " Priority #1 is building this to 3 months before anything else. A cash cushion is what lets you take risks elsewhere."}
+              {runwayMonths >= 3 && runwayMonths < 6 && " Solid foundation. Push to 6 months if your income is variable or you have kids."}
+              {runwayMonths >= 6 && " Strong position. Excess cash above 6-12 months is generally better deployed in investments."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* History list */}
+      {history.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Saved Snapshots</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {[...history].reverse().map(h => (
+                <div key={h.date} className="flex items-center gap-2 text-xs py-1 border-b border-border/50 last:border-0">
+                  <span className="w-16 font-medium">{monthLabel(h.date)}</span>
+                  <span className="text-emerald-600 tabular-nums w-20 text-right">${h.totalIncome.toLocaleString()}</span>
+                  <span className="text-muted-foreground">-</span>
+                  <span className="text-red-500 tabular-nums w-20 text-right">${h.totalExpenses.toLocaleString()}</span>
+                  <span className="text-muted-foreground">=</span>
+                  <span className={cn("tabular-nums w-20 text-right font-medium", h.surplus >= 0 ? "text-emerald-600" : "text-red-500")}>
+                    {h.surplus >= 0 ? "+" : ""}${h.surplus.toLocaleString()}
+                  </span>
+                  <button
+                    onClick={() => removeSnapshot(h.date)}
+                    className="ml-auto text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
+                    aria-label={`Remove ${monthLabel(h.date)} snapshot`}
+                  >
+                    remove
+                  </button>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
