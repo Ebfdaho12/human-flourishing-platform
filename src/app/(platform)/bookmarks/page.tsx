@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import useSWR from "swr"
-import { Bookmark, Plus, Trash2, ExternalLink, Search } from "lucide-react"
+import { Bookmark, Plus, Trash2, ExternalLink, Search, Folder, Globe } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,8 +36,30 @@ export default function BookmarksPage() {
 
   const bookmarks: any[] = data?.bookmarks ?? []
   const filtered = filter
-    ? bookmarks.filter(b => b.title?.toLowerCase().includes(filter.toLowerCase()) || b.note?.toLowerCase().includes(filter.toLowerCase()))
+    ? bookmarks.filter(b => b.title?.toLowerCase().includes(filter.toLowerCase()) || b.note?.toLowerCase().includes(filter.toLowerCase()) || b.url?.toLowerCase().includes(filter.toLowerCase()))
     : bookmarks
+
+  const stats = useMemo(() => {
+    if (bookmarks.length === 0) return null
+    const byCategory: Record<string, number> = {}
+    const byDomain: Record<string, number> = {}
+    bookmarks.forEach(b => {
+      byCategory[b.category ?? "general"] = (byCategory[b.category ?? "general"] ?? 0) + 1
+      if (b.url?.startsWith("http")) {
+        try {
+          const d = new URL(b.url).hostname.replace(/^www\./, "")
+          byDomain[d] = (byDomain[d] ?? 0) + 1
+        } catch {}
+      } else if (b.url?.startsWith("/")) {
+        byDomain["(internal)"] = (byDomain["(internal)"] ?? 0) + 1
+      }
+    })
+    const topCat = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]
+    const topDomains = Object.entries(byDomain).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    const weekAgo = Date.now() - 7 * 86400000
+    const recent = bookmarks.filter(b => new Date(b.createdAt ?? 0).getTime() >= weekAgo).length
+    return { total: bookmarks.length, topCat, topDomains, recent, byCategory }
+  }, [bookmarks])
 
   async function addBookmark() {
     if (!title || !url) return
@@ -104,6 +126,16 @@ export default function BookmarksPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Stats */}
+      {stats && stats.total > 2 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p><p className="text-lg font-bold text-amber-600 tabular-nums">{stats.total}</p></CardContent></Card>
+          <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">This week</p><p className="text-lg font-bold text-emerald-600 tabular-nums">{stats.recent}</p></CardContent></Card>
+          <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Folder className="h-2.5 w-2.5" /> Top category</p><p className="text-sm font-bold truncate">{stats.topCat?.[0] ?? "—"}</p><p className="text-[10px] text-muted-foreground">{stats.topCat?.[1]}x</p></CardContent></Card>
+          <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Globe className="h-2.5 w-2.5" /> Top domain</p><p className="text-sm font-bold truncate">{stats.topDomains[0]?.[0] ?? "—"}</p><p className="text-[10px] text-muted-foreground">{stats.topDomains[0]?.[1]}x</p></CardContent></Card>
+        </div>
+      )}
 
       {/* Search */}
       {bookmarks.length > 3 && (

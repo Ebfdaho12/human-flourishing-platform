@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { CreditCard, Plus, Trash2, AlertTriangle, DollarSign, Clock } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { CreditCard, Plus, Trash2, AlertTriangle, DollarSign, Clock, PieChart, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -94,6 +94,22 @@ export default function SubscriptionsPage() {
   const wasteful = subs.filter(s => s.lastUsed === "rarely" || s.lastUsed === "forgot")
   const wastefulMonthly = wasteful.reduce((s, sub) => s + sub.cost, 0)
   const hoursWorked = hourlyRate > 0 ? Math.round(totalYearly / hourlyRate) : 0
+
+  const breakdown = useMemo(() => {
+    const byCat: Record<string, number> = {}
+    subs.forEach(s => { byCat[s.category] = (byCat[s.category] ?? 0) + s.cost })
+    const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1])
+    return { byCat, sorted }
+  }, [subs])
+
+  const pricePerUse = useMemo(() => {
+    const USES_PER_MONTH: Record<string, number> = { daily: 30, weekly: 4, monthly: 1, rarely: 0.25, forgot: 0 }
+    return subs.map(s => {
+      const uses = USES_PER_MONTH[s.lastUsed] ?? 4
+      const per = uses > 0 ? s.cost / uses : Infinity
+      return { name: s.name, cost: s.cost, lastUsed: s.lastUsed, usesPerMonth: uses, pricePerUse: per }
+    }).sort((a, b) => b.pricePerUse - a.pricePerUse)
+  }, [subs])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -220,6 +236,52 @@ export default function SubscriptionsPage() {
           <p className="text-muted-foreground">No subscriptions added yet.</p>
           <p className="text-sm text-muted-foreground mt-1">Add your subscriptions to see the real cost. The average person has 12 subscriptions and has forgotten about 2-3 of them.</p>
         </CardContent></Card>
+      )}
+
+      {/* Category breakdown */}
+      {subs.length > 1 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><PieChart className="h-4 w-4 text-violet-600" /> Category Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {breakdown.sorted.map(([cat, amt]) => (
+                <div key={cat} className="flex items-center gap-2 text-xs">
+                  <span className="w-28 text-muted-foreground truncate">{cat}</span>
+                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-violet-400 to-pink-500" style={{ width: `${(amt / totalMonthly) * 100}%` }} />
+                  </div>
+                  <span className="w-24 text-right tabular-nums font-mono text-[10px]">${amt.toFixed(0)}/mo · {Math.round((amt / totalMonthly) * 100)}%</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Price per use */}
+      {pricePerUse.length >= 2 && pricePerUse.some(p => isFinite(p.pricePerUse)) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-rose-600" /> Price per Use</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-[10px] text-muted-foreground mb-2">Based on typical usage frequency. High prices per use = reconsider or actually use more.</p>
+            <div className="space-y-1">
+              {pricePerUse.slice(0, 8).map(p => (
+                <div key={p.name} className="flex items-center justify-between text-xs">
+                  <span className="truncate flex-1">{p.name}</span>
+                  <Badge variant="outline" className="text-[9px] ml-2">
+                    {isFinite(p.pricePerUse)
+                      ? `$${p.pricePerUse.toFixed(p.pricePerUse > 10 ? 0 : 2)}/use`
+                      : "never used"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <Card className="border-violet-200 bg-violet-50/20">

@@ -39,7 +39,22 @@ export default function DopaminePage() {
   const { data: moodData } = useSWR<{ moods: MoodEntry[] }>("/api/mental-health/mood?limit=90", secureFetcher)
   const [habits] = useSyncedStorage<DailyHabit[]>("hfp-daily-habits", [])
   const [resets, setResets] = useSyncedStorage<Reset[]>("hfp-dopamine-resets", [])
-  const [screenDaily] = useSyncedStorage<Record<string, number>>("hfp-screen-time", {})
+  const [screenStore] = useSyncedStorage<{ logs?: { date: string; members: { hours: number }[] }[] } | Record<string, number>>("hfp-screen-time", {})
+  const screenDaily = useMemo<Record<string, number>>(() => {
+    if (!screenStore) return {}
+    if ("logs" in screenStore && Array.isArray(screenStore.logs)) {
+      const out: Record<string, number> = {}
+      for (const l of screenStore.logs) {
+        if (l.date && Array.isArray(l.members)) {
+          const mins = l.members.reduce((s, m) => s + (m.hours ?? 0) * 60, 0)
+          out[l.date] = mins
+        }
+      }
+      return out
+    }
+    if (typeof screenStore === "object" && !Array.isArray(screenStore)) return screenStore as Record<string, number>
+    return {}
+  }, [screenStore])
 
   const cleanScore = useMemo(() => {
     const entries = healthData?.entries ?? []

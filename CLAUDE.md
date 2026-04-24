@@ -79,3 +79,49 @@ Daily Rhythm → Health → Modules → Discover → Account
 
 ## Git
 - `git add -A && git commit -m "msg" && git push origin master:main`
+
+## API Endpoint Index (exact paths — verify before using)
+
+**Mental health:** `/api/mental-health/mood`, `/journal`, `/insights`, `/prompts`, `/resources`
+- mood returns `{ moods: [{ id, moodScore, createdAt }] }`
+
+**Health:** `/api/health/entries?type=SLEEP|EXERCISE|MEASUREMENT|VITALS&limit=N`
+- returns `{ entries: [{ id, entryType, loggedAt, data }] }`
+- Also: `/api/health/trends`, `/insights`, `/sleep-analysis`, `/goals`, `/body-metrics`, `/compare`, `/wearables`, `/cases`
+
+**Habits/goals/streaks:** `/api/habits?months=N`, `/api/goals/all`, `/api/streaks`, `/api/achievements`
+
+**Other:** `/api/dashboard/activity`, `/api/correlations` (GET + POST), `/api/weather`, `/api/weekly-summary`, `/api/digest`, `/api/bookmarks`, `/api/search`, `/api/related`
+
+**Synced storage:** `/api/user/data?key=<apiKey>` (GET) and `/api/user/data` (PUT)
+
+**DO NOT USE (don't exist):** `/api/mood`, `/api/sleep`, `/api/exercise`, `/api/focus-sessions`, `/api/water`. Subagents have guessed these in the past — always confirm a real route exists first.
+
+## localStorage Key Index
+
+Cloud-synced (auto-sync via useSyncedStorage): `hfp-daily-habits`, `hfp-gratitude`, `hfp-water-log`, `hfp-decisions`, `hfp-challenges`, `hfp-people`, `hfp-skills`, `hfp-vision-board`, `hfp-energy-log`, `hfp-body-comp`, `hfp-lunar-logs`, `hfp-evening-review`, `hfp-focus-history`, `hfp-flourishing-history`, `hfp-future-letters`, `hfp-my-path`.
+
+Local-only (not yet cloud-synced): `hfp-budget`, `hfp-net-worth`, `hfp-networth-history`, `hfp-subscriptions`, `hfp-wins`, `hfp-goals`, `hfp-goal-history`, `hfp-weekly-reflections`, `hfp-reading`, `hfp-meals`, `hfp-debts`, `hfp-debt-history`, `hfp-emergency-fund-history`, `hfp-stoic-journal`, `hfp-study-sessions`, `hfp-anxiety-episodes`, `hfp-dopamine-resets`, `hfp-date-nights`, `hfp-nutrition-targets`, `hfp-screen-time`, `hfp-values`, `hfp-planner-YYYY-MM-DD`, `hfp-networth-fi-target`, `hfp-life-wheel-history`, `hfp-life-wheel-self`.
+
+Shapes of load-bearing keys:
+- `hfp-budget`: `{ income, expenses: {category, amount}[], monthlyExpenses }`
+- `hfp-net-worth`: `{ assets: [{name, type, category, value}], liabilities: [{value}] }`
+- `hfp-networth-history`: `{ date, netWorth }[]`
+- `hfp-daily-habits` item: `{ id, name, completions: string[], scheduledTime?, trigger? }`
+
+## Pattern Reference Files
+
+Copy patterns from these when deepening:
+- Analytics dashboards: `src/app/(platform)/life-os/page.tsx`, `trends/page.tsx`, `insights/page.tsx`
+- Journal + analytics: `wins/page.tsx`, `date-nights/page.tsx`, `anxiety-toolkit/page.tsx`
+- Calculator with auto-fill: `emergency-fund/page.tsx`, `financial-independence/page.tsx`
+- SVG projection curves: `debt-payoff/page.tsx`, `trajectory/page.tsx`
+- Radar/donut SVG: `life-wheel/page.tsx`, `wins/page.tsx`
+
+## Agent Workflow Rules
+
+- When given multi-file work: read all files in main thread first, plan exact edits, apply via Edit tool. Only spawn subagents when files need genuinely novel per-file thinking that would otherwise bloat main context.
+- Inside subagents: no `npx next build`, use Edit not Write, report only "done" or "error: X".
+- One build + one commit per batch, not per file.
+- No emojis in UI unless already present in that file.
+- Handle empty states — don't show zeros when no data exists, show "keep logging" hints.

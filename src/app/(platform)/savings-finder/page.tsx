@@ -56,7 +56,11 @@ export default function SavingsFinderPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
   const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
-  const [subs] = useSyncedStorage<{ name?: string; amount?: number; active?: boolean }[]>("hfp-subscriptions", [])
+  const [subsStore] = useSyncedStorage<{ subs?: { name: string; cost: number; lastUsed?: string }[]; hourlyRate?: number } | { name?: string; amount?: number; active?: boolean }[]>("hfp-subscriptions", { subs: [] })
+  const subs = useMemo<{ name?: string; amount?: number; active?: boolean }[]>(() => {
+    if (Array.isArray(subsStore)) return subsStore
+    return (subsStore?.subs ?? []).map(s => ({ name: s.name, amount: s.cost, active: s.lastUsed !== "forgot" }))
+  }, [subsStore])
 
   const fromYourData = useMemo(() => {
     const expenses = budget?.expenses ?? []

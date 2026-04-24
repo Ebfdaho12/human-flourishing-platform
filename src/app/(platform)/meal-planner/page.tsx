@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Utensils, Plus, Trash2, ShoppingCart, ChevronDown, Copy, RotateCcw } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Utensils, Plus, Trash2, ShoppingCart, ChevronDown, Copy, RotateCcw, Sprout, Activity } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -128,6 +128,38 @@ export default function MealPlannerPage() {
   const filledMeals = DAYS.reduce((s, d) => s + MEALS.filter(m => plan[d]?.[m]).length, 0)
   const totalSlots = DAYS.length * MEALS.length
 
+  const analysis = useMemo(() => {
+    const allMeals: string[] = []
+    for (const day of DAYS) for (const meal of MEALS) {
+      const v = plan[day]?.[meal]
+      if (v?.trim()) allMeals.push(v.trim().toLowerCase())
+    }
+    if (allMeals.length === 0) return null
+
+    const uniqueMeals = new Set(allMeals).size
+    const repetitionRate = allMeals.length > 0 ? 1 - uniqueMeals / allMeals.length : 0
+
+    const PLANT_WORDS = /\b(banana|spinach|berry|berries|apple|avocado|broccoli|carrot|tomato|potato|onion|garlic|peppers?|rice|oats?|quinoa|beans?|lentils?|chickpeas?|corn|cabbage|kale|lettuce|cucumber|zucchini|squash|sweet potato|mushroom|peas|celery|mango|orange|grape|strawberry|blueberry|raspberry|peach|pear|pineapple|watermelon|almond|cashew|walnut|peanut|sunflower|chia|flax|sesame|ginger|turmeric|cilantro|parsley|basil|mint|thyme|rosemary|oregano|cinnamon|cumin|chili|curry|hummus|olive|avocados?)\b/gi
+    const plantsFound = new Set<string>()
+    for (const m of allMeals) {
+      const matches = m.match(PLANT_WORDS)
+      matches?.forEach(p => plantsFound.add(p.toLowerCase()))
+    }
+
+    const KEYWORDS = {
+      "Protein-forward": /\b(chicken|beef|turkey|pork|salmon|tuna|fish|eggs?|tofu|tempeh|lentils?|beans?)\b/gi,
+      "Vegetarian": /\b(veggie|vegetarian|tofu|beans?|lentils?|chickpeas?)\b/gi,
+      "Carb-heavy": /\b(pasta|rice|bread|pizza|potato|noodle|sandwich|wrap|tortilla|taco|burger|burrito)\b/gi,
+      "Takeout-ish": /\b(pizza|burger|taco|curry|wings|fried|sushi)\b/gi,
+    }
+    const profile: Record<string, number> = {}
+    for (const [label, rx] of Object.entries(KEYWORDS)) {
+      profile[label] = allMeals.filter(m => rx.test(m)).length
+    }
+
+    return { total: allMeals.length, uniqueMeals, repetitionRate, plantsFound, profile }
+  }, [plan])
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-start justify-between">
@@ -156,6 +188,36 @@ export default function MealPlannerPage() {
           </div>
           <span className="text-xs text-muted-foreground">{filledMeals}/{totalSlots} planned</span>
         </div>
+      )}
+
+      {/* Analysis */}
+      {analysis && analysis.total >= 3 && (
+        <Card className="border-emerald-200 bg-emerald-50/20">
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-4 flex-wrap text-xs">
+              <div className="flex items-center gap-1.5">
+                <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-muted-foreground">Plants:</span>
+                <span className={cn("font-bold tabular-nums", analysis.plantsFound.size >= 30 ? "text-emerald-600" : analysis.plantsFound.size >= 15 ? "text-amber-600" : "text-slate-600")}>{analysis.plantsFound.size}</span>
+                <span className="text-muted-foreground">/ 30</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-violet-600" />
+                <span className="text-muted-foreground">Unique meals:</span>
+                <span className="font-bold tabular-nums">{analysis.uniqueMeals}</span>
+                <span className="text-[10px] text-muted-foreground">({Math.round((1 - analysis.repetitionRate) * 100)}% variety)</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(analysis.profile).filter(([_, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([label, count]) => (
+                <Badge key={label} variant="outline" className="text-[9px]">{label} · {count}</Badge>
+              ))}
+            </div>
+            {analysis.plantsFound.size < 15 && (
+              <p className="text-[10px] text-amber-800">Plant diversity research: 30+ unique plants/week correlates with stronger gut microbiome (American Gut Project). Consider adding more variety.</p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Meal plan grid */}

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Monitor, Plus, TrendingDown, Clock, AlertTriangle, Users, Baby, Brain, Trash2 } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Monitor, Plus, TrendingDown, Clock, AlertTriangle, Users, Baby, Brain, Trash2, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -98,6 +98,40 @@ export default function ScreenTimePage() {
 
   const totalToday = Object.values(todayLog).reduce((s, v) => s + (v?.hours || 0), 0)
 
+  const analytics = useMemo(() => {
+    if (logs.length < 2) return null
+    const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const last14: { key: string; label: string; total: number; productive: number }[] = []
+    const dateMap: Record<string, DayLog> = {}
+    sorted.forEach(l => { dateMap[l.date] = l })
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000)
+      const k = d.toISOString().split("T")[0]
+      const log = dateMap[k]
+      const total = log ? log.members.reduce((s, m) => s + m.hours, 0) : 0
+      const productive = log ? log.members.reduce((s, m) => s + m.productive, 0) : 0
+      last14.push({ key: k, label: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()], total, productive })
+    }
+    const avg14 = last14.reduce((s, d) => s + d.total, 0) / 14
+    const last7 = last14.slice(-7).reduce((s, d) => s + d.total, 0) / 7
+    const prior7 = last14.slice(0, 7).reduce((s, d) => s + d.total, 0) / 7
+    const delta = last7 - prior7
+
+    const byMember: Record<string, { total: number; productive: number; days: number }> = {}
+    last14.forEach(d => {
+      const log = dateMap[d.key]
+      if (!log) return
+      log.members.forEach(m => {
+        if (!byMember[m.name]) byMember[m.name] = { total: 0, productive: 0, days: 0 }
+        byMember[m.name].total += m.hours
+        byMember[m.name].productive += m.productive
+        byMember[m.name].days += 1
+      })
+    })
+
+    return { last14, avg14, last7, prior7, delta, byMember }
+  }, [logs])
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
@@ -126,6 +160,63 @@ export default function ScreenTimePage() {
           ))}
         </CardContent>
       </Card>
+
+      {/* 14-day trend */}
+      {analytics && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-indigo-600" /> Family Screen Time — Last 14 Days
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-end gap-1 h-16">
+              {analytics.last14.map((d, i) => {
+                const max = Math.max(...analytics.last14.map(x => x.total), 8)
+                const h = (d.total / max) * 100
+                const prodH = (d.productive / max) * 100
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className="w-full relative" style={{ height: `${h}%`, minHeight: d.total > 0 ? 4 : 0 }}>
+                      <div className={cn("absolute inset-x-0 bottom-0 rounded-t", d.total > 6 ? "bg-rose-400" : d.total > 3 ? "bg-amber-400" : d.total > 0 ? "bg-emerald-400" : "bg-slate-100")} style={{ height: "100%" }} title={`${d.total.toFixed(1)}h total, ${d.productive.toFixed(1)}h productive`} />
+                      {d.productive > 0 && (
+                        <div className="absolute inset-x-0 bottom-0 bg-indigo-500 rounded-t opacity-70" style={{ height: `${(d.productive / d.total) * 100}%` }} />
+                      )}
+                    </div>
+                    <span className="text-[8px] text-muted-foreground">{d.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded-lg border p-2 text-center"><p className="text-[10px] text-muted-foreground uppercase">14d avg</p><p className="font-bold tabular-nums">{analytics.avg14.toFixed(1)}h</p></div>
+              <div className="rounded-lg border p-2 text-center"><p className="text-[10px] text-muted-foreground uppercase">Last 7d</p><p className="font-bold tabular-nums">{analytics.last7.toFixed(1)}h</p></div>
+              <div className="rounded-lg border p-2 text-center"><p className="text-[10px] text-muted-foreground uppercase">Week delta</p><p className={cn("font-bold tabular-nums", analytics.delta < 0 ? "text-emerald-600" : "text-amber-600")}>{analytics.delta > 0 ? "+" : ""}{analytics.delta.toFixed(1)}h</p></div>
+            </div>
+            {Object.keys(analytics.byMember).length > 1 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Per member (14d avg/day)</p>
+                <div className="space-y-1">
+                  {Object.entries(analytics.byMember).sort((a, b) => b[1].total - a[1].total).map(([name, s]) => {
+                    const avg = s.days > 0 ? s.total / s.days : 0
+                    const prodPct = s.total > 0 ? (s.productive / s.total) * 100 : 0
+                    const maxAvg = Math.max(...Object.values(analytics.byMember).map(x => x.days > 0 ? x.total / x.days : 0), 1)
+                    return (
+                      <div key={name} className="flex items-center gap-2 text-xs">
+                        <span className="w-20 truncate">{name}</span>
+                        <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-amber-400 to-rose-500" style={{ width: `${(avg / maxAvg) * 100}%` }} />
+                        </div>
+                        <span className="w-20 text-right tabular-nums text-[10px] font-mono">{avg.toFixed(1)}h · {Math.round(prodPct)}% prod</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add family members */}
       <Card>
