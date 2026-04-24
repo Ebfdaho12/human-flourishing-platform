@@ -89,6 +89,7 @@ export default async function DashboardPage() {
         <FrequentTools />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
           {[
+            { href: "/presence", label: "Presence", color: "text-slate-600" },
             { href: "/livelihood", label: "Livelihood Partner", color: "text-emerald-600" },
             { href: "/canada/index", label: "Canada Analysis", color: "text-red-600" },
             { href: "/community/hub", label: "Community", color: "text-violet-600" },
