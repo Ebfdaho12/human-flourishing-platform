@@ -187,7 +187,17 @@ export default function EarnPage() {
         </CardContent>
       </Card>
 
+      <Card className="border-emerald-200 bg-emerald-50/30">
+        <CardContent className="p-4">
+          <p className="text-sm font-semibold mb-1 flex items-center gap-2"><Sparkles className="h-4 w-4 text-emerald-600" /> Different question: can your actual work earn you a living?</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This page is about earning tokens via AI contribution. If you want the platform to synthesize everything it knows about your specific skills, wins, values, and budget into a monetization reading — <a href="/livelihood" className="text-emerald-700 font-semibold hover:underline">try the Livelihood Partner</a>. No upsell. Just evidence.
+          </p>
+        </CardContent>
+      </Card>
+
       <div className="flex gap-3 flex-wrap">
+        <a href="/livelihood" className="text-sm text-emerald-600 hover:underline font-medium">Livelihood Partner</a>
         <a href="/contribute" className="text-sm text-amber-600 hover:underline">Contribute Guide</a>
         <a href="/wallet" className="text-sm text-violet-600 hover:underline">Your Wallet</a>
         <a href="/tokens" className="text-sm text-emerald-600 hover:underline">Token Economics</a>

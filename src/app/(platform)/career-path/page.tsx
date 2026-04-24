@@ -155,6 +155,13 @@ export default function CareerPathPage() {
       {/* Path selection */}
       {!path ? (
         <div className="space-y-4">
+          <Card className="border-emerald-200 bg-emerald-50/30">
+            <CardContent className="p-3 text-xs">
+              <p>
+                <span className="font-semibold">Rather have it synthesized from your own data?</span> The <a href="/livelihood" className="text-emerald-700 font-semibold hover:underline">Livelihood Partner</a> reads your logged skills, wins, values, and budget to match you against 7 monetization archetypes — no upsell, no prescription, just evidence.
+              </p>
+            </CardContent>
+          </Card>
           <p className="text-sm font-medium">What field are you in or interested in?</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {PATH_OPTIONS.map(opt => (

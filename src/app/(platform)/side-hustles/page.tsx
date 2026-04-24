@@ -205,6 +205,14 @@ export default function SideHustlesPage() {
         </p>
       </div>
 
+      <Card className="border-emerald-200 bg-emerald-50/30">
+        <CardContent className="p-3 text-xs">
+          <p>
+            <span className="font-semibold">Want a personalized reading instead?</span> The <a href="/livelihood" className="text-emerald-700 font-semibold hover:underline">Livelihood Partner</a> synthesizes your actual skills, wins, values, budget, and focus capacity into a fit-ranked archetype match. Evidence-based, no upsell.
+          </p>
+        </CardContent>
+      </Card>
+
       <Card className="border-amber-200 bg-amber-50/30">
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground leading-relaxed">
