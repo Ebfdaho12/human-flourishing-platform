@@ -140,7 +140,11 @@ pub mod hfp_governance {
         require!(now > proposal.voting_ends_at, GovernanceError::VotingStillActive);
         require!(proposal.status == ProposalStatus::Active, GovernanceError::ProposalNotActive);
 
-        let total_votes = proposal.votes_for + proposal.votes_against + proposal.votes_abstain;
+        let total_votes = proposal
+            .votes_for
+            .checked_add(proposal.votes_against)
+            .and_then(|v| v.checked_add(proposal.votes_abstain))
+            .ok_or(GovernanceError::ArithmeticOverflow)?;
 
         // Check quorum (minimum participation)
         // In production, this would check against total VOICE supply
