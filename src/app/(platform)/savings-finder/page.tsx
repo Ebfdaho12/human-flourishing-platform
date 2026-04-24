@@ -1,12 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { Search, DollarSign, Home, Car, Utensils, CreditCard, Smartphone, ArrowRight, Sparkles, MapPin } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Search, DollarSign, Home, Car, Utensils, CreditCard, Smartphone, ArrowRight, Sparkles, MapPin, TrendingUp, Target } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetExpense = { id?: string; category: string; name?: string; amount: number }
+type BudgetData = { income?: number; expenses?: BudgetExpense[]; monthlyExpenses?: number }
+type NetWorthData = { assets?: { name?: string; type?: string; category?: string; value: number }[]; liabilities?: { value: number }[] }
 
 const CITY_COSTS: Record<string, { housing: number; groceries: number; transport: number; childcare: number; telecom: number }> = {
   "Toronto": { housing: 2500, groceries: 900, transport: 300, childcare: 1500, telecom: 180 },
@@ -49,6 +54,43 @@ export default function SavingsFinderPage() {
   const [income, setIncome] = useState(80000)
   const [familySize, setFamilySize] = useState(3)
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+  const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
+  const [subs] = useSyncedStorage<{ name?: string; amount?: number; active?: boolean }[]>("hfp-subscriptions", [])
+
+  const fromYourData = useMemo(() => {
+    const expenses = budget?.expenses ?? []
+    const totalMonthly = expenses.reduce((s, e) => s + (e.amount ?? 0), 0) || budget?.monthlyExpenses || 0
+    const byCategory: Record<string, number> = {}
+    expenses.forEach(e => {
+      byCategory[e.category] = (byCategory[e.category] ?? 0) + (e.amount ?? 0)
+    })
+    const topThree = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 3)
+
+    const dining = Object.entries(byCategory).find(([k]) => /dining|restaurant|takeout|food/i.test(k))?.[1] ?? 0
+    const transport = Object.entries(byCategory).find(([k]) => /transport|car|gas|auto/i.test(k))?.[1] ?? 0
+    const housing = Object.entries(byCategory).find(([k]) => /hous|rent|mortgage/i.test(k))?.[1] ?? 0
+    const telecom = Object.entries(byCategory).find(([k]) => /telecom|phone|internet|cable/i.test(k))?.[1] ?? 0
+
+    const activeSubs = subs.filter(s => s.active !== false)
+    const subsTotal = activeSubs.reduce((s, x) => s + (x.amount ?? 0), 0)
+
+    const cash = (netWorth?.assets ?? [])
+      .filter(a => /cash|checking|savings|hisa|tfsa/i.test(`${a.name ?? ""} ${a.type ?? ""} ${a.category ?? ""}`))
+      .reduce((s, a) => s + (a.value ?? 0), 0)
+    const runwayMonths = totalMonthly > 0 ? cash / totalMonthly : 0
+
+    const suggestions: { idx: number; reason: string }[] = []
+    if (dining > 400) suggestions.push({ idx: 1, reason: `You spend $${Math.round(dining)}/mo on dining — meal planning is a clear lever.` })
+    if (subsTotal > 30 || activeSubs.length >= 3) suggestions.push({ idx: 3, reason: `$${Math.round(subsTotal)}/mo across ${activeSubs.length} subscriptions.` })
+    if (telecom > 150) suggestions.push({ idx: 2, reason: `$${Math.round(telecom)}/mo on telecom — negotiate it down.` })
+    if (housing > totalMonthly * 0.35 && housing > 2000) suggestions.push({ idx: 4, reason: `Housing is ${Math.round((housing / totalMonthly) * 100)}% of your budget — refinance or relocate could help.` })
+    if (transport > 1000) suggestions.push({ idx: 0, reason: `$${Math.round(transport)}/mo on transport — consider one-car household.` })
+
+    return { totalMonthly, byCategory, topThree, dining, transport, housing, telecom, subsTotal, activeSubs, cash, runwayMonths, suggestions }
+  }, [budget, netWorth, subs])
+
+  const hasData = fromYourData.totalMonthly > 0 || fromYourData.cash > 0
 
   const current = CITY_COSTS[currentCity]
   const target = CITY_COSTS[targetCity]
@@ -85,6 +127,76 @@ export default function SavingsFinderPage() {
         </div>
         <p className="text-sm text-muted-foreground">See exactly how much you could save — by moving, by changing habits, or both.</p>
       </div>
+
+      {/* From Your Data */}
+      {hasData && (
+        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/30 to-teal-50/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-600" /> From Your Data</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {fromYourData.totalMonthly > 0 && (
+                <div className="rounded-lg border bg-white p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Your spend</p>
+                  <p className="text-sm font-bold tabular-nums">${Math.round(fromYourData.totalMonthly).toLocaleString()}<span className="text-[10px] text-muted-foreground font-normal">/mo</span></p>
+                </div>
+              )}
+              {fromYourData.cash > 0 && (
+                <div className="rounded-lg border bg-white p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cash runway</p>
+                  <p className={cn("text-sm font-bold tabular-nums", fromYourData.runwayMonths >= 6 ? "text-emerald-600" : fromYourData.runwayMonths >= 3 ? "text-amber-600" : "text-rose-600")}>{fromYourData.runwayMonths.toFixed(1)}<span className="text-[10px] text-muted-foreground font-normal"> mo</span></p>
+                </div>
+              )}
+              {fromYourData.subsTotal > 0 && (
+                <div className="rounded-lg border bg-white p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Subscriptions</p>
+                  <p className="text-sm font-bold tabular-nums">${Math.round(fromYourData.subsTotal)}<span className="text-[10px] text-muted-foreground font-normal">/mo · {fromYourData.activeSubs.length}</span></p>
+                </div>
+              )}
+              {fromYourData.dining > 0 && (
+                <div className="rounded-lg border bg-white p-2.5">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Dining out</p>
+                  <p className="text-sm font-bold tabular-nums">${Math.round(fromYourData.dining)}<span className="text-[10px] text-muted-foreground font-normal">/mo</span></p>
+                </div>
+              )}
+            </div>
+
+            {fromYourData.topThree.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-1">Your top 3 expense categories</p>
+                <div className="space-y-1">
+                  {fromYourData.topThree.map(([cat, amt]) => (
+                    <div key={cat} className="flex items-center gap-2 text-xs">
+                      <span className="w-24 text-muted-foreground truncate">{cat}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500" style={{ width: `${(amt / (fromYourData.topThree[0][1] || 1)) * 100}%` }} />
+                      </div>
+                      <span className="w-20 text-right tabular-nums font-mono text-[10px]">${Math.round(amt).toLocaleString()} · {Math.round((amt / fromYourData.totalMonthly) * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {fromYourData.suggestions.length > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-3">
+                <p className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-1"><Target className="h-3 w-3" /> Highest-leverage actions for your data</p>
+                <div className="space-y-1">
+                  {fromYourData.suggestions.slice(0, 3).map((s, i) => (
+                    <button key={i} onClick={() => toggleAction(s.idx)} className="text-left text-xs text-amber-900 w-full rounded-md px-2 py-1 hover:bg-amber-100/60 transition flex items-center gap-1">
+                      <span className={cn("h-3 w-3 rounded border flex-shrink-0", selected.has(s.idx) ? "bg-emerald-500 border-emerald-500" : "border-amber-400")}>
+                        {selected.has(s.idx) && <span className="block text-white text-[8px] leading-3 text-center">✓</span>}
+                      </span>
+                      <span>{s.reason}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* City comparison */}
       <Card>

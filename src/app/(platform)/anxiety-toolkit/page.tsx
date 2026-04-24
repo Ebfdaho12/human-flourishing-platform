@@ -1,11 +1,26 @@
 "use client"
 
-import { useState } from "react"
-import { Shield, Heart, Zap, Brain, Clock, Sun, ChevronDown, ChevronUp, AlertTriangle, Activity, Wind, Snowflake, Moon } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Shield, Heart, Zap, Brain, Clock, Sun, ChevronDown, ChevronUp, AlertTriangle, Activity, Wind, Snowflake, Moon, Plus, TrendingDown, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type Episode = {
+  id: string
+  at: string
+  intensity: number
+  durationMin?: number
+  trigger?: string
+  technique?: string
+  relief?: number
+  notes?: string
+}
+
+const TRIGGERS = ["Work", "Money", "Relationship", "Health", "News", "Social", "Sleep", "Caffeine", "Unknown"]
+const TECHNIQUES = ["Physiological sigh", "Box breathing", "Cold water", "5-4-3-2-1 grounding", "Walk", "Cold exposure", "Journal", "Humming / vagal", "Call someone", "Other"]
 
 const IMMEDIATE = [
   { name: "Physiological Sigh", desc: "Double inhale through the nose, long exhale through the mouth. 1-3 breaths. The fastest scientifically validated method for real-time stress reduction.", source: "Huberman Lab, Cell Reports Medicine 2023", link: "/breathwork" },
@@ -42,8 +57,79 @@ const COGNITIVE = [
 
 export default function AnxietyToolkitPage() {
   const [expanded, setExpanded] = useState<string | null>("immediate")
+  const [episodes, setEpisodes] = useSyncedStorage<Episode[]>("hfp-anxiety-episodes", [])
+  const [showLog, setShowLog] = useState(false)
+  const [form, setForm] = useState<Partial<Episode>>({
+    at: new Date().toISOString().slice(0, 16),
+    intensity: 5,
+  })
 
   const toggle = (key: string) => setExpanded(expanded === key ? null : key)
+
+  function logEpisode() {
+    if (!form.at || !form.intensity) return
+    const ep: Episode = {
+      id: crypto.randomUUID(),
+      at: form.at!,
+      intensity: form.intensity!,
+      durationMin: form.durationMin,
+      trigger: form.trigger,
+      technique: form.technique,
+      relief: form.relief,
+      notes: form.notes,
+    }
+    setEpisodes([ep, ...episodes])
+    setForm({ at: new Date().toISOString().slice(0, 16), intensity: 5 })
+    setShowLog(false)
+  }
+
+  const analytics = useMemo(() => {
+    if (episodes.length === 0) return null
+    const weekAgo = Date.now() - 7 * 86400000
+    const monthAgo = Date.now() - 30 * 86400000
+
+    const lastWeek = episodes.filter(e => new Date(e.at).getTime() >= weekAgo)
+    const lastMonth = episodes.filter(e => new Date(e.at).getTime() >= monthAgo)
+    const priorWeek = episodes.filter(e => {
+      const t = new Date(e.at).getTime()
+      return t >= weekAgo - 7 * 86400000 && t < weekAgo
+    })
+
+    const avgIntensity = lastMonth.length ? lastMonth.reduce((s, e) => s + e.intensity, 0) / lastMonth.length : 0
+    const weekDelta = lastWeek.length - priorWeek.length
+
+    const triggerCounts: Record<string, number> = {}
+    lastMonth.forEach(e => {
+      if (e.trigger) triggerCounts[e.trigger] = (triggerCounts[e.trigger] ?? 0) + 1
+    })
+    const topTrigger = Object.entries(triggerCounts).sort((a, b) => b[1] - a[1])[0]
+
+    const techStats: Record<string, { uses: number; totalRelief: number }> = {}
+    lastMonth.forEach(e => {
+      if (!e.technique) return
+      if (!techStats[e.technique]) techStats[e.technique] = { uses: 0, totalRelief: 0 }
+      techStats[e.technique].uses++
+      techStats[e.technique].totalRelief += e.relief ?? 0
+    })
+    const bestTechnique = Object.entries(techStats)
+      .filter(([_, s]) => s.uses >= 2)
+      .map(([name, s]) => ({ name, uses: s.uses, avgRelief: s.totalRelief / s.uses }))
+      .sort((a, b) => b.avgRelief - a.avgRelief)[0]
+
+    const byDay: { day: string; count: number; avgIntensity: number }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000)
+      const k = d.toISOString().slice(0, 10)
+      const day = episodes.filter(e => e.at.slice(0, 10) === k)
+      byDay.push({
+        day: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()],
+        count: day.length,
+        avgIntensity: day.length ? day.reduce((s, e) => s + e.intensity, 0) / day.length : 0,
+      })
+    }
+
+    return { lastWeek, lastMonth, weekDelta, avgIntensity, topTrigger, bestTechnique, byDay }
+  }, [episodes])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -59,6 +145,135 @@ export default function AnxietyToolkitPage() {
           This is not therapy. This is a toolkit of research-backed techniques to activate your <Explain tip="The part of your nervous system responsible for calming you down — it slows heart rate and triggers the 'rest and digest' state">parasympathetic</Explain> nervous system and lower <Explain tip="Your body's main stress hormone — useful in short bursts, but harmful when it stays elevated for days or weeks">cortisol</Explain>. Use them RIGHT NOW.
         </p>
       </div>
+
+      {/* Episode tracker */}
+      <Card className="border-teal-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 justify-between">
+            <span className="flex items-center gap-2"><Activity className="h-4 w-4 text-teal-600" /> Episode Tracker</span>
+            {!showLog && (
+              <button onClick={() => setShowLog(true)} className="flex items-center gap-1 rounded-md border border-teal-300 text-teal-700 px-2 py-1 text-xs hover:bg-teal-50">
+                <Plus className="h-3 w-3" /> Log
+              </button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showLog && (
+            <div className="rounded-lg border bg-slate-50/40 p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">When</label>
+                  <input type="datetime-local" value={form.at ?? ""} onChange={e => setForm({ ...form, at: e.target.value })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration (min)</label>
+                  <input type="number" placeholder="opt" value={form.durationMin ?? ""} onChange={e => setForm({ ...form, durationMin: Number(e.target.value) || undefined })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Intensity: {form.intensity}/10</label>
+                <input type="range" min={1} max={10} value={form.intensity ?? 5} onChange={e => setForm({ ...form, intensity: Number(e.target.value) })} className="w-full accent-teal-600" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Trigger</label>
+                  <select value={form.trigger ?? ""} onChange={e => setForm({ ...form, trigger: e.target.value || undefined })} className="w-full rounded-md border px-2 py-1 text-xs">
+                    <option value="">—</option>
+                    {TRIGGERS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">What helped</label>
+                  <select value={form.technique ?? ""} onChange={e => setForm({ ...form, technique: e.target.value || undefined })} className="w-full rounded-md border px-2 py-1 text-xs">
+                    <option value="">—</option>
+                    {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              {form.technique && (
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Relief: {form.relief ?? 0}/10</label>
+                  <input type="range" min={0} max={10} value={form.relief ?? 0} onChange={e => setForm({ ...form, relief: Number(e.target.value) })} className="w-full accent-emerald-500" />
+                </div>
+              )}
+              <textarea placeholder="Notes (optional)" value={form.notes ?? ""} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full rounded-md border px-2 py-1.5 text-xs" rows={2} />
+              <div className="flex gap-2">
+                <button onClick={logEpisode} className="flex-1 rounded-lg bg-teal-600 text-white text-xs font-medium py-1.5 hover:bg-teal-700">Save</button>
+                <button onClick={() => setShowLog(false)} className="flex-1 rounded-lg border text-xs py-1.5">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {analytics ? (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">This week</p>
+                  <p className="text-sm font-bold tabular-nums">{analytics.lastWeek.length}<span className="text-[10px] text-muted-foreground font-normal"> episodes</span></p>
+                  {analytics.weekDelta !== 0 && (
+                    <p className={cn("text-[10px] tabular-nums", analytics.weekDelta < 0 ? "text-emerald-600" : "text-amber-600")}>
+                      {analytics.weekDelta < 0 ? "↓" : "↑"} {Math.abs(analytics.weekDelta)} vs prior
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg intensity</p>
+                  <p className={cn("text-sm font-bold tabular-nums", analytics.avgIntensity > 7 ? "text-rose-600" : analytics.avgIntensity > 4 ? "text-amber-600" : "text-emerald-600")}>{analytics.avgIntensity.toFixed(1)}<span className="text-[10px] text-muted-foreground font-normal">/10</span></p>
+                </div>
+                <div className="rounded-lg border p-2">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Top trigger</p>
+                  <p className="text-sm font-bold">{analytics.topTrigger?.[0] ?? "—"}</p>
+                  {analytics.topTrigger && <p className="text-[10px] text-muted-foreground">{analytics.topTrigger[1]}x last 30d</p>}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Last 14 days</p>
+                <div className="flex items-end gap-0.5 h-12">
+                  {analytics.byDay.map((d, i) => {
+                    const max = Math.max(...analytics.byDay.map(x => x.count), 1)
+                    const h = (d.count / max) * 100
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div className={cn("w-full rounded-t", d.avgIntensity > 7 ? "bg-rose-400" : d.avgIntensity > 4 ? "bg-amber-400" : d.count > 0 ? "bg-teal-400" : "bg-slate-100")} style={{ height: `${h}%`, minHeight: d.count > 0 ? 3 : 0 }} title={d.count > 0 ? `${d.count} episode${d.count > 1 ? "s" : ""}, avg ${d.avgIntensity.toFixed(1)}/10` : "none"} />
+                        <span className="text-[8px] text-muted-foreground">{d.day}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {analytics.bestTechnique && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-2.5 flex items-start gap-2">
+                  <TrendingDown className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-emerald-900 leading-snug">
+                    <span className="font-semibold">{analytics.bestTechnique.name}</span> is your most effective technique — {analytics.bestTechnique.uses} uses, avg relief <span className="font-bold tabular-nums">{analytics.bestTechnique.avgRelief.toFixed(1)}/10</span>. Lean on it.
+                  </p>
+                </div>
+              )}
+
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground">Recent episodes ({episodes.length})</summary>
+                <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                  {episodes.slice(0, 10).map(e => (
+                    <div key={e.id} className="flex items-center gap-2 rounded border p-1.5 text-[11px]">
+                      <span className="text-muted-foreground font-mono tabular-nums w-20 shrink-0">{new Date(e.at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      <span className={cn("font-bold tabular-nums w-8", e.intensity > 7 ? "text-rose-600" : e.intensity > 4 ? "text-amber-600" : "text-emerald-600")}>{e.intensity}/10</span>
+                      <span className="flex-1 text-muted-foreground truncate">{[e.trigger, e.technique].filter(Boolean).join(" → ")}</span>
+                      <button onClick={() => setEpisodes(episodes.filter(x => x.id !== e.id))} className="text-slate-300 hover:text-rose-500"><Trash2 className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </>
+          ) : !showLog ? (
+            <p className="text-xs text-muted-foreground">
+              Log an episode to start tracking patterns — which triggers hit you, what actually works. Data reveals what memory distorts.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* Disclaimer */}
       <Card className="border-2 border-teal-200 bg-teal-50/20">

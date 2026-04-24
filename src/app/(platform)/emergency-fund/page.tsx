@@ -1,23 +1,91 @@
 "use client"
 
-import { useState } from "react"
-import { Shield, DollarSign, Clock, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Shield, DollarSign, Clock, TrendingUp, AlertTriangle, CheckCircle, Sparkles, Camera } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetExpense = { category: string; amount: number }
+type BudgetData = { income?: number; expenses?: BudgetExpense[]; monthlyExpenses?: number }
+type NetWorthData = { assets?: { name?: string; type?: string; category?: string; value: number }[] }
+type FundSnapshot = { date: string; saved: number; target: number }
 
 export default function EmergencyFundPage() {
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+  const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
+  const [history, setHistory] = useSyncedStorage<FundSnapshot[]>("hfp-emergency-fund-history", [])
+
+  const autoExpenses = useMemo(() => {
+    const total = (budget?.expenses ?? []).reduce((s, e) => s + (e.amount ?? 0), 0)
+    return total || budget?.monthlyExpenses || 0
+  }, [budget])
+
+  const autoSaved = useMemo(() => {
+    return (netWorth?.assets ?? [])
+      .filter(a => /cash|checking|savings|hisa|tfsa|emergency/i.test(`${a.name ?? ""} ${a.type ?? ""} ${a.category ?? ""}`))
+      .reduce((s, a) => s + (a.value ?? 0), 0)
+  }, [netWorth])
+
   const [monthlyExpenses, setMonthlyExpenses] = useState(4000)
   const [currentSaved, setCurrentSaved] = useState(2000)
   const [monthlySaving, setMonthlySaving] = useState(300)
   const [targetMonths, setTargetMonths] = useState(3)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (autoExpenses > 0) setMonthlyExpenses(autoExpenses)
+    if (autoSaved > 0) setCurrentSaved(autoSaved)
+    setHydrated(true)
+  }, [autoExpenses, autoSaved, hydrated])
 
   const target = monthlyExpenses * targetMonths
   const gap = Math.max(0, target - currentSaved)
   const monthsToGoal = monthlySaving > 0 ? Math.ceil(gap / monthlySaving) : Infinity
   const pctFunded = target > 0 ? Math.min(100, Math.round((currentSaved / target) * 100)) : 0
+
+  const historyAnalysis = useMemo(() => {
+    if (history.length < 2) return null
+    const sorted = [...history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const first = sorted[0]
+    const last = sorted[sorted.length - 1]
+    const grown = last.saved - first.saved
+    const days = Math.max(1, (new Date(last.date).getTime() - new Date(first.date).getTime()) / 86400000)
+    const perDay = grown / days
+    const perMonth = perDay * 30
+    return { sorted, first, last, grown, perMonth }
+  }, [history])
+
+  function saveSnapshot() {
+    const today = new Date().toISOString().slice(0, 10)
+    const existing = history.findIndex(h => h.date === today)
+    const snap: FundSnapshot = { date: today, saved: currentSaved, target }
+    if (existing >= 0) {
+      const next = [...history]
+      next[existing] = snap
+      setHistory(next)
+    } else {
+      setHistory([...history, snap].slice(-365))
+    }
+  }
+
+  const sparkPath = useMemo(() => {
+    if (!historyAnalysis || historyAnalysis.sorted.length < 2) return ""
+    const pts = historyAnalysis.sorted
+    const W = 280, H = 40
+    const max = Math.max(...pts.map(p => p.saved), 1)
+    const min = Math.min(...pts.map(p => p.saved), 0)
+    const range = max - min || 1
+    return pts.map((p, i) => {
+      const x = (i / (pts.length - 1)) * W
+      const y = H - ((p.saved - min) / range) * H
+      return `${i === 0 ? "M" : "L"} ${x} ${y}`
+    }).join(" ")
+  }, [historyAnalysis])
 
   const levels = [
     { months: 1, label: "Starter", desc: "Covers a car repair or minor emergency", color: "text-amber-600" },
@@ -39,6 +107,22 @@ export default function EmergencyFundPage() {
           How much you need, how fast you can build it, and why it is the foundation of all financial security.
         </p>
       </div>
+
+      {/* Auto-filled from your data */}
+      {(autoExpenses > 0 || autoSaved > 0) && (
+        <Card className="border-emerald-200 bg-emerald-50/30">
+          <CardContent className="p-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+            <p className="text-xs text-emerald-900">
+              Auto-filled from your data:
+              {autoExpenses > 0 && <span> expenses <span className="font-semibold tabular-nums">${Math.round(autoExpenses).toLocaleString()}</span> (from budget)</span>}
+              {autoExpenses > 0 && autoSaved > 0 && <span> ·</span>}
+              {autoSaved > 0 && <span> cash savings <span className="font-semibold tabular-nums">${Math.round(autoSaved).toLocaleString()}</span> (from net worth)</span>}
+              . Adjust below if needed.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calculator */}
       <Card>
@@ -124,6 +208,39 @@ export default function EmergencyFundPage() {
               </div>
             )
           })}
+        </CardContent>
+      </Card>
+
+      {/* Growth history */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-blue-500" /> Your Growth</p>
+            <button onClick={saveSnapshot} className="flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] hover:bg-blue-50">
+              <Camera className="h-3 w-3" /> Save today&apos;s snapshot
+            </button>
+          </div>
+          {historyAnalysis ? (
+            <div className="space-y-2">
+              <svg viewBox="0 0 280 40" className="w-full h-10">
+                <defs>
+                  <linearGradient id="ef-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d={sparkPath + ` L 280 40 L 0 40 Z`} fill="url(#ef-grad)" />
+                <path d={sparkPath} stroke="#3b82f6" strokeWidth="1.5" fill="none" />
+              </svg>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div><p className="text-[10px] text-muted-foreground">Since</p><p className="text-xs font-semibold">{new Date(historyAnalysis.first.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Grown</p><p className={cn("text-xs font-semibold tabular-nums", historyAnalysis.grown >= 0 ? "text-emerald-600" : "text-rose-600")}>{historyAnalysis.grown >= 0 ? "+" : ""}${Math.round(historyAnalysis.grown).toLocaleString()}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">~Pace</p><p className={cn("text-xs font-semibold tabular-nums", historyAnalysis.perMonth >= 0 ? "text-emerald-600" : "text-rose-600")}>{historyAnalysis.perMonth >= 0 ? "+" : ""}${Math.round(historyAnalysis.perMonth).toLocaleString()}<span className="text-[9px] text-muted-foreground font-normal">/mo</span></p></div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">Save snapshots to see your emergency fund grow over time. {history.length === 1 ? `One snapshot saved on ${new Date(history[0].date).toLocaleDateString()} — save another to start a trend.` : ""}</p>
+          )}
         </CardContent>
       </Card>
 
