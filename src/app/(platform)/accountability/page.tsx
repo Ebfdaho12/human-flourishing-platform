@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import useSWR from "swr"
-import { Users, Target, Plus, Send, CheckCircle, Clock, ChevronDown } from "lucide-react"
+import { Users, Target, Plus, Send, CheckCircle, Clock, ChevronDown, AlertCircle, TrendingUp, Flame } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,37 @@ export default function AccountabilityPage() {
   const [error, setError] = useState("")
 
   const partnerships = data?.partnerships || []
+
+  const stats = useMemo(() => {
+    if (partnerships.length === 0) return null
+    const allCheckIns: { createdAt: string }[] = partnerships.flatMap((p: any) => p.checkIns ?? [])
+    if (allCheckIns.length === 0) return { totalCheckIns: 0, mostRecentDays: null, streak: 0, overdue: false }
+
+    const sorted = [...allCheckIns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const mostRecent = new Date(sorted[0].createdAt).getTime()
+    const mostRecentDays = Math.floor((Date.now() - mostRecent) / 86400000)
+
+    const weekSet = new Set<string>()
+    sorted.forEach(c => {
+      const d = new Date(c.createdAt)
+      const year = d.getFullYear()
+      const start = new Date(year, 0, 1)
+      const week = Math.floor(((d.getTime() - start.getTime()) / 86400000 + start.getDay()) / 7)
+      weekSet.add(`${year}-${week}`)
+    })
+    let streak = 0
+    const now = new Date()
+    for (let i = 0; i < 52; i++) {
+      const d = new Date(now.getTime() - i * 7 * 86400000)
+      const year = d.getFullYear()
+      const start = new Date(year, 0, 1)
+      const week = Math.floor(((d.getTime() - start.getTime()) / 86400000 + start.getDay()) / 7)
+      if (weekSet.has(`${year}-${week}`)) streak++
+      else if (i > 0) break
+    }
+
+    return { totalCheckIns: allCheckIns.length, mostRecentDays, streak, overdue: mostRecentDays >= 10 }
+  }, [partnerships])
 
   async function createPartnership() {
     if (!email || !goal) return
@@ -51,6 +82,28 @@ export default function AccountabilityPage() {
         </div>
         <Button onClick={() => setShowAdd(!showAdd)}><Plus className="h-4 w-4" /> Add Partner</Button>
       </div>
+
+      {/* Your accountability stats */}
+      {stats && partnerships.length > 0 && (
+        <>
+          {stats.overdue && (
+            <Card className="border-amber-300 bg-amber-50/40">
+              <CardContent className="p-3 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-900">
+                  Last check-in was <span className="font-bold">{stats.mostRecentDays} days ago</span>. Weekly cadence keeps accountability alive — reach out this week.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Partners</p><p className="text-lg font-bold text-emerald-600 tabular-nums">{partnerships.length}</p></CardContent></Card>
+            <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Check-ins</p><p className="text-lg font-bold text-teal-600 tabular-nums">{stats.totalCheckIns}</p></CardContent></Card>
+            <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Flame className="h-2.5 w-2.5" /> Week streak</p><p className="text-lg font-bold text-amber-600 tabular-nums">{stats.streak}</p></CardContent></Card>
+            <Card><CardContent className="p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Last check-in</p><p className={cn("text-lg font-bold tabular-nums", stats.overdue ? "text-rose-600" : "text-emerald-600")}>{stats.mostRecentDays !== null ? `${stats.mostRecentDays}d` : "—"}</p></CardContent></Card>
+          </div>
+        </>
+      )}
 
       <Card className="border-2 border-emerald-200 bg-emerald-50/20">
         <CardContent className="p-4">

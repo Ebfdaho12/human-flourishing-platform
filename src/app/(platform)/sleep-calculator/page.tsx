@@ -1,11 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { Moon, Sun, Clock, ArrowRight, Sparkles, BedDouble } from "lucide-react"
+import { useState, useMemo } from "react"
+import useSWR from "swr"
+import { Moon, Sun, Clock, ArrowRight, Sparkles, BedDouble, Activity } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { secureFetcher } from "@/lib/encrypted-fetch"
+
+type HealthEntry = { id: string; entryType: string; recordedAt: string; data?: unknown }
 
 // Average sleep cycle = 90 minutes
 // Ideal: wake at end of light sleep (end of cycle), not mid-deep-sleep
@@ -58,6 +62,62 @@ export default function SleepCalculatorPage() {
   const [results, setResults] = useState<{ time: Date; cycles: number; quality: string }[] | null>(null)
   const [factIndex] = useState(() => Math.floor(Math.random() * SLEEP_FACTS.length))
 
+  const { data: sleepData } = useSWR<{ entries: HealthEntry[] }>("/api/health/entries?type=SLEEP&limit=60", secureFetcher)
+
+  const yourPattern = useMemo(() => {
+    const entries = sleepData?.entries ?? []
+    const since = Date.now() - 30 * 86400000
+    const recent = entries.filter(e => new Date(e.recordedAt).getTime() >= since)
+    if (recent.length < 3) return null
+
+    const durations: number[] = []
+    const bedtimes: number[] = []
+    const waketimes: number[] = []
+
+    recent.forEach(e => {
+      const d = typeof e.data === "string" ? (() => { try { return JSON.parse(e.data as string) } catch { return null } })() : e.data
+      if (!d) return
+      const dur = Number((d as { duration?: number }).duration)
+      if (Number.isFinite(dur) && dur > 0) durations.push(dur)
+      const bt = (d as { bedtime?: string }).bedtime
+      const wt = (d as { wakeTime?: string }).wakeTime
+      const toMin = (t: string) => {
+        const [h, m] = t.split(":").map(Number)
+        if (!Number.isFinite(h)) return null
+        return h * 60 + (m || 0)
+      }
+      if (bt) { const v = toMin(bt); if (v !== null) bedtimes.push(v) }
+      if (wt) { const v = toMin(wt); if (v !== null) waketimes.push(v) }
+    })
+
+    if (durations.length < 3) return null
+    const avgDuration = durations.reduce((s, v) => s + v, 0) / durations.length
+    const avgCycles = avgDuration / 1.5
+    const roundedCycles = Math.round(avgCycles)
+    const cycleDeviation = Math.abs(avgCycles - roundedCycles)
+    const wakingMidCycle = cycleDeviation > 0.25
+
+    const fmtMin = (m: number) => {
+      const h12 = Math.floor(m / 60) % 12 || 12
+      const mm = String(m % 60).padStart(2, "0")
+      const period = Math.floor(m / 60) < 12 ? "AM" : "PM"
+      return `${h12}:${mm} ${period}`
+    }
+
+    const avgBed = bedtimes.length >= 3 ? bedtimes.reduce((s, v) => s + v, 0) / bedtimes.length : null
+    const avgWake = waketimes.length >= 3 ? waketimes.reduce((s, v) => s + v, 0) / waketimes.length : null
+
+    return {
+      n: durations.length,
+      avgDuration,
+      avgCycles,
+      cycleDeviation,
+      wakingMidCycle,
+      avgBed: avgBed !== null ? fmtMin(Math.round(avgBed)) : null,
+      avgWake: avgWake !== null ? fmtMin(Math.round(avgWake)) : null,
+    }
+  }, [sleepData])
+
   function calculate() {
     const h24 = ampm === "PM" ? (hour === 12 ? 12 : hour + 12) : (hour === 12 ? 0 : hour)
     const base = new Date()
@@ -85,6 +145,44 @@ export default function SleepCalculatorPage() {
         </div>
         <p className="text-sm text-muted-foreground">Wake up at the end of a sleep cycle — not in the middle. Feel refreshed, not groggy.</p>
       </div>
+
+      {/* Your pattern */}
+      {yourPattern && (
+        <Card className={cn("border-2", yourPattern.wakingMidCycle ? "border-amber-300 bg-amber-50/30" : "border-emerald-300 bg-emerald-50/30")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-indigo-600" /> Your actual pattern (last 30 days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Avg sleep</p>
+                <p className="font-bold tabular-nums">{yourPattern.avgDuration.toFixed(1)}h</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Cycles</p>
+                <p className="font-bold tabular-nums">{yourPattern.avgCycles.toFixed(1)}</p>
+              </div>
+              {yourPattern.avgBed && (
+                <div className="rounded-lg border bg-white p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Typical bedtime</p>
+                  <p className="font-bold tabular-nums">{yourPattern.avgBed}</p>
+                </div>
+              )}
+              {yourPattern.avgWake && (
+                <div className="rounded-lg border bg-white p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Typical wake</p>
+                  <p className="font-bold tabular-nums">{yourPattern.avgWake}</p>
+                </div>
+              )}
+            </div>
+            <p className={cn("text-xs mt-2", yourPattern.wakingMidCycle ? "text-amber-900" : "text-emerald-900")}>
+              {yourPattern.wakingMidCycle
+                ? `You're averaging ${yourPattern.avgCycles.toFixed(1)} cycles — close to the middle of a cycle, which is why mornings can feel groggy. Use the calculator below to aim for a full-cycle boundary.`
+                : `You're landing near cycle boundaries — good. That's part of why you feel okay waking up.`}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Mode selector */}
       <div className="grid grid-cols-2 gap-3">
