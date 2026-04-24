@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { CreditCard, TrendingUp, AlertTriangle, CheckCircle, ArrowRight, ChevronDown } from "lucide-react"
+import { useState, useMemo } from "react"
+import { CreditCard, TrendingUp, AlertTriangle, CheckCircle, ArrowRight, ChevronDown, Plus, Trash2, Activity } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type ScoreEntry = { id: string; date: string; score: number; bureau?: "equifax" | "transunion"; note?: string }
 
 const SCORE_RANGES = [
   { range: "800-900", label: "Excellent", color: "text-emerald-600 bg-emerald-50 border-emerald-200", pct: "15% of Canadians", benefit: "Best rates on everything. Instant approvals. Premium credit card offers." },
@@ -42,6 +45,64 @@ const BUILD_FROM_ZERO = [
 
 export default function CreditScorePage() {
   const [expandedFactor, setExpandedFactor] = useState<number | null>(null)
+  const [scores, setScores] = useSyncedStorage<ScoreEntry[]>("hfp-credit-history", [])
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<Partial<ScoreEntry>>({
+    date: new Date().toISOString().slice(0, 10),
+    bureau: "equifax",
+  })
+
+  function logScore() {
+    const score = Number(form.score)
+    if (!form.date || !Number.isFinite(score) || score < 300 || score > 900) return
+    const entry: ScoreEntry = {
+      id: crypto.randomUUID(),
+      date: form.date!,
+      score,
+      bureau: form.bureau,
+      note: form.note,
+    }
+    setScores([entry, ...scores])
+    setForm({ date: new Date().toISOString().slice(0, 10), bureau: "equifax" })
+    setShowForm(false)
+  }
+
+  const analytics = useMemo(() => {
+    if (scores.length === 0) return null
+    const sorted = [...scores].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const latest = sorted[sorted.length - 1]
+    const earliest = sorted[0]
+    const delta = latest.score - earliest.score
+    const peak = sorted.reduce((a, b) => (b.score > a.score ? b : a))
+    const trough = sorted.reduce((a, b) => (b.score < a.score ? b : a))
+
+    const band = latest.score >= 800 ? "Excellent"
+      : latest.score >= 720 ? "Very Good"
+      : latest.score >= 680 ? "Good"
+      : latest.score >= 600 ? "Fair"
+      : "Poor"
+
+    // 12-month sparkline data
+    const W = 280, H = 40
+    const minS = Math.min(...sorted.map(s => s.score))
+    const maxS = Math.max(...sorted.map(s => s.score))
+    const range = Math.max(1, maxS - minS)
+    const pts = sorted.length >= 2 ? sorted.map((s, i) => {
+      const x = (i / (sorted.length - 1)) * W
+      const y = H - ((s.score - minS) / range) * H
+      return `${i === 0 ? "M" : "L"} ${x} ${y}`
+    }).join(" ") : ""
+
+    return { sorted, latest, earliest, delta, peak, trough, band, sparkPath: pts, W, H }
+  }, [scores])
+
+  const bandColor = (score: number) => {
+    if (score >= 800) return "text-emerald-600"
+    if (score >= 720) return "text-blue-600"
+    if (score >= 680) return "text-cyan-600"
+    if (score >= 600) return "text-amber-600"
+    return "text-rose-500"
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -56,6 +117,106 @@ export default function CreditScorePage() {
           How it works. What affects it. How to improve it. Myths debunked.
         </p>
       </div>
+
+      {/* Personal score tracker */}
+      <Card className="border-violet-200 bg-gradient-to-br from-violet-50/40 to-blue-50/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 justify-between">
+            <span className="flex items-center gap-2"><Activity className="h-4 w-4 text-violet-600" /> Your Score History</span>
+            {!showForm && (
+              <button onClick={() => setShowForm(true)} className="flex items-center gap-1 rounded-md border border-violet-300 text-violet-700 px-2 py-1 text-xs hover:bg-violet-50">
+                <Plus className="h-3 w-3" /> Log score
+              </button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showForm && (
+            <div className="rounded-lg border bg-white p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Date</label>
+                  <input type="date" value={form.date ?? ""} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Score (300-900)</label>
+                  <input type="number" min={300} max={900} value={form.score ?? ""} onChange={e => setForm({ ...form, score: Number(e.target.value) || undefined })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+              </div>
+              <select value={form.bureau ?? "equifax"} onChange={e => setForm({ ...form, bureau: e.target.value as "equifax" | "transunion" })} className="w-full rounded-md border px-2 py-1 text-xs">
+                <option value="equifax">Equifax (Borrowell)</option>
+                <option value="transunion">TransUnion (Credit Karma)</option>
+              </select>
+              <input placeholder="Note (e.g. after paying off card)" value={form.note ?? ""} onChange={e => setForm({ ...form, note: e.target.value })} className="w-full rounded-md border px-2 py-1.5 text-xs" />
+              <div className="flex gap-2">
+                <button onClick={logScore} className="flex-1 rounded-lg bg-violet-600 text-white text-xs font-medium py-1.5 hover:bg-violet-700">Save</button>
+                <button onClick={() => setShowForm(false)} className="flex-1 rounded-lg border text-xs py-1.5">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {analytics ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="rounded-lg border bg-white p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Latest</p>
+                  <p className={cn("text-xl font-bold tabular-nums", bandColor(analytics.latest.score))}>{analytics.latest.score}</p>
+                  <p className="text-[10px] text-muted-foreground">{analytics.band}</p>
+                </div>
+                <div className="rounded-lg border bg-white p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Change</p>
+                  <p className={cn("text-xl font-bold tabular-nums", analytics.delta > 0 ? "text-emerald-600" : analytics.delta < 0 ? "text-rose-600" : "text-slate-600")}>{analytics.delta > 0 ? "+" : ""}{analytics.delta}</p>
+                  <p className="text-[10px] text-muted-foreground">since {new Date(analytics.earliest.date).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</p>
+                </div>
+                <div className="rounded-lg border bg-white p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Peak</p>
+                  <p className="text-xl font-bold tabular-nums text-emerald-600">{analytics.peak.score}</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(analytics.peak.date).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</p>
+                </div>
+                <div className="rounded-lg border bg-white p-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Low</p>
+                  <p className="text-xl font-bold tabular-nums text-rose-600">{analytics.trough.score}</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(analytics.trough.date).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</p>
+                </div>
+              </div>
+
+              {analytics.sparkPath && (
+                <div className="rounded-lg border bg-white p-2">
+                  <svg viewBox={`0 0 ${analytics.W} ${analytics.H}`} className="w-full h-10">
+                    <defs>
+                      <linearGradient id="cs-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d={analytics.sparkPath + ` L ${analytics.W} ${analytics.H} L 0 ${analytics.H} Z`} fill="url(#cs-grad)" />
+                    <path d={analytics.sparkPath} stroke="#8b5cf6" strokeWidth="1.5" fill="none" />
+                  </svg>
+                </div>
+              )}
+
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground">All entries ({scores.length})</summary>
+                <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                  {[...scores].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(s => (
+                    <div key={s.id} className="flex items-center gap-2 rounded border p-1.5 text-[11px]">
+                      <span className="text-muted-foreground font-mono tabular-nums w-20">{new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" })}</span>
+                      <span className={cn("font-bold tabular-nums w-10", bandColor(s.score))}>{s.score}</span>
+                      {s.bureau && <Badge variant="outline" className="text-[9px]">{s.bureau === "equifax" ? "Eq" : "TU"}</Badge>}
+                      <span className="flex-1 text-muted-foreground truncate">{s.note ?? ""}</span>
+                      <button onClick={() => setScores(scores.filter(x => x.id !== s.id))} className="text-slate-300 hover:text-rose-500"><Trash2 className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </>
+          ) : !showForm ? (
+            <p className="text-xs text-muted-foreground">
+              Log your score monthly to watch it grow. Takes 30 seconds — the pattern reveals what actually moves the needle for you.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card className="border-2 border-blue-200 bg-blue-50/20">
         <CardContent className="p-4">
