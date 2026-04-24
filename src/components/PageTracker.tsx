@@ -27,11 +27,23 @@ export function PageTracker() {
     if (pathname === "/" || pathname.startsWith("/api/") || pathname.startsWith("/login") || pathname.startsWith("/register")) return
 
     try {
+      // Legacy set (backward-compat with Explorer achievement + Discovery code)
       const visited = JSON.parse(localStorage.getItem("hfp-pages-visited") || "[]")
       if (!visited.includes(pathname)) {
         visited.push(pathname)
         localStorage.setItem("hfp-pages-visited", JSON.stringify(visited))
       }
+
+      // Frequency-weighted log — powers data-driven Quick Access on the dashboard.
+      // Structure: { [path]: { count, last } }
+      const freqRaw = localStorage.getItem("hfp-page-visits")
+      const freq: Record<string, { count: number; last: string }> = freqRaw ? JSON.parse(freqRaw) : {}
+      const existing = freq[pathname]
+      freq[pathname] = {
+        count: (existing?.count ?? 0) + 1,
+        last: new Date().toISOString(),
+      }
+      localStorage.setItem("hfp-page-visits", JSON.stringify(freq))
 
       // Track today's last briefing visit
       if (pathname === "/morning-briefing") {

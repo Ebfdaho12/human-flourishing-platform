@@ -15,6 +15,7 @@ import { HiveActivity } from "@/components/dashboard/HiveActivity"
 import { LevelUnlocks } from "@/components/dashboard/LevelUnlocks"
 import { WelcomeFlow } from "@/components/dashboard/WelcomeFlow"
 import { StreakRecovery } from "@/components/dashboard/StreakRecovery"
+import { FrequentTools } from "@/components/dashboard/FrequentTools"
 import { HelpTip } from "@/components/ui/help-tip"
 import { formatFound, formatVoice } from "@/lib/utils"
 
@@ -79,29 +80,13 @@ export default async function DashboardPage() {
       {/* Streaks + daily checklist */}
       <StreakWidget />
 
-      {/* Quick access tools */}
+      {/* Quick access tools — data-driven, falls back to starter set for new users */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Quick Access</h2>
           <a href="/tools" className="text-xs text-violet-600 hover:underline">All 110+ tools →</a>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            { href: "/budget", label: "Budget", emoji: "💰" },
-            { href: "/health", label: "Health", emoji: "❤️" },
-            { href: "/planner", label: "Planner", emoji: "📋" },
-            { href: "/family-meeting", label: "Family Meeting", emoji: "👨‍👩‍👧‍👦" },
-            { href: "/notes", label: "Quick Notes", emoji: "📝" },
-            { href: "/focus", label: "Focus Timer", emoji: "⏱️" },
-            { href: "/mental-health", label: "Mental Health", emoji: "🧠" },
-            { href: "/goals", label: "Goals", emoji: "🎯" },
-          ].map(t => (
-            <a key={t.href} href={t.href} className="rounded-xl border border-border bg-card p-3 hover:bg-accent/50 transition-colors flex items-center gap-2.5">
-              <span className="text-lg">{t.emoji}</span>
-              <span className="text-sm font-medium">{t.label}</span>
-            </a>
-          ))}
-        </div>
+        <FrequentTools />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
           {[
             { href: "/canada/index", label: "Canada Analysis", color: "text-red-600" },
