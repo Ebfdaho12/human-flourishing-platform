@@ -1,12 +1,16 @@
 "use client"
 
-import { useState } from "react"
-import { Home, DollarSign, TrendingUp, AlertTriangle, ArrowRight, Scale } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Home, DollarSign, TrendingUp, AlertTriangle, ArrowRight, Scale, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetData = { income?: number; expenses?: { category: string; amount: number }[] }
+type NetWorthData = { assets?: { name?: string; type?: string; category?: string; value: number }[]; liabilities?: { name?: string; value: number }[] }
 
 function calcMortgage(principal: number, rateAnnual: number, years: number) {
   const r = rateAnnual / 100 / 12
@@ -18,12 +22,31 @@ function calcMortgage(principal: number, rateAnnual: number, years: number) {
 }
 
 export default function MortgagePage() {
+  const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+
+  const auto = useMemo(() => {
+    const mortgageLiab = (netWorth?.liabilities ?? []).find(l => /mortgage|home loan/i.test(l.name ?? ""))?.value ?? 0
+    const housing = (budget?.expenses ?? []).find(e => /mortgage|housing|rent/i.test(e.category))?.amount ?? 0
+    return {
+      principal: mortgageLiab > 0 ? Math.round(mortgageLiab) : null,
+      monthlyCurrent: housing > 0 ? Math.round(housing) : null,
+    }
+  }, [netWorth, budget])
+
   const [principal, setPrincipal] = useState(500000)
   const [fixedRate, setFixedRate] = useState(4.99)
   const [variableRate, setVariableRate] = useState(5.45)
   const [amort25, setAmort25] = useState(true)
   const [creditUnionRate, setCreditUnionRate] = useState(4.79)
   const [brokerRate, setBrokerRate] = useState(4.69)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (auto.principal) setPrincipal(auto.principal)
+    setHydrated(true)
+  }, [auto, hydrated])
 
   const amortYears = amort25 ? 25 : 30
 
@@ -70,6 +93,18 @@ export default function MortgagePage() {
           Fixed vs variable. Big bank vs credit union vs broker. See the TOTAL cost — not just the monthly payment.
         </p>
       </div>
+
+      {(auto.principal || auto.monthlyCurrent) && (
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-blue-900">
+              {auto.principal && <span>Mortgage balance <span className="font-semibold tabular-nums">${auto.principal.toLocaleString()}</span> pulled from your net worth liabilities.</span>}
+              {auto.monthlyCurrent && <span> Current payment <span className="font-semibold tabular-nums">${auto.monthlyCurrent.toLocaleString()}/mo</span> from budget — compare against scenarios below.</span>}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Inputs */}
       <Card>

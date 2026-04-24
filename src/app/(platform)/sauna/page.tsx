@@ -1,11 +1,15 @@
 "use client"
 
-import { Flame, Brain, Heart, ShieldAlert, Zap, Timer, Activity, Thermometer, Droplets, Link } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Flame, Brain, Heart, ShieldAlert, Zap, Timer, Activity, Thermometer, Droplets, Link, Plus, Trash2, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
 import { Source, SourceList } from "@/components/ui/source-citation"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type SaunaSession = { id: string; date: string; minutes: number; temp?: string; type?: "traditional" | "infrared" | "contrast"; notes?: string }
 
 const PROTOCOLS = [
   { level: "Traditional Finnish", color: "border-red-300 text-red-700", temp: "175-195\u00b0F (80-90\u00b0C)", duration: "15-20 min", detail: "Dry sauna with periodic water on rocks for steam bursts. 2-3 rounds with cold shower or outdoor cool-down between rounds.", tip: "Sit on the upper bench for maximum heat. Breathe through your nose to protect airways." },
@@ -31,6 +35,53 @@ const TIMELINE = [
 ]
 
 export default function SaunaPage() {
+  const [sessions, setSessions] = useSyncedStorage<SaunaSession[]>("hfp-sauna-sessions", [])
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<Partial<SaunaSession>>({
+    date: new Date().toISOString().slice(0, 10),
+    minutes: 20,
+    type: "traditional",
+  })
+
+  function logSession() {
+    const minutes = Number(form.minutes)
+    if (!form.date || !Number.isFinite(minutes) || minutes < 1) return
+    const s: SaunaSession = {
+      id: crypto.randomUUID(),
+      date: form.date!,
+      minutes,
+      temp: form.temp,
+      type: form.type,
+      notes: form.notes,
+    }
+    setSessions([s, ...sessions])
+    setForm({ date: new Date().toISOString().slice(0, 10), minutes: 20, type: "traditional" })
+    setShowForm(false)
+  }
+
+  const stats = useMemo(() => {
+    if (sessions.length === 0) return null
+    const now = Date.now()
+    const last7 = sessions.filter(s => new Date(s.date).getTime() >= now - 7 * 86400000)
+    const last30 = sessions.filter(s => new Date(s.date).getTime() >= now - 30 * 86400000)
+    const totalMin = sessions.reduce((s, x) => s + x.minutes, 0)
+    const avgMin = totalMin / sessions.length
+    const longest = sessions.reduce((a, b) => b.minutes > a.minutes ? b : a).minutes
+
+    const daySet = new Set(sessions.map(s => s.date))
+    let streak = 0
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(now - i * 86400000).toISOString().slice(0, 10)
+      if (daySet.has(d)) streak++
+      else if (i > 0) break
+    }
+
+    // 5+ per week = Laukkanen optimal
+    const weekOptimal = last7.length >= 4
+
+    return { total: sessions.length, last7Count: last7.length, last30Count: last30.length, totalMin, avgMin, longest, streak, weekOptimal }
+  }, [sessions])
+
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
@@ -43,6 +94,87 @@ export default function SaunaPage() {
         </div>
         <p className="text-sm text-muted-foreground">The other half of hormesis \u2014 deliberate heat stress that builds cardiovascular resilience, triggers cellular repair, and extends healthspan.</p>
       </div>
+
+      {/* Session Tracker */}
+      <Card className="border-orange-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 justify-between">
+            <span className="flex items-center gap-2"><Timer className="h-4 w-4 text-orange-600" /> Session Tracker</span>
+            {!showForm && (
+              <button onClick={() => setShowForm(true)} className="flex items-center gap-1 rounded-md border border-orange-300 text-orange-700 px-2 py-1 text-xs hover:bg-orange-50">
+                <Plus className="h-3 w-3" /> Log session
+              </button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showForm && (
+            <div className="rounded-lg border bg-slate-50/40 p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Date</label>
+                  <input type="date" value={form.date ?? ""} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Minutes</label>
+                  <input type="number" min={1} max={90} value={form.minutes ?? ""} onChange={e => setForm({ ...form, minutes: Number(e.target.value) || undefined })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select value={form.type ?? "traditional"} onChange={e => setForm({ ...form, type: e.target.value as SaunaSession["type"] })} className="rounded-md border px-2 py-1 text-xs">
+                  <option value="traditional">Traditional Finnish</option>
+                  <option value="infrared">Infrared</option>
+                  <option value="contrast">Contrast (sauna + cold)</option>
+                </select>
+                <input placeholder="Temp (e.g. 185°F)" value={form.temp ?? ""} onChange={e => setForm({ ...form, temp: e.target.value })} className="rounded-md border px-2 py-1 text-xs" />
+              </div>
+              <input placeholder="Notes (optional)" value={form.notes ?? ""} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full rounded-md border px-2 py-1.5 text-xs" />
+              <div className="flex gap-2">
+                <button onClick={logSession} className="flex-1 rounded-lg bg-orange-600 text-white text-xs font-medium py-1.5 hover:bg-orange-700">Save</button>
+                <button onClick={() => setShowForm(false)} className="flex-1 rounded-lg border text-xs py-1.5">Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {stats ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">This week</p><p className={cn("text-sm font-bold tabular-nums", stats.weekOptimal ? "text-emerald-600" : "text-amber-600")}>{stats.last7Count}<span className="text-[10px] text-muted-foreground font-normal"> / 4+</span></p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase flex items-center gap-1"><Flame className="h-2.5 w-2.5" /> Streak</p><p className="text-sm font-bold tabular-nums text-amber-600">{stats.streak}d</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Avg</p><p className="text-sm font-bold tabular-nums">{Math.round(stats.avgMin)}m</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Total</p><p className="text-sm font-bold tabular-nums">{stats.total}</p></div>
+              </div>
+              {stats.weekOptimal ? (
+                <p className="text-[10px] text-emerald-700 bg-emerald-50 rounded-md px-2 py-1.5">
+                  4+/week hits the Laukkanen cohort&apos;s optimal zone — 63% lower sudden cardiac death vs 1/week over 20 years.
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground bg-slate-50 rounded-md px-2 py-1.5">
+                  Target: 4-7 sessions/week at 170°F+ for 15-20 min to match the cohort that halved cardiac mortality.
+                </p>
+              )}
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground">Recent sessions ({sessions.length})</summary>
+                <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                  {sessions.slice(0, 10).map(s => (
+                    <div key={s.id} className="flex items-center gap-2 rounded border p-1.5 text-[11px]">
+                      <span className="text-muted-foreground font-mono tabular-nums w-20">{new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      <span className="font-bold tabular-nums w-10 text-orange-600">{s.minutes}m</span>
+                      {s.type && <Badge variant="outline" className="text-[9px]">{s.type === "traditional" ? "Finnish" : s.type === "infrared" ? "IR" : "Contrast"}</Badge>}
+                      {s.temp && <span className="text-muted-foreground text-[10px]">{s.temp}</span>}
+                      <button onClick={() => setSessions(sessions.filter(x => x.id !== s.id))} className="ml-auto text-slate-300 hover:text-rose-500"><Trash2 className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </>
+          ) : !showForm ? (
+            <p className="text-xs text-muted-foreground">
+              Log each session — dose-response is the thing. The JAMA data is meaningful at 4+ sessions/week, not occasional use.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* Why Card */}
       <Card className="border-2 border-orange-200 bg-orange-50/20">

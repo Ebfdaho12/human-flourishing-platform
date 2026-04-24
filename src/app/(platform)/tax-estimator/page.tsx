@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { Calculator, DollarSign, ArrowRight, AlertTriangle } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Calculator, DollarSign, ArrowRight, AlertTriangle, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetData = { income?: number }
 
 // 2024 Canadian Federal Tax Brackets
 const CA_FEDERAL = [
@@ -80,11 +83,24 @@ function estimateCCB(familyIncome: number, children: number): number {
 }
 
 export default function TaxEstimatorPage() {
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+  const autoIncome = useMemo(() => {
+    const monthly = budget?.income ?? 0
+    return monthly > 0 ? Math.round(monthly * 12) : null
+  }, [budget])
+
   const [country, setCountry] = useState<"canada" | "us">("canada")
   const [income, setIncome] = useState(80000)
   const [income2, setIncome2] = useState(0)
   const [filing, setFiling] = useState<"single" | "married">("married")
   const [children, setChildren] = useState(1)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (autoIncome) setIncome(autoIncome)
+    setHydrated(true)
+  }, [autoIncome, hydrated])
 
   // Canada calculations
   const caFederal = calculateTax(income, CA_FEDERAL)
@@ -129,6 +145,17 @@ export default function TaxEstimatorPage() {
           See your real tax rate — <Explain tip="Your effective tax rate is the ACTUAL percentage of your total income that goes to taxes. It is always lower than your marginal rate because only income ABOVE each threshold is taxed at the higher rate">effective</Explain> vs <Explain tip="The tax rate on your LAST dollar earned — the highest bracket your income falls into. If you earn $100K, only the dollars ABOVE the bracket threshold are taxed at this rate, not all of them">marginal</Explain>. Compare single vs dual income. See the real math.
         </p>
       </div>
+
+      {autoIncome && (
+        <Card className="border-blue-200 bg-blue-50/30">
+          <CardContent className="p-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-blue-600 flex-shrink-0" />
+            <p className="text-xs text-blue-900">
+              Income <span className="font-semibold tabular-nums">${autoIncome.toLocaleString()}</span> auto-filled from your budget (monthly × 12). Override below.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Country selector */}
       <div className="flex gap-3">

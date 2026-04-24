@@ -1,19 +1,51 @@
 "use client"
 
-import { useState } from "react"
-import { Car, DollarSign, AlertTriangle, ArrowRight, ChevronDown, Calculator, Clock, Shield } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Car, DollarSign, AlertTriangle, ArrowRight, ChevronDown, Calculator, Clock, Shield, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type NetWorthData = { assets?: { name?: string; type?: string; category?: string; value: number }[] }
+type BudgetData = { income?: number; expenses?: { category: string; amount: number }[] }
+type SubsData = { subs?: { name: string; cost: number; lastUsed?: string }[]; hourlyRate?: number }
 
 export default function CarBuyingPage() {
+  const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+  const [subsStore] = useSyncedStorage<SubsData>("hfp-subscriptions", { subs: [] })
+
+  const auto = useMemo(() => {
+    const cash = (netWorth?.assets ?? [])
+      .filter(a => /cash|checking|savings|hisa|tfsa/i.test(`${a.name ?? ""} ${a.type ?? ""} ${a.category ?? ""}`))
+      .reduce((s, a) => s + (a.value ?? 0), 0)
+    const monthlyIncome = budget?.income ?? 0
+    const affordableDP = cash > 0 ? Math.min(Math.round(cash * 0.2), 10000) : null
+    const storedHourly = (subsStore as SubsData)?.hourlyRate
+    return {
+      downPayment: affordableDP,
+      affordableDP: cash > 0 ? Math.round(cash) : null,
+      monthlyIncome: monthlyIncome > 0 ? Math.round(monthlyIncome) : null,
+      hourlyRate: typeof storedHourly === "number" && storedHourly > 0 ? Math.round(storedHourly) : null,
+    }
+  }, [netWorth, budget, subsStore])
+
   const [carPrice, setCarPrice] = useState(35000)
   const [downPayment, setDownPayment] = useState(5000)
   const [rate, setRate] = useState(6.5)
   const [termMonths, setTermMonths] = useState(60)
   const [hourlyRate, setHourlyRate] = useState(25)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (auto.downPayment) setDownPayment(auto.downPayment)
+    if (auto.hourlyRate) setHourlyRate(auto.hourlyRate)
+    setHydrated(true)
+  }, [auto, hydrated])
 
   const financed = carPrice - downPayment
   const monthlyRate = rate / 100 / 12
@@ -72,6 +104,19 @@ export default function CarBuyingPage() {
           The real cost of a car, how to negotiate, and the rules that save thousands.
         </p>
       </div>
+
+      {(auto.affordableDP || auto.hourlyRate) && (
+        <Card className="border-emerald-200 bg-emerald-50/30">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-emerald-900">
+              Based on your data:
+              {auto.affordableDP && <span> cash reserves <span className="font-semibold tabular-nums">${auto.affordableDP.toLocaleString()}</span> — don&apos;t commit more than 20% (${Math.round((auto.affordableDP) * 0.2).toLocaleString()}) to a down payment.</span>}
+              {auto.hourlyRate && <span> Hourly rate <span className="font-semibold tabular-nums">${auto.hourlyRate}</span> used for the life-hours calc below.</span>}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Calculator */}
       <Card>
