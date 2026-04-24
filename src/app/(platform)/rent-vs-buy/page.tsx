@@ -1,13 +1,28 @@
 "use client"
 
-import { useState } from "react"
-import { Home, DollarSign, TrendingUp, Scale, ArrowRight } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Home, DollarSign, TrendingUp, Scale, ArrowRight, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetData = { income?: number; expenses?: { category: string; amount: number }[] }
+type NetWorthData = { assets?: { name?: string; type?: string; category?: string; value: number }[] }
 
 export default function RentVsBuyPage() {
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+  const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
+
+  const auto = useMemo(() => {
+    const rentExp = (budget?.expenses ?? []).find(e => /rent|housing|mortgage/i.test(e.category))?.amount
+    const cash = (netWorth?.assets ?? [])
+      .filter(a => /cash|checking|savings|hisa|tfsa/i.test(`${a.name ?? ""} ${a.type ?? ""} ${a.category ?? ""}`))
+      .reduce((s, a) => s + (a.value ?? 0), 0)
+    return { rent: rentExp && rentExp > 0 ? Math.round(rentExp) : null, downPayment: cash > 0 ? Math.round(cash) : null }
+  }, [budget, netWorth])
+
   const [rent, setRent] = useState(2000)
   const [homePrice, setHomePrice] = useState(500000)
   const [downPayment, setDownPayment] = useState(50000)
@@ -15,6 +30,14 @@ export default function RentVsBuyPage() {
   const [yearsStaying, setYearsStaying] = useState(10)
   const [annualAppreciation, setAnnualAppreciation] = useState(3)
   const [annualRentIncrease, setAnnualRentIncrease] = useState(3)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (auto.rent) setRent(auto.rent)
+    if (auto.downPayment) setDownPayment(auto.downPayment)
+    setHydrated(true)
+  }, [auto, hydrated])
 
   const mortgage = homePrice - downPayment
   const monthlyRate = mortgageRate / 100 / 12
@@ -72,6 +95,21 @@ export default function RentVsBuyPage() {
         </div>
         <p className="text-sm text-muted-foreground">The honest math — not the real estate agent's version. Sometimes renting IS smarter.</p>
       </div>
+
+      {(auto.rent || auto.downPayment) && (
+        <Card className="border-emerald-200 bg-emerald-50/30">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-emerald-900">
+              Auto-filled from your data:
+              {auto.rent && <span> rent <span className="font-semibold tabular-nums">${auto.rent.toLocaleString()}</span> (from budget)</span>}
+              {auto.rent && auto.downPayment && <span> ·</span>}
+              {auto.downPayment && <span> potential down payment <span className="font-semibold tabular-nums">${auto.downPayment.toLocaleString()}</span> (cash from net worth)</span>}
+              . Adjust below.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-4 space-y-3">

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Snowflake, Flame, ShieldAlert, Zap, Brain, Heart, ThermometerSnowflake, Timer, Plus, Trash2, Activity, Droplets, Link } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Snowflake, Flame, ShieldAlert, Zap, Brain, Heart, ThermometerSnowflake, Timer, Plus, Trash2, Activity, Droplets, Link, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -57,6 +57,37 @@ export default function ColdExposurePage() {
     setSessions(next)
     localStorage.setItem("cold-sessions", JSON.stringify(next))
   }
+
+  const stats = useMemo(() => {
+    if (sessions.length === 0) return null
+    const now = Date.now()
+    const last30 = sessions.filter(s => new Date(s.date).getTime() >= now - 30 * 86400000)
+    const last7 = sessions.filter(s => new Date(s.date).getTime() >= now - 7 * 86400000)
+    const total = sessions.length
+    const totalSec = sessions.reduce((s, x) => s + x.duration, 0)
+    const avgSec = totalSec / total
+    const longestSec = sessions.reduce((a, b) => b.duration > a.duration ? b : a).duration
+
+    // Current streak of consecutive days
+    const daySet = new Set(sessions.map(s => s.date))
+    let streak = 0
+    const today = new Date()
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today.getTime() - i * 86400000).toISOString().slice(0, 10)
+      if (daySet.has(d)) streak++
+      else if (i > 0) break
+    }
+
+    // 14-day dot grid
+    const last14: { date: string; count: number; totalSec: number }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now - i * 86400000).toISOString().slice(0, 10)
+      const day = sessions.filter(s => s.date === d)
+      last14.push({ date: d, count: day.length, totalSec: day.reduce((x, y) => x + y.duration, 0) })
+    }
+
+    return { total, totalSec, avgSec, longestSec, last30Count: last30.length, last7Count: last7.length, streak, last14 }
+  }, [sessions])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -168,6 +199,56 @@ export default function ColdExposurePage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Analytics — only when sessions exist */}
+      {stats && (
+        <Card className="border-cyan-200 bg-cyan-50/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="h-4 w-4 text-cyan-600" /> Your Exposure</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total sessions</p>
+                <p className="text-sm font-bold tabular-nums">{stats.total}</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Flame className="h-2.5 w-2.5" /> Streak</p>
+                <p className="text-sm font-bold tabular-nums text-amber-600">{stats.streak}d</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg duration</p>
+                <p className="text-sm font-bold tabular-nums">{Math.round(stats.avgSec)}s</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Longest</p>
+                <p className="text-sm font-bold tabular-nums text-cyan-700">{stats.longestSec}s</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Last 14 days · {stats.last7Count}/7 this week</p>
+              <div className="flex gap-0.5">
+                {stats.last14.map((d, i) => {
+                  const intensity = d.totalSec === 0 ? 0 : d.totalSec < 60 ? 1 : d.totalSec < 180 ? 2 : 3
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        "flex-1 aspect-square rounded",
+                        intensity === 0 && "bg-slate-100",
+                        intensity === 1 && "bg-cyan-200",
+                        intensity === 2 && "bg-cyan-400",
+                        intensity === 3 && "bg-cyan-600",
+                      )}
+                      title={`${d.date}: ${d.count} session${d.count === 1 ? "" : "s"}, ${d.totalSec}s`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Session Tracker */}
       <Card>

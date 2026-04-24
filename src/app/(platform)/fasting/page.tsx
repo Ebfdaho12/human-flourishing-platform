@@ -1,11 +1,36 @@
 "use client"
 
-import { Clock, Brain, Heart, ShieldAlert, Zap, Timer, Activity, Utensils, Sparkles, Ban } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Clock, Brain, Heart, ShieldAlert, Zap, Timer, Activity, Utensils, Sparkles, Ban, Play, Square, Flame, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
 import { Source, SourceList } from "@/components/ui/source-citation"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type FastLog = { id: string; startedAt: string; endedAt: string; hours: number; protocol?: string; notes?: string }
+type ActiveFast = { startedAt: string; targetHours?: number; protocol?: string } | null
+
+const PHASES = [
+  { hours: 0, label: "Fed State", color: "bg-emerald-100 text-emerald-900" },
+  { hours: 4, label: "Post-Absorptive", color: "bg-emerald-50 text-emerald-800" },
+  { hours: 8, label: "Glycogen Depletion", color: "bg-amber-50 text-amber-900" },
+  { hours: 12, label: "Fat Oxidation Ramp", color: "bg-amber-100 text-amber-900" },
+  { hours: 16, label: "Light Autophagy", color: "bg-orange-100 text-orange-900" },
+  { hours: 18, label: "Significant Autophagy", color: "bg-orange-200 text-orange-900" },
+  { hours: 24, label: "Autophagy Peaks", color: "bg-red-100 text-red-900" },
+  { hours: 48, label: "Stem Cell Regeneration", color: "bg-violet-100 text-violet-900" },
+]
+
+function currentPhase(hours: number) {
+  let last = PHASES[0]
+  for (const p of PHASES) {
+    if (hours >= p.hours) last = p
+    else break
+  }
+  return last
+}
 
 const PROTOCOLS = [
   { name: "16:8", color: "border-emerald-300 text-emerald-700", label: "Beginner", detail: "Eat within an 8-hour window, fast for 16 hours. Most popular and sustainable. Example: noon to 8 PM eating, skip breakfast.", tip: "Start by pushing breakfast back 1 hour per week until you reach a noon start." },
@@ -48,6 +73,54 @@ const BREAKS_FAST = [
 ]
 
 export default function FastingPage() {
+  const [active, setActive] = useSyncedStorage<ActiveFast>("hfp-fast-active", null)
+  const [logs, setLogs] = useSyncedStorage<FastLog[]>("hfp-fast-logs", [])
+  const [tick, setTick] = useState(0)
+
+  useEffect(() => {
+    if (!active) return
+    const i = setInterval(() => setTick(t => t + 1), 60000) // 1 min refresh
+    return () => clearInterval(i)
+  }, [active])
+
+  const liveHours = useMemo(() => {
+    if (!active) return 0
+    return (Date.now() - new Date(active.startedAt).getTime()) / 3600000
+  }, [active, tick])
+
+  const phase = currentPhase(liveHours)
+  const targetHours = active?.targetHours ?? 16
+  const progressPct = Math.min(100, (liveHours / targetHours) * 100)
+
+  function startFast(targetHours: number, protocol?: string) {
+    setActive({ startedAt: new Date().toISOString(), targetHours, protocol })
+  }
+
+  function endFast() {
+    if (!active) return
+    const hours = (Date.now() - new Date(active.startedAt).getTime()) / 3600000
+    if (hours < 0.25) { setActive(null); return } // ignore < 15 min false starts
+    const log: FastLog = {
+      id: crypto.randomUUID(),
+      startedAt: active.startedAt,
+      endedAt: new Date().toISOString(),
+      hours: Math.round(hours * 10) / 10,
+      protocol: active.protocol,
+    }
+    setLogs([log, ...logs])
+    setActive(null)
+  }
+
+  const stats = useMemo(() => {
+    if (logs.length === 0) return null
+    const sorted = [...logs].sort((a, b) => new Date(b.endedAt).getTime() - new Date(a.endedAt).getTime())
+    const last90 = sorted.filter(l => new Date(l.endedAt).getTime() >= Date.now() - 90 * 86400000)
+    const totalHours = last90.reduce((s, l) => s + l.hours, 0)
+    const longest = sorted.reduce((a, b) => b.hours > a.hours ? b : a)
+    const avg = sorted.reduce((s, l) => s + l.hours, 0) / sorted.length
+    return { total: sorted.length, last90Count: last90.length, totalHours, longest, avg, recent: sorted.slice(0, 6) }
+  }, [logs])
+
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
@@ -60,6 +133,105 @@ export default function FastingPage() {
         </div>
         <p className="text-sm text-muted-foreground">Controlled nutrient scarcity that activates your body's deepest cellular repair mechanisms \u2014 the science of strategic not-eating.</p>
       </div>
+
+      {/* Active fast timer */}
+      <Card className={cn("border-2", active ? "border-amber-400 bg-gradient-to-br from-amber-50/60 to-orange-50/40" : "border-amber-200 bg-amber-50/20")}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><Timer className="h-4 w-4 text-amber-600" /> {active ? "Fasting now" : "Start a fast"}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {active ? (
+            <>
+              <div className="flex items-end gap-3">
+                <div>
+                  <p className="text-4xl font-bold tabular-nums text-amber-700">{Math.floor(liveHours)}<span className="text-xl">h</span> {Math.floor((liveHours % 1) * 60)}<span className="text-xl">m</span></p>
+                  <p className="text-[10px] text-muted-foreground">started {new Date(active.startedAt).toLocaleString()}</p>
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>0h</span>
+                    <span>{targetHours}h target</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-amber-100 overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all" style={{ width: `${progressPct}%` }} />
+                  </div>
+                </div>
+              </div>
+              <div className={cn("rounded-lg p-2", phase.color)}>
+                <p className="text-xs font-semibold">Current phase: {phase.label}</p>
+              </div>
+              <div className="grid grid-cols-8 gap-0.5">
+                {PHASES.map((p, i) => {
+                  const reached = liveHours >= p.hours
+                  return (
+                    <div key={i} className={cn("rounded px-1 py-1 text-center", reached ? p.color : "bg-slate-50 text-slate-400")}>
+                      <p className="text-[8px] font-semibold tabular-nums">{p.hours}h</p>
+                    </div>
+                  )
+                })}
+              </div>
+              <button onClick={endFast} className="w-full rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium py-2 flex items-center justify-center gap-2">
+                <Square className="h-3.5 w-3.5" /> End fast
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">Pick a protocol. Timer starts now. You can end at any time — the hours are what counts.</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {[
+                  { label: "16:8", hours: 16, proto: "16:8" },
+                  { label: "18:6", hours: 18, proto: "18:6" },
+                  { label: "24h", hours: 24, proto: "24h" },
+                  { label: "48h", hours: 48, proto: "48h" },
+                ].map(o => (
+                  <button key={o.label} onClick={() => startFast(o.hours, o.proto)} className="rounded-lg border hover:border-amber-400 hover:bg-amber-50/40 transition p-2.5 flex flex-col items-center gap-1">
+                    <Play className="h-3.5 w-3.5 text-amber-600" />
+                    <p className="text-xs font-bold">{o.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{o.hours}h target</p>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {stats && (
+            <div className="border-t pt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="text-sm font-bold tabular-nums">{stats.total}</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">90d</p>
+                <p className="text-sm font-bold tabular-nums">{stats.last90Count}</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg</p>
+                <p className="text-sm font-bold tabular-nums">{stats.avg.toFixed(1)}h</p>
+              </div>
+              <div className="rounded-lg border bg-white p-2">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1"><Flame className="h-2.5 w-2.5" /> Longest</p>
+                <p className="text-sm font-bold tabular-nums text-amber-700">{stats.longest.hours.toFixed(1)}h</p>
+              </div>
+            </div>
+          )}
+
+          {stats && stats.recent.length > 0 && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Recent fasts ({logs.length})</summary>
+              <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                {stats.recent.map(l => (
+                  <div key={l.id} className="flex items-center gap-2 rounded border p-1.5 text-[11px]">
+                    <span className="text-muted-foreground font-mono tabular-nums w-20">{new Date(l.endedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    <span className={cn("font-bold tabular-nums w-14", l.hours >= 24 ? "text-red-600" : l.hours >= 18 ? "text-orange-600" : l.hours >= 16 ? "text-amber-600" : "text-emerald-600")}>{l.hours.toFixed(1)}h</span>
+                    {l.protocol && <Badge variant="outline" className="text-[9px]">{l.protocol}</Badge>}
+                    <button onClick={() => setLogs(logs.filter(x => x.id !== l.id))} className="ml-auto text-slate-300 hover:text-rose-500"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Why Card */}
       <Card className="border-2 border-amber-200 bg-amber-50/20">

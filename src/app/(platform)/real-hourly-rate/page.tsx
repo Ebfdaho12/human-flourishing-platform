@@ -1,13 +1,33 @@
 "use client"
 
-import { useState } from "react"
-import { Clock, DollarSign, Car, Utensils, Shirt, ArrowRight, AlertTriangle } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Clock, DollarSign, Car, Utensils, Shirt, ArrowRight, AlertTriangle, Sparkles } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Explain } from "@/components/ui/explain"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetData = { income?: number; expenses?: { category: string; amount: number }[] }
 
 export default function RealHourlyRatePage() {
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+
+  const auto = useMemo(() => {
+    const annualIncome = (budget?.income ?? 0) * 12
+    const expenses = budget?.expenses ?? []
+    const findCat = (regex: RegExp) => expenses.find(e => regex.test(e.category))?.amount ?? 0
+    const transport = findCat(/transport|car|gas|auto|transit|parking/i)
+    const dining = findCat(/dining|restaurant|takeout|lunch/i)
+    const childcare = findCat(/child|daycare|nanny/i)
+    return {
+      salary: annualIncome > 0 ? Math.round(annualIncome) : null,
+      commuteCost: transport > 0 ? Math.round(transport) : null,
+      workLunches: dining > 0 ? Math.round(dining * 0.6) : null, // assume 60% is work-related
+      childcareCost: childcare > 0 ? Math.round(childcare) : null,
+    }
+  }, [budget])
+
   const [salary, setSalary] = useState(70000)
   const [hoursPerWeek, setHoursPerWeek] = useState(40)
   const [commuteMin, setCommuteMin] = useState(30)
@@ -16,6 +36,16 @@ export default function RealHourlyRatePage() {
   const [workLunches, setWorkLunches] = useState(200)
   const [commuteCost, setCommuteCost] = useState(300)
   const [childcareCost, setChildcareCost] = useState(0)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (auto.salary) setSalary(auto.salary)
+    if (auto.commuteCost) setCommuteCost(auto.commuteCost)
+    if (auto.workLunches) setWorkLunches(auto.workLunches)
+    if (auto.childcareCost) setChildcareCost(auto.childcareCost)
+    setHydrated(true)
+  }, [auto, hydrated])
 
   // Calculations
   const weeksPerYear = 48 // 52 minus 4 weeks vacation/holidays
@@ -70,6 +100,22 @@ export default function RealHourlyRatePage() {
           Your salary says one number. After taxes, work costs, and hidden hours — the real number is very different.
         </p>
       </div>
+
+      {(auto.salary || auto.commuteCost || auto.workLunches || auto.childcareCost) && (
+        <Card className="border-amber-200 bg-amber-50/30">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-amber-900">
+              Auto-filled from your budget:
+              {auto.salary && <span> income <span className="font-semibold tabular-nums">${auto.salary.toLocaleString()}</span></span>}
+              {auto.commuteCost && <span> · transport <span className="font-semibold tabular-nums">${auto.commuteCost.toLocaleString()}/mo</span></span>}
+              {auto.workLunches && <span> · est. work meals <span className="font-semibold tabular-nums">${auto.workLunches.toLocaleString()}/mo</span></span>}
+              {auto.childcareCost && <span> · childcare <span className="font-semibold tabular-nums">${auto.childcareCost.toLocaleString()}/mo</span></span>}
+              . Override below if needed.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Inputs */}
       <Card>
