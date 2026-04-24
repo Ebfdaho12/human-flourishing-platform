@@ -1,18 +1,66 @@
 "use client"
 
-import { useState } from "react"
-import { DollarSign, TrendingUp, Clock, Brain, Target, ArrowRight } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { DollarSign, TrendingUp, Clock, Brain, Target, ArrowRight, Sparkles, Activity } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type BudgetExpense = { category: string; amount: number }
+type BudgetData = { income?: number; expenses?: BudgetExpense[]; monthlyExpenses?: number }
+type NetWorthData = { assets?: { name?: string; type?: string; category?: string; value: number }[]; liabilities?: { value: number }[] }
+type NWSnap = { date: string; netWorth: number }
 
 export default function FinancialIndependencePage() {
+  const [budget] = useSyncedStorage<BudgetData>("hfp-budget", {})
+  const [netWorth] = useSyncedStorage<NetWorthData>("hfp-net-worth", {})
+  const [nwHistory] = useSyncedStorage<NWSnap[]>("hfp-networth-history", [])
+
+  const auto = useMemo(() => {
+    const expenses = budget?.expenses ?? []
+    const monthExp = expenses.reduce((s, e) => s + (e.amount ?? 0), 0) || budget?.monthlyExpenses || 0
+    const income = budget?.income ?? 0
+    const surplus = Math.max(0, income - monthExp)
+
+    const assets = netWorth?.assets ?? []
+    const liabilities = (netWorth?.liabilities ?? []).reduce((s, l) => s + (l.value ?? 0), 0)
+    const investable = assets
+      .filter(a => {
+        const str = `${a.name ?? ""} ${a.type ?? ""} ${a.category ?? ""}`.toLowerCase()
+        return /invest|stock|etf|rrsp|tfsa|401|ira|brokerage|crypto|bond|mutual|portfolio|cash|savings|hisa/.test(str)
+      })
+      .reduce((s, a) => s + (a.value ?? 0), 0)
+    const totalAssets = assets.reduce((s, a) => s + (a.value ?? 0), 0)
+    const nw = totalAssets - liabilities
+
+    const nwSorted = [...nwHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    let actualGrowthPerYear = 0
+    if (nwSorted.length >= 2) {
+      const first = nwSorted[0]
+      const last = nwSorted[nwSorted.length - 1]
+      const years = Math.max(0.1, (new Date(last.date).getTime() - new Date(first.date).getTime()) / (365 * 86400000))
+      actualGrowthPerYear = (last.netWorth - first.netWorth) / years
+    }
+
+    return { monthExp, income, surplus, investable, totalAssets, nw, actualGrowthPerYear, hasBudget: monthExp > 0, hasNW: totalAssets > 0 }
+  }, [budget, netWorth, nwHistory])
+
   const [savings, setSavings] = useState(50000)
   const [monthlySavings, setMonthlySavings] = useState(1500)
   const [returnRate, setReturnRate] = useState(7)
   const [monthlyExpenses, setMonthlyExpenses] = useState(3500)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    if (hydrated) return
+    if (auto.investable > 0) setSavings(Math.round(auto.investable))
+    if (auto.surplus > 0) setMonthlySavings(Math.round(auto.surplus))
+    if (auto.monthExp > 0) setMonthlyExpenses(Math.round(auto.monthExp))
+    setHydrated(true)
+  }, [auto, hydrated])
 
   const annualExpenses = monthlyExpenses * 12
   const fiNumber = annualExpenses * 25
@@ -59,6 +107,41 @@ export default function FinancialIndependencePage() {
           FI isn't about quitting your job. It's about reaching the point where work becomes a choice, not a requirement.
         </p>
       </div>
+
+      {/* Auto from your data */}
+      {(auto.hasBudget || auto.hasNW) && (
+        <Card className="border-emerald-200 bg-emerald-50/30">
+          <CardContent className="p-3 flex items-start gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-emerald-900">
+              Pulled from your saved data:
+              {auto.investable > 0 && <span> <span className="font-semibold tabular-nums">${Math.round(auto.investable).toLocaleString()}</span> investable assets</span>}
+              {auto.surplus > 0 && <span> · <span className="font-semibold tabular-nums">${Math.round(auto.surplus).toLocaleString()}/mo</span> surplus</span>}
+              {auto.monthExp > 0 && <span> · <span className="font-semibold tabular-nums">${Math.round(auto.monthExp).toLocaleString()}/mo</span> expenses</span>}
+              . Override below if needed.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Actual vs Projected callout */}
+      {auto.actualGrowthPerYear !== 0 && savings > 0 && (
+        <Card className={cn("border-2", auto.actualGrowthPerYear >= monthlySavings * 12 ? "border-emerald-300 bg-emerald-50/30" : "border-amber-300 bg-amber-50/30")}>
+          <CardContent className="p-3 flex items-center gap-3">
+            <Activity className={cn("h-4 w-4 flex-shrink-0", auto.actualGrowthPerYear >= monthlySavings * 12 ? "text-emerald-600" : "text-amber-600")} />
+            <div className="flex-1 text-xs">
+              <p className={cn("font-semibold", auto.actualGrowthPerYear >= monthlySavings * 12 ? "text-emerald-900" : "text-amber-900")}>
+                Actual net worth growth: <span className="tabular-nums">{auto.actualGrowthPerYear >= 0 ? "+" : ""}${Math.round(auto.actualGrowthPerYear).toLocaleString()}/year</span>
+              </p>
+              <p className="text-muted-foreground">
+                {auto.actualGrowthPerYear >= monthlySavings * 12
+                  ? `Compounding is working — your net worth is growing faster than contributions alone. Stay the course.`
+                  : `Your projected ${(returnRate).toFixed(1)}% return assumes $${Math.round(monthlySavings * 12).toLocaleString()}/yr of contributions. Actual growth is tracking below that — check if a market dip is dragging, or if your actual savings rate differs from your planned one.`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* The Math */}
       <Card className="border-2 border-emerald-200 bg-emerald-50/20">

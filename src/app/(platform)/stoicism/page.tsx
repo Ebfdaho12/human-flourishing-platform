@@ -1,11 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { Scale, Shield, ChevronDown, ChevronUp, Sun, Moon, Pause, Eye, Flame, Mountain, Skull, Heart, Telescope, Dumbbell, Link } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Scale, Shield, ChevronDown, ChevronUp, Sun, Moon, Pause, Eye, Flame, Mountain, Skull, Heart, Telescope, Dumbbell, Link, Plus, Check } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Explain } from "@/components/ui/explain"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type StoicDay = { date: string; morning?: string; evening?: string; framework?: string; virtueScore?: { perception: number; action: number; will: number } }
+const FRAMEWORK_NAMES = ["Dichotomy of Control", "Memento Mori", "Amor Fati", "Premeditatio Malorum", "View from Above", "Voluntary Discomfort"]
 
 const FRAMEWORKS = [
   { name: "Dichotomy of Control", origin: "Epictetus", icon: Scale, color: "text-blue-600", badge: "border-blue-300 text-blue-700",
@@ -46,6 +50,38 @@ const DAILY_PRACTICE = [
 export default function StoicismPage() {
   const [expandedFramework, setExpandedFramework] = useState<number | null>(null)
   const [showQuotes, setShowQuotes] = useState(false)
+  const [journal, setJournal] = useSyncedStorage<StoicDay[]>("hfp-stoic-journal", [])
+  const today = new Date().toISOString().slice(0, 10)
+  const todayEntry = journal.find(d => d.date === today)
+  const [morning, setMorning] = useState(todayEntry?.morning ?? "")
+  const [evening, setEvening] = useState(todayEntry?.evening ?? "")
+  const [framework, setFramework] = useState(todayEntry?.framework ?? FRAMEWORK_NAMES[0])
+
+  function saveToday(patch: Partial<StoicDay>) {
+    const existing = journal.find(d => d.date === today)
+    const merged: StoicDay = { ...(existing ?? { date: today }), ...patch }
+    const filtered = journal.filter(d => d.date !== today)
+    setJournal([merged, ...filtered].slice(0, 365))
+  }
+
+  const stats = useMemo(() => {
+    const sorted = [...journal].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const days30 = sorted.filter(d => new Date(d.date).getTime() >= Date.now() - 30 * 86400000)
+    const morningDays = days30.filter(d => d.morning && d.morning.trim()).length
+    const eveningDays = days30.filter(d => d.evening && d.evening.trim()).length
+
+    // streak of consecutive days with ANY entry
+    let streak = 0
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      const entry = journal.find(x => x.date === d)
+      const hasContent = entry && ((entry.morning?.trim()) || (entry.evening?.trim()))
+      if (hasContent) streak++
+      else if (i > 0) break
+    }
+
+    return { total: sorted.length, morningDays, eveningDays, streak }
+  }, [journal])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -59,6 +95,44 @@ export default function StoicismPage() {
         </div>
         <p className="text-sm text-muted-foreground">Ancient operating system for modern life — not academic philosophy, but actionable mental frameworks you can use today.</p>
       </div>
+
+      {/* Daily Stoic Practice */}
+      <Card className="border-slate-300 bg-gradient-to-br from-slate-50/40 to-zinc-50/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2"><Check className="h-4 w-4 text-slate-600" /> Today&apos;s Practice</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Streak</p><p className="text-sm font-bold text-amber-600 tabular-nums">{stats.streak}d</p></div>
+            <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">AM 30d</p><p className="text-sm font-bold text-blue-600 tabular-nums">{stats.morningDays}</p></div>
+            <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">PM 30d</p><p className="text-sm font-bold text-indigo-600 tabular-nums">{stats.eveningDays}</p></div>
+            <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Total</p><p className="text-sm font-bold tabular-nums">{stats.total}</p></div>
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Today&apos;s framework</label>
+            <select value={framework} onChange={e => { setFramework(e.target.value); saveToday({ framework: e.target.value }) }} className="w-full rounded-md border px-2 py-1.5 text-xs">
+              {FRAMEWORK_NAMES.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1"><Sun className="h-3 w-3 text-amber-500" /> Morning — Premeditate</label>
+            <textarea value={morning} onChange={e => setMorning(e.target.value)} onBlur={() => saveToday({ morning })} placeholder="What challenges might I face today? How will I respond with virtue?" rows={2} className="w-full rounded-md border px-2 py-1.5 text-xs" />
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground flex items-center gap-1"><Moon className="h-3 w-3 text-indigo-500" /> Evening — Review</label>
+            <textarea value={evening} onChange={e => setEvening(e.target.value)} onBlur={() => saveToday({ evening })} placeholder="Where did I lose composure? Where did I act well? What would I do differently?" rows={2} className="w-full rounded-md border px-2 py-1.5 text-xs" />
+          </div>
+
+          {stats.streak >= 7 && (
+            <p className="text-[10px] text-emerald-700 bg-emerald-50 rounded-md px-2 py-1.5">
+              <strong>{stats.streak}-day streak.</strong> Seneca did this for decades. You&apos;re on the path.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Not academic philosophy */}
       <Card className="border-2 border-slate-200 bg-slate-50/20">

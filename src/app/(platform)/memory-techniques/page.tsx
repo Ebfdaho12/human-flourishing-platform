@@ -1,10 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { Brain, ChevronDown, BookOpen, Zap, AlertTriangle } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Brain, ChevronDown, BookOpen, Zap, AlertTriangle, Plus, Timer, Trash2, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useSyncedStorage } from "@/hooks/use-synced-storage"
+
+type StudySession = { id: string; date: string; technique: string; topic: string; minutes: number; notes?: string }
+const TECHNIQUE_NAMES = ["Spaced Repetition", "Memory Palace", "Feynman Technique", "Active Recall", "Interleaving"]
 
 const TECHNIQUES: {
   name: string
@@ -130,6 +134,53 @@ const MYTHS = [
 export default function MemoryTechniquesPage() {
   const [expanded, setExpanded] = useState<number | null>(0)
   const [expandedMyth, setExpandedMyth] = useState<number | null>(null)
+  const [sessions, setSessions] = useSyncedStorage<StudySession[]>("hfp-study-sessions", [])
+  const [showLog, setShowLog] = useState(false)
+  const [form, setForm] = useState<Partial<StudySession>>({ date: new Date().toISOString().slice(0, 10), technique: TECHNIQUE_NAMES[0], minutes: 25 })
+
+  function logSession() {
+    if (!form.technique || !form.topic || !form.minutes) return
+    const s: StudySession = {
+      id: crypto.randomUUID(),
+      date: form.date!,
+      technique: form.technique!,
+      topic: form.topic!,
+      minutes: Number(form.minutes),
+      notes: form.notes,
+    }
+    setSessions([s, ...sessions])
+    setForm({ date: new Date().toISOString().slice(0, 10), technique: TECHNIQUE_NAMES[0], minutes: 25 })
+    setShowLog(false)
+  }
+
+  const stats = useMemo(() => {
+    if (sessions.length === 0) return null
+    const monthAgo = Date.now() - 30 * 86400000
+    const weekAgo = Date.now() - 7 * 86400000
+    const last30 = sessions.filter(s => new Date(s.date).getTime() >= monthAgo)
+    const last7 = sessions.filter(s => new Date(s.date).getTime() >= weekAgo)
+    const hours30 = last30.reduce((s, x) => s + x.minutes, 0) / 60
+    const hours7 = last7.reduce((s, x) => s + x.minutes, 0) / 60
+
+    const byTech: Record<string, number> = {}
+    last30.forEach(s => { byTech[s.technique] = (byTech[s.technique] ?? 0) + s.minutes })
+    const topTech = Object.entries(byTech).sort((a, b) => b[1] - a[1])[0]
+    const maxMin = topTech ? topTech[1] : 0
+
+    const byDay: { label: string; min: number }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000)
+      const k = d.toISOString().slice(0, 10)
+      byDay.push({
+        label: ["S", "M", "T", "W", "T", "F", "S"][d.getDay()],
+        min: sessions.filter(s => s.date === k).reduce((x, y) => x + y.minutes, 0),
+      })
+    }
+
+    const activeDays = new Set(last30.map(s => s.date)).size
+
+    return { last30, last7, hours30, hours7, byTech, topTech, maxMin, byDay, activeDays }
+  }, [sessions])
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -154,6 +205,91 @@ export default function MemoryTechniquesPage() {
             of research and used by the world's best learners. The effort to change your approach is real.
             The payoff is permanent.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Practice tracker */}
+      <Card className="border-violet-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 justify-between">
+            <span className="flex items-center gap-2"><Timer className="h-4 w-4 text-violet-600" /> Your Practice Log</span>
+            {!showLog && (
+              <button onClick={() => setShowLog(true)} className="flex items-center gap-1 rounded-md border border-violet-300 text-violet-700 px-2 py-1 text-xs hover:bg-violet-50">
+                <Plus className="h-3 w-3" /> Log session
+              </button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showLog && (
+            <div className="rounded-lg border bg-slate-50/40 p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Date</label>
+                  <input type="date" value={form.date ?? ""} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Minutes</label>
+                  <input type="number" min={1} value={form.minutes ?? ""} onChange={e => setForm({ ...form, minutes: Number(e.target.value) || undefined })} className="w-full rounded-md border px-2 py-1 text-xs" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Technique</label>
+                <select value={form.technique} onChange={e => setForm({ ...form, technique: e.target.value })} className="w-full rounded-md border px-2 py-1 text-xs">
+                  {TECHNIQUE_NAMES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <input placeholder="Topic (e.g. organic chemistry, Spanish verbs)" value={form.topic ?? ""} onChange={e => setForm({ ...form, topic: e.target.value })} className="w-full rounded-md border px-2 py-1.5 text-xs" />
+              <div className="flex gap-2">
+                <button onClick={logSession} className="flex-1 rounded-lg bg-violet-600 text-white text-xs font-medium py-1.5 hover:bg-violet-700">Save</button>
+                <button onClick={() => setShowLog(false)} className="flex-1 rounded-lg border text-xs py-1.5">Cancel</button>
+              </div>
+            </div>
+          )}
+          {stats ? (
+            <>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Sessions</p><p className="text-sm font-bold tabular-nums">{stats.last30.length}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Hours 30d</p><p className="text-sm font-bold tabular-nums">{stats.hours30.toFixed(1)}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Active days</p><p className="text-sm font-bold tabular-nums">{stats.activeDays}</p></div>
+                <div className="rounded-lg border p-2"><p className="text-[10px] text-muted-foreground uppercase">Week pace</p><p className="text-sm font-bold tabular-nums">{stats.hours7.toFixed(1)}h</p></div>
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Technique mix (30d)</p>
+                <div className="space-y-1">
+                  {Object.entries(stats.byTech).sort((a, b) => b[1] - a[1]).map(([t, m]) => (
+                    <div key={t} className="flex items-center gap-2 text-xs">
+                      <span className="w-28 text-muted-foreground truncate">{t}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-violet-400 to-purple-500" style={{ width: `${(m / Math.max(1, stats.maxMin)) * 100}%` }} />
+                      </div>
+                      <span className="w-16 text-right tabular-nums text-[10px] font-mono text-muted-foreground">{(m / 60).toFixed(1)}h</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Last 14 days</p>
+                <div className="flex items-end gap-0.5 h-12">
+                  {stats.byDay.map((d, i) => {
+                    const max = Math.max(...stats.byDay.map(x => x.min), 1)
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                        <div className={cn("w-full rounded-t", d.min >= 60 ? "bg-violet-500" : d.min >= 25 ? "bg-violet-400" : d.min > 0 ? "bg-violet-300" : "bg-slate-100")} style={{ height: `${(d.min / max) * 100}%`, minHeight: d.min > 0 ? 3 : 0 }} title={d.min > 0 ? `${d.min} min` : "none"} />
+                        <span className="text-[8px] text-muted-foreground">{d.label}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          ) : !showLog ? (
+            <p className="text-xs text-muted-foreground">
+              Log a session after each study block. Tracking reveals which techniques you actually use vs intend to use.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
