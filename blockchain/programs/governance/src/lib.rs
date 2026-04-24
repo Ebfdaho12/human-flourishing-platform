@@ -53,8 +53,11 @@ pub mod hfp_governance {
         proposal.title = title;
         proposal.description = description;
         proposal.category = category;
-        proposal.created_at = Clock::get()?.unix_timestamp;
-        proposal.voting_ends_at = Clock::get()?.unix_timestamp + VOTING_PERIOD;
+        let now = Clock::get()?.unix_timestamp;
+        proposal.created_at = now;
+        proposal.voting_ends_at = now
+            .checked_add(VOTING_PERIOD)
+            .ok_or(GovernanceError::ArithmeticOverflow)?;
         proposal.votes_for = 0;
         proposal.votes_against = 0;
         proposal.votes_abstain = 0;
@@ -63,7 +66,10 @@ pub mod hfp_governance {
         proposal.execution_data = execution_data;
         proposal.executed = false;
 
-        state.total_proposals += 1;
+        state.total_proposals = state
+            .total_proposals
+            .checked_add(1)
+            .ok_or(GovernanceError::ArithmeticOverflow)?;
 
         msg!("Proposal #{} created: {}", proposal.id, proposal.title);
         Ok(())
@@ -92,14 +98,35 @@ pub mod hfp_governance {
 
         // Update proposal tallies
         match vote {
-            VoteType::For => proposal.votes_for += voice_weight,
-            VoteType::Against => proposal.votes_against += voice_weight,
-            VoteType::Abstain => proposal.votes_abstain += voice_weight,
+            VoteType::For => {
+                proposal.votes_for = proposal
+                    .votes_for
+                    .checked_add(voice_weight)
+                    .ok_or(GovernanceError::ArithmeticOverflow)?;
+            }
+            VoteType::Against => {
+                proposal.votes_against = proposal
+                    .votes_against
+                    .checked_add(voice_weight)
+                    .ok_or(GovernanceError::ArithmeticOverflow)?;
+            }
+            VoteType::Abstain => {
+                proposal.votes_abstain = proposal
+                    .votes_abstain
+                    .checked_add(voice_weight)
+                    .ok_or(GovernanceError::ArithmeticOverflow)?;
+            }
         }
-        proposal.total_voters += 1;
+        proposal.total_voters = proposal
+            .total_voters
+            .checked_add(1)
+            .ok_or(GovernanceError::ArithmeticOverflow)?;
 
         let state = &mut ctx.accounts.governance_state;
-        state.total_votes_cast += 1;
+        state.total_votes_cast = state
+            .total_votes_cast
+            .checked_add(1)
+            .ok_or(GovernanceError::ArithmeticOverflow)?;
 
         msg!("Vote cast on proposal #{}: {:?} with weight {}", proposal.id, vote, voice_weight);
         Ok(())
@@ -117,10 +144,19 @@ pub mod hfp_governance {
 
         // Check quorum (minimum participation)
         // In production, this would check against total VOICE supply
-        let passed = if total_votes == 0 {
+        let votes_for_against = proposal
+            .votes_for
+            .checked_add(proposal.votes_against)
+            .ok_or(GovernanceError::ArithmeticOverflow)?;
+
+        let passed = if total_votes == 0 || votes_for_against == 0 {
             false
         } else {
-            let for_percentage = (proposal.votes_for * 100) / (proposal.votes_for + proposal.votes_against);
+            let for_percentage = proposal
+                .votes_for
+                .checked_mul(100)
+                .and_then(|v| v.checked_div(votes_for_against))
+                .ok_or(GovernanceError::ArithmeticOverflow)?;
             for_percentage >= PASS_THRESHOLD
         };
 
@@ -128,11 +164,17 @@ pub mod hfp_governance {
 
         if passed {
             proposal.status = ProposalStatus::Passed;
-            state.proposals_passed += 1;
+            state.proposals_passed = state
+                .proposals_passed
+                .checked_add(1)
+                .ok_or(GovernanceError::ArithmeticOverflow)?;
             msg!("Proposal #{} PASSED — for: {}, against: {}", proposal.id, proposal.votes_for, proposal.votes_against);
         } else {
             proposal.status = ProposalStatus::Rejected;
-            state.proposals_rejected += 1;
+            state.proposals_rejected = state
+                .proposals_rejected
+                .checked_add(1)
+                .ok_or(GovernanceError::ArithmeticOverflow)?;
             msg!("Proposal #{} REJECTED — for: {}, against: {}", proposal.id, proposal.votes_for, proposal.votes_against);
         }
 
@@ -292,4 +334,6 @@ pub enum GovernanceError {
     AlreadyExecuted,
     #[msg("Invalid vote weight. Must be greater than 0.")]
     InvalidVoteWeight,
+    #[msg("Arithmetic overflow.")]
+    ArithmeticOverflow,
 }

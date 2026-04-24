@@ -37,13 +37,22 @@ pub mod found_token {
     }
 
     /// Mint FOUND tokens to a recipient (only before mint authority is burned)
+    /// Only callable by the treasury authority set at initialize time.
     pub fn mint_found(ctx: Context<MintFound>, amount: u64) -> Result<()> {
         let treasury = &ctx.accounts.treasury;
         require!(!treasury.mint_authority_burned, ErrorCode::MintAuthorityBurned);
-        require!(
-            treasury.total_minted + amount <= FOUND_TOTAL_SUPPLY,
-            ErrorCode::ExceedsMaxSupply
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            treasury.authority,
+            ErrorCode::Unauthorized
         );
+        require!(amount > 0, ErrorCode::InvalidAmount);
+
+        let new_total = treasury
+            .total_minted
+            .checked_add(amount)
+            .ok_or(ErrorCode::ArithmeticOverflow)?;
+        require!(new_total <= FOUND_TOTAL_SUPPLY, ErrorCode::ExceedsMaxSupply);
 
         // Mint tokens
         let cpi_accounts = MintTo {
@@ -56,16 +65,22 @@ pub mod found_token {
 
         // Update treasury
         let treasury = &mut ctx.accounts.treasury;
-        treasury.total_minted += amount;
+        treasury.total_minted = new_total;
 
         Ok(())
     }
 
     /// Permanently burn the mint authority — no more FOUND can ever be created
     /// This is irreversible. Once called, the supply is permanently fixed.
+    /// Only callable by the treasury authority.
     pub fn burn_mint_authority(ctx: Context<BurnMintAuthority>) -> Result<()> {
         let treasury = &mut ctx.accounts.treasury;
         require!(!treasury.mint_authority_burned, ErrorCode::MintAuthorityBurned);
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            treasury.authority,
+            ErrorCode::Unauthorized
+        );
 
         // Set the mint authority to None — permanently preventing new mints
         token::set_authority(
@@ -104,7 +119,7 @@ pub mod found_token {
         // Record stake
         let stake = &mut ctx.accounts.stake_account;
         stake.owner = ctx.accounts.staker.key();
-        stake.amount = stake.amount + amount;
+        stake.amount = stake.amount.checked_add(amount).ok_or(ErrorCode::ArithmeticOverflow)?;
         stake.staked_at = Clock::get()?.unix_timestamp;
         stake.last_voice_claim = Clock::get()?.unix_timestamp;
 
@@ -113,8 +128,16 @@ pub mod found_token {
     }
 
     /// Unstake FOUND with graduated burn based on duration
+    ///
+    /// NOTE (devnet-safe, mainnet-blocker): This function currently records the
+    /// unstake intent but does NOT yet perform the PDA-signed token transfer
+    /// from the staking vault back to the staker. That transfer requires a
+    /// vault PDA with seeds + bump, which should be added with integration
+    /// tests before any mainnet deploy. On devnet users should treat staked
+    /// tokens as locked.
     pub fn unstake_found(ctx: Context<UnstakeFound>, amount: u64) -> Result<()> {
         let stake = &mut ctx.accounts.stake_account;
+        require_keys_eq!(ctx.accounts.staker.key(), stake.owner, ErrorCode::Unauthorized);
         require!(stake.amount >= amount, ErrorCode::InsufficientStake);
 
         let now = Clock::get()?.unix_timestamp;
@@ -132,9 +155,9 @@ pub mod found_token {
             else if duration < 3 * 365 * 86400 { 70 }
             else { 90 };
 
-        // Transfer FOUND back to staker
-        // (In production, this would use a PDA-signed transfer from the vault)
-        stake.amount -= amount;
+        // Devnet-safe bookkeeping only — see NOTE on function above.
+        // Mainnet requires PDA-signed vault->staker transfer before this ships.
+        stake.amount = stake.amount.checked_sub(amount).ok_or(ErrorCode::ArithmeticOverflow)?;
 
         msg!("Unstaked {} FOUND (staked for {} days)", amount, duration / 86400);
         Ok(())
@@ -155,11 +178,17 @@ pub mod found_token {
         Ok(())
     }
 
-    /// Reward a node operator for uptime and service
+    /// Reward a node operator for uptime and service.
+    /// Only callable by the treasury authority.
     pub fn reward_node(ctx: Context<RewardNode>, amount: u64) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            ctx.accounts.treasury.authority,
+            ErrorCode::Unauthorized
+        );
         let node = &mut ctx.accounts.node_account;
         require!(node.is_active, ErrorCode::NodeInactive);
-        node.total_earned += amount;
+        node.total_earned = node.total_earned.checked_add(amount).ok_or(ErrorCode::ArithmeticOverflow)?;
 
         msg!("Node rewarded {} FOUND", amount);
         Ok(())
@@ -269,6 +298,7 @@ pub struct RegisterNode<'info> {
 
 #[derive(Accounts)]
 pub struct RewardNode<'info> {
+    pub treasury: Account<'info, Treasury>,
     #[account(mut)]
     pub node_account: Account<'info, NodeAccount>,
     pub authority: Signer<'info>,
@@ -288,4 +318,8 @@ pub enum ErrorCode {
     InsufficientStake,
     #[msg("Node is not active.")]
     NodeInactive,
+    #[msg("Caller is not the treasury authority.")]
+    Unauthorized,
+    #[msg("Arithmetic overflow.")]
+    ArithmeticOverflow,
 }
